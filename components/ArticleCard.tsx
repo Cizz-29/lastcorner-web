@@ -50,9 +50,9 @@ export function ArticleCardSmall({ article }: { article: Article }) {
 export function ArticleCardGrid({ article }: { article: Article }) {
   return (
     <Link href={`/${article.slug}`} className="group block">
-      <div className="relative rounded-card overflow-hidden border-b-2 border-lc-red bg-lc-card">
-        {/* Immagine */}
-        <div className="relative aspect-[348/292]">
+      <div className="relative rounded-card overflow-hidden border-b-2 border-lc-red bg-lc-card flex flex-col">
+        {/* Immagine — altezza fissa, no aspect-ratio che causa il bug */}
+        <div className="relative h-[230px] w-full overflow-hidden rounded-t-card">
           <Image
             src={article.imageUrl}
             alt={article.title}
@@ -60,12 +60,24 @@ export function ArticleCardGrid({ article }: { article: Article }) {
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, 348px"
           />
-          {/* Gradiente dal basso */}
-          <div className="absolute inset-0 bg-card-gradient" />
+          {/* Gradiente lineare dal basso — esatto dal Figma */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(0deg, rgb(5,5,5) 24%, rgba(8,8,8,0) 100%)',
+            }}
+          />
+          {/* Glow radiale rosso dal basso — radialGradient dal Figma */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(ellipse 100% 40% at 50% 110%, rgba(255,58,58,0.85) 0%, rgba(255,58,58,0) 70%)',
+            }}
+          />
         </div>
 
-        {/* Testo sovrapposto */}
-        <div className="p-4 -mt-12 relative z-10">
+        {/* Testo sotto l'immagine */}
+        <div className="px-3 pt-3 pb-4">
           <h3 className="font-akira font-bold text-[12px] text-white leading-tight line-clamp-3 text-center mb-2">
             {article.title}
           </h3>
@@ -96,12 +108,16 @@ export function ArticleCardHero({ article }: { article: Article }) {
         priority
       />
 
-      {/* Gradiente basso + alone rosso in basso */}
-      <div className="absolute inset-0 bg-card-gradient" />
+      {/* Gradiente lineare dal basso */}
       <div
-        className="absolute inset-0 opacity-30"
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(0deg, rgb(5,5,5) 24%, rgba(8,8,8,0) 100%)' }}
+      />
+      {/* Glow radiale rosso — esatto dal Figma (radialGradient centrato in basso) */}
+      <div
+        className="absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse at 50% 110%, #FF3A3A 0%, transparent 60%)',
+          background: 'radial-gradient(ellipse 80% 35% at 50% 108%, rgba(255,58,58,1) 0%, rgba(255,58,58,0) 65%)',
         }}
       />
 

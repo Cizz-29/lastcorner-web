@@ -63,16 +63,14 @@ export default function Navbar() {
       <div className="max-w-[1280px] mx-auto px-6 flex items-center justify-between h-[72px]">
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0">
-          {/* Placeholder finché non carichi il logo — sostituisce con <Image> quando hai il file */}
-          <div className="flex items-center gap-2">
-            <div className="w-[44px] h-[44px] bg-lc-red rounded-sm flex items-center justify-center">
-              <span className="font-akira font-bold text-white text-xl leading-none">L</span>
-            </div>
-            {/* Swoosh decorativo */}
-            <svg width="28" height="24" viewBox="0 0 28 24" fill="none">
-              <path d="M0 12 C8 2, 20 22, 28 12" stroke="#FF3A3A" strokeWidth="3" strokeLinecap="round" fill="none"/>
-            </svg>
-          </div>
+            <Image
+            src="/images/logo.svg"
+            alt="Lastcorner"
+            width={120}
+            height={52}
+            className="h-[52px] w-auto object-contain"
+            priority
+          />
         </Link>
 
         {/* Nav desktop */}
