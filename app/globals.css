@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Font locali ──────────────────────────────────────────── */
+/* Akira Expanded — metti i file .woff2 in /public/fonts/      */
+@font-face {
+  font-family: 'Akira Expanded';
+  src: url('/fonts/AkiraExpanded-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Akira Expanded';
+  src: url('/fonts/AkiraExpanded-SuperBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Montserrat da Google Fonts (caricato via layout.tsx) */
+
+/* ─── Reset e base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: #131318;
+  color: #ffffff;
+  font-family: 'Montserrat', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Variabili CSS ────────────────────────────────────────── */
+:root {
+  --lc-bg:      #131318;
+  --lc-header:  #09090c;
+  --lc-card:    #141418;
+  --lc-red:     #FF3A3A;
+  --lc-text:    #ffffff;
+  --lc-muted:   #E5E5E5;
+  --lc-subtle:  #C3C3C3;
+}
+
+/* ─── Utilities ────────────────────────────────────────────── */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Scrollbar personalizzata ─────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #09090c; }
+::-webkit-scrollbar-thumb { background: #FF3A3A; border-radius: 3px; }
