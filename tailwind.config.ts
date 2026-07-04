@@ -30,8 +30,6 @@ const config: Config = {
         'card-sm': '21px',
       },
       backgroundImage: {
-        // Gradiente scuro dal basso sulle card hero (estratto da Figma)
-        'card-gradient': 'linear-gradient(to top, rgb(5,5,5) 24%, rgba(8,8,8,0) 100%)',
         // Gradiente laterale per le card mini nella colonna destra
         'card-side-gradient': 'linear-gradient(to right, rgb(20,20,24) 1.5%, rgba(20,20,24,0.96) 13%, rgba(11,11,11,0.55) 27%, rgba(11,11,11,0) 32%)',
       },
