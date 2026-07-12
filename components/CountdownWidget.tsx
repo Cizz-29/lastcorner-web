@@ -57,8 +57,9 @@ export default function CountdownWidget({ initialRace }: { initialRace: Race | n
     if (!initialRace) return
     const session = getNextSession(initialRace)
     setNextSession(session)
+    if (!session) return
+    setCd(formatCountdown(session.datetime.getTime() - Date.now()))
     const interval = setInterval(() => {
-      if (!session) return
       setCd(formatCountdown(session.datetime.getTime() - Date.now()))
     }, 1000)
     return () => clearInterval(interval)
@@ -73,7 +74,12 @@ export default function CountdownWidget({ initialRace }: { initialRace: Race | n
           Countdown → <span className="text-lc-red font-semibold">{nextSession.label}</span>
         </p>
       )}
-      <div className="grid grid-cols-4 gap-2">
+      <div
+        className="grid grid-cols-4 gap-2"
+        role="timer"
+        aria-live="off"
+        aria-label={nextSession ? `Tra ${cd.days} giorni, ${cd.hours} ore, ${cd.minutes} minuti e ${cd.seconds} secondi inizia ${nextSession.label}` : undefined}
+      >
         {[
           { value: cd.days,    label: 'Giorni' },
           { value: cd.hours,   label: 'Ore' },

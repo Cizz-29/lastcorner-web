@@ -7,7 +7,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({ heroArticle, sideArticles }: HeroSectionProps) {
   return (
-    <section className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-3 mb-10">
+    <section className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-3 mb-10" aria-label="In evidenza">
       {/* Articolo hero grande */}
       <ArticleCardHero article={heroArticle} />
 

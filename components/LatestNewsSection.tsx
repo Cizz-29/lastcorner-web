@@ -1,5 +1,9 @@
-import { ArticleCardGrid, type Article } from './ArticleCard'
+import { Suspense } from 'react'
+import { type Article } from './ArticleCard'
+import NewsGrid from './NewsGrid'
 import StandingsWidget from './StandingsWidget'
+import InstagramCTA from './InstagramCTA'
+import { StandingsWidgetSkeleton } from './Skeletons'
 
 interface LatestNewsSectionProps {
   articles: Article[]
@@ -8,10 +12,10 @@ interface LatestNewsSectionProps {
 
 export default function LatestNewsSection({ articles, adSlot }: LatestNewsSectionProps) {
   return (
-    <section className="mb-10">
+    <section className="mb-10" aria-labelledby="latest-news-heading">
       {/* Titolo sezione */}
       <div className="flex items-center gap-3 mb-6">
-        <h2 className="font-akira font-extrabold text-[22px] text-white whitespace-nowrap">
+        <h2 id="latest-news-heading" className="font-akira font-extrabold text-[22px] text-white whitespace-nowrap">
           LE ULTIME <span className="text-lc-red">NEWS</span>
         </h2>
         {/* Linea decorativa rossa */}
@@ -20,23 +24,24 @@ export default function LatestNewsSection({ articles, adSlot }: LatestNewsSectio
 
       {/* Layout griglia + sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-        {/* Griglia articoli 2 colonne */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {articles.slice(0, 4).map((article) => (
-            <ArticleCardGrid key={article.id} article={article} />
-          ))}
-        </div>
+        {/* Griglia articoli con filtro categoria */}
+        <NewsGrid articles={articles} />
 
         {/* Sidebar */}
         <aside className="flex flex-col gap-4">
-          {/* Widget classifica */}
-          <StandingsWidget />
+          {/* Widget classifica — in streaming, non blocca il resto della pagina */}
+          <Suspense fallback={<StandingsWidgetSkeleton />}>
+            <StandingsWidget />
+          </Suspense>
+
+          {/* CTA Instagram */}
+          <InstagramCTA />
 
           {/* Slot pubblicitario 300x600 */}
           {adSlot ? (
             adSlot
           ) : (
-            <div className="w-[300px] h-[250px] bg-lc-card rounded-card border border-white/10 flex items-center justify-center">
+            <div className="w-full h-[250px] bg-lc-card rounded-card border border-white/10 flex items-center justify-center">
               <span className="font-montserrat text-[11px] text-lc-subtle text-center px-4">
                 Spazio pubblicitario<br/>300×250
               </span>

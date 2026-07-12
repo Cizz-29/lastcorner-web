@@ -68,9 +68,27 @@ function getRaceWeekend(race: any) {
   return { sessions, nextSessionLabel, nextSessionDate }
 }
 
+function NextEventFallback() {
+  return (
+    <section className="relative mb-16 overflow-hidden rounded-[32px] bg-[#0a0a0e] border border-white/10">
+      <div className="relative z-10 p-8 lg:p-12 flex flex-col items-center text-center gap-3">
+        <div className="w-1 h-8 bg-lc-red rounded-full mb-2" />
+        <h2 className="font-akira font-extrabold text-[24px] lg:text-[32px] leading-none">
+          <span className="text-lc-red">F1:</span>{' '}
+          <span className="text-white">PROSSIMO EVENTO</span>
+        </h2>
+        <p className="font-montserrat text-[13px] text-lc-subtle max-w-md">
+          Non riusciamo a recuperare i dati del prossimo Gran Premio in questo momento.
+          Riprova tra qualche minuto.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 export default async function NextEventSection() {
   const race = await getNextRace()
-  if (!race) return null
+  if (!race) return <NextEventFallback />
 
   const country = race.Circuit?.Location?.country ?? ''
   const flag = FLAGS[country] ?? '🏁'
@@ -140,7 +158,7 @@ export default async function NextEventSection() {
             {/* Nome GP e location */}
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-[48px] leading-none">{flag}</span>
+                <span className="text-[48px] leading-none" aria-hidden>{flag}</span>
                 <div>
                   <h3 className="font-akira font-bold text-[22px] lg:text-[28px] text-white leading-tight">
                     {race.raceName}
@@ -158,7 +176,7 @@ export default async function NextEventSection() {
             {/* Data gara */}
             <div className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3 border border-white/10">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                className="text-lc-red shrink-0">
+                className="text-lc-red shrink-0" aria-hidden>
                 <rect x="3" y="4" width="18" height="18" rx="2"/>
                 <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
                 <line x1="3" y1="10" x2="21" y2="10"/>
@@ -172,7 +190,7 @@ export default async function NextEventSection() {
             {/* Prossima sessione */}
             {nextSessionDate && (
               <div className="flex items-center gap-3 bg-lc-red/10 rounded-xl px-4 py-3 border border-lc-red/30">
-                <div className="w-2 h-2 rounded-full bg-lc-red animate-pulse shrink-0" />
+                <div className="w-2 h-2 rounded-full bg-lc-red animate-pulse motion-reduce:animate-none shrink-0" aria-hidden />
                 <div>
                   <p className="font-montserrat text-[10px] text-lc-red uppercase tracking-wider">Prossima sessione</p>
                   <p className="font-akira font-bold text-[13px] text-white">{nextSessionLabel}</p>
@@ -214,9 +232,9 @@ export default async function NextEventSection() {
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        {isNext && <div className="w-1.5 h-1.5 rounded-full bg-lc-red animate-pulse" />}
-                        {isPast && !isNext && <div className="w-1.5 h-1.5 rounded-full bg-white/20" />}
-                        {!isNext && !isPast && <div className="w-1.5 h-1.5 rounded-full bg-white/40" />}
+                        {isNext && <div className="w-1.5 h-1.5 rounded-full bg-lc-red animate-pulse motion-reduce:animate-none" aria-hidden />}
+                        {isPast && !isNext && <div className="w-1.5 h-1.5 rounded-full bg-white/20" aria-hidden />}
+                        {!isNext && !isPast && <div className="w-1.5 h-1.5 rounded-full bg-white/40" aria-hidden />}
                         <span className={`font-akira text-[11px] ${isNext ? 'text-white' : 'text-white/70'}`}>
                           {s.label}
                         </span>

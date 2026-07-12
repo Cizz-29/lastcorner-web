@@ -10,12 +10,13 @@ export interface Article {
   date: string
   imageUrl: string
   excerpt?: string
+  breaking?: boolean
 }
 
 // ── Card piccola: colonna destra hero (orizzontale) ──────────
 export function ArticleCardSmall({ article }: { article: Article }) {
   return (
-    <Link href={`/${article.slug}`} className="group block">
+    <Link href={`/${article.slug}`} className="group block focus-visible:outline-2 focus-visible:outline-lc-red focus-visible:outline-offset-2 rounded-[21px]">
       <div className="relative h-[94px] w-full bg-lc-card rounded-[21px] overflow-hidden border-t border-b border-r border-white/60 flex items-stretch">
         {/* Immagine a sinistra */}
         <div className="relative w-[130px] shrink-0 overflow-hidden">
@@ -51,8 +52,8 @@ export function ArticleCardSmall({ article }: { article: Article }) {
 // Struttura: testo in cima → immagine in fondo con glow/sfumatura dal bordo rosso
 export function ArticleCardGrid({ article }: { article: Article }) {
   return (
-    <Link href={`/${article.slug}`} className="group block">
-      <div className="rounded-card border-b-2 border-lc-red bg-lc-card overflow-hidden flex flex-col">
+    <Link href={`/${article.slug}`} className="group block focus-visible:outline-2 focus-visible:outline-lc-red focus-visible:outline-offset-2 rounded-card">
+      <div className="rounded-card border-b-2 border-lc-red bg-lc-card overflow-hidden flex flex-col h-full">
 
         {/* Testo IN CIMA */}
         <div className="px-4 pt-4 pb-3 flex flex-col gap-2">
@@ -100,7 +101,7 @@ export function ArticleCardGrid({ article }: { article: Article }) {
 // ── Card hero: articolo principale ─────────────────────────
 export function ArticleCardHero({ article }: { article: Article }) {
   return (
-    <Link href={`/${article.slug}`} className="group block relative h-[437px] rounded-card overflow-hidden border-b-2 border-lc-red">
+    <Link href={`/${article.slug}`} className="group block relative h-[437px] rounded-card overflow-hidden border-b-2 border-lc-red focus-visible:outline-2 focus-visible:outline-lc-red focus-visible:outline-offset-2">
       <Image
         src={article.imageUrl}
         alt={article.title}

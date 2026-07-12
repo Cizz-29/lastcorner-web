@@ -1,35 +1,10 @@
-// Server Component — fetch diretto, cache 1 ora
+// Server Component — fetch diretto (parallelo), cache 1 ora
 
-interface Driver {
-  position: string
-  Driver: { familyName: string; givenName: string; nationality: string }
-  Constructors: [{ name: string }]
-  points: string
-  wins: string
-}
-
-interface Constructor {
-  position: string
-  Constructor: { name: string; nationality: string }
-  points: string
-  wins: string
-}
-
-async function getDriverStandings(): Promise<Driver[]> {
-  try {
-    const res = await fetch('https://api.jolpi.ca/ergast/f1/current/driverStandings.json', { next: { revalidate: 3600 } })
-    const data = await res.json()
-    return data?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? []
-  } catch { return [] }
-}
-
-async function getConstructorStandings(): Promise<Constructor[]> {
-  try {
-    const res = await fetch('https://api.jolpi.ca/ergast/f1/current/constructorStandings.json', { next: { revalidate: 3600 } })
-    const data = await res.json()
-    return data?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings ?? []
-  } catch { return [] }
-}
+import {
+  getAllStandings,
+  type DriverStanding,
+  type ConstructorStanding,
+} from '@/lib/f1api'
 
 const TEAM_COLORS: Record<string, string> = {
   'Red Bull': '#3671C6', 'Ferrari': '#E8002D', 'Mercedes': '#27F4D2',
@@ -44,79 +19,96 @@ function getTeamColor(teamName: string): string {
   return '#FF3A3A'
 }
 
-async function DriverStandings() {
-  const drivers = await getDriverStandings()
+function EmptyState({ label }: { label: string }) {
+  return (
+    <p className="font-montserrat text-[11px] text-lc-subtle py-3 text-center">
+      Classifica {label} non disponibile al momento.
+    </p>
+  )
+}
+
+function DriverStandings({ drivers }: { drivers: DriverStanding[] }) {
   return (
     <div>
       <h3 className="font-akira text-[10px] text-lc-subtle uppercase mb-3 tracking-widest">Piloti</h3>
-      <div className="flex flex-col gap-[2px]">
-        {drivers.slice(0, 5).map((d) => {
-          const color = getTeamColor(d.Constructors[0]?.name ?? '')
-          const isFirst = d.position === '1'
-          return (
-            <div key={d.position} className="flex items-center gap-2 py-[5px] px-2 rounded-lg hover:bg-white/5 transition-colors">
-              <span className="font-akira text-[11px] w-4 text-center shrink-0"
-                style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
-                {d.position}
-              </span>
-              <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />
-              <span className="font-akira text-[11px] text-white flex-1 truncate tracking-wide">
-                {d.Driver.familyName.toUpperCase()}
-              </span>
-              <span className="font-akira font-bold text-[11px] text-white shrink-0">
-                {d.points}
-              </span>
-            </div>
-          )
-        })}
-      </div>
+      {drivers.length === 0 ? (
+        <EmptyState label="piloti" />
+      ) : (
+        <div className="flex flex-col gap-[2px]">
+          {drivers.slice(0, 5).map((d) => {
+            const color = getTeamColor(d.Constructors[0]?.name ?? '')
+            const isFirst = d.position === '1'
+            return (
+              <div key={d.position} className="flex items-center gap-2 py-[5px] px-2 rounded-lg hover:bg-white/5 transition-colors">
+                <span className="font-akira text-[11px] w-4 text-center shrink-0"
+                  style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
+                  {d.position}
+                </span>
+                <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />
+                <span className="font-akira text-[11px] text-white flex-1 truncate tracking-wide">
+                  {d.Driver.familyName.toUpperCase()}
+                </span>
+                <span className="font-akira font-bold text-[11px] text-white shrink-0">
+                  {d.points}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
-async function ConstructorStandings() {
-  const teams = await getConstructorStandings()
+function ConstructorStandings({ teams }: { teams: ConstructorStanding[] }) {
   return (
     <div>
       <h3 className="font-akira text-[10px] text-lc-subtle uppercase mb-3 tracking-widest">Costruttori</h3>
-      <div className="flex flex-col gap-[2px]">
-        {teams.slice(0, 5).map((t) => {
-          const color = getTeamColor(t.Constructor.name)
-          const isFirst = t.position === '1'
-          return (
-            <div key={t.position} className="flex items-center gap-2 py-[5px] px-2 rounded-lg hover:bg-white/5 transition-colors">
-              <span className="font-akira text-[11px] w-4 text-center shrink-0"
-                style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
-                {t.position}
-              </span>
-              <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />
-              <span className="font-akira text-[11px] text-white flex-1 truncate tracking-wide">
-                {t.Constructor.name.toUpperCase()}
-              </span>
-              <span className="font-akira font-bold text-[11px] text-white shrink-0">
-                {t.points}
-              </span>
-            </div>
-          )
-        })}
-      </div>
+      {teams.length === 0 ? (
+        <EmptyState label="costruttori" />
+      ) : (
+        <div className="flex flex-col gap-[2px]">
+          {teams.slice(0, 5).map((t) => {
+            const color = getTeamColor(t.Constructor.name)
+            const isFirst = t.position === '1'
+            return (
+              <div key={t.position} className="flex items-center gap-2 py-[5px] px-2 rounded-lg hover:bg-white/5 transition-colors">
+                <span className="font-akira text-[11px] w-4 text-center shrink-0"
+                  style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
+                  {t.position}
+                </span>
+                <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />
+                <span className="font-akira text-[11px] text-white flex-1 truncate tracking-wide">
+                  {t.Constructor.name.toUpperCase()}
+                </span>
+                <span className="font-akira font-bold text-[11px] text-white shrink-0">
+                  {t.points}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
 export default async function StandingsWidget() {
+  const { drivers, constructors } = await getAllStandings()
+  const season = new Date().getFullYear()
+
   return (
     <div className="bg-lc-card rounded-card p-5 border border-white/10">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-1 h-5 bg-lc-red rounded-full" />
         <h2 className="font-akira font-bold text-[13px] text-white uppercase tracking-wide">
-          Classifica F1 2025
+          Classifica F1 {season}
         </h2>
       </div>
       <div className="flex flex-col gap-5">
-        <DriverStandings />
+        <DriverStandings drivers={drivers} />
         <div className="h-px bg-white/10" />
-        <ConstructorStandings />
+        <ConstructorStandings teams={constructors} />
       </div>
       <div className="mt-4 text-center">
         <a href="/formula-1/classifica"
