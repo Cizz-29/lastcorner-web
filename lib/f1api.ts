@@ -6,7 +6,7 @@ const BASE = 'https://api.jolpi.ca/ergast/f1'
 export async function getNextRace() {
   try {
     const res = await fetch(`${BASE}/current/next.json`, {
-      next: { revalidate: 3600 }
+      next: { revalidate: 3600 },
     })
     if (!res.ok) return null
     const data = await res.json()
@@ -20,7 +20,7 @@ export async function getNextRace() {
 export async function getCurrentSchedule() {
   try {
     const res = await fetch(`${BASE}/current.json`, {
-      next: { revalidate: 3600 }
+      next: { revalidate: 3600 },
     })
     if (!res.ok) return []
     const data = await res.json()
@@ -30,10 +30,25 @@ export async function getCurrentSchedule() {
   }
 }
 
-export async function getDriverStandings() {
+export interface DriverStanding {
+  position: string
+  Driver: { familyName: string; givenName: string; nationality: string }
+  Constructors: [{ name: string }]
+  points: string
+  wins: string
+}
+
+export interface ConstructorStanding {
+  position: string
+  Constructor: { name: string; nationality: string }
+  points: string
+  wins: string
+}
+
+export async function getDriverStandings(): Promise<DriverStanding[]> {
   try {
     const res = await fetch(`${BASE}/current/driverStandings.json`, {
-      next: { revalidate: 3600 }
+      next: { revalidate: 3600 },
     })
     if (!res.ok) return []
     const data = await res.json()
@@ -43,10 +58,10 @@ export async function getDriverStandings() {
   }
 }
 
-export async function getConstructorStandings() {
+export async function getConstructorStandings(): Promise<ConstructorStanding[]> {
   try {
     const res = await fetch(`${BASE}/current/constructorStandings.json`, {
-      next: { revalidate: 3600 }
+      next: { revalidate: 3600 },
     })
     if (!res.ok) return []
     const data = await res.json()
@@ -54,4 +69,14 @@ export async function getConstructorStandings() {
   } catch {
     return []
   }
+}
+
+// Fetch combinato: le due chiamate partono in parallelo invece che
+// una dopo l'altra, riducendo il tempo totale di attesa lato server.
+export async function getAllStandings() {
+  const [drivers, constructors] = await Promise.all([
+    getDriverStandings(),
+    getConstructorStandings(),
+  ])
+  return { drivers, constructors }
 }

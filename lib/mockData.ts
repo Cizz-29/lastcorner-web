@@ -14,6 +14,7 @@ export const MOCK_ARTICLES: Article[] = [
     author: 'Francesco Di Blasi',
     date: '28 maggio',
     imageUrl: PLACEHOLDER,
+    breaking: true,
   },
   {
     id: '2',
@@ -23,6 +24,7 @@ export const MOCK_ARTICLES: Article[] = [
     author: 'Redazione',
     date: '27 maggio',
     imageUrl: PLACEHOLDER_2,
+    breaking: true,
   },
   {
     id: '3',
