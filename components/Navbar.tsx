@@ -85,7 +85,7 @@ export default function Navbar() {
       {/* Striscia decorativa rossa in cima */}
       <div className="h-[3px] bg-lc-red w-full" />
 
-      <div className="max-w-[1280px] mx-auto px-10 flex items-center justify-between h-[72px]">
+      <div className="max-w-[1280px] mx-auto px-20 flex items-center justify-between h-[72px]">
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0 focus-visible:outline-2 focus-visible:outline-lc-red focus-visible:outline-offset-4 rounded">
             <Image
@@ -164,7 +164,7 @@ export default function Navbar() {
       {/* Menu mobile */}
       <div
         id="mobile-menu"
-        className={`lg:hidden bg-lc-header border-t border-white/10 px-10 overflow-y-auto overflow-x-hidden transition-[max-height,padding] duration-300 ${
+        className={`lg:hidden bg-lc-header border-t border-white/10 px-20 overflow-y-auto overflow-x-hidden transition-[max-height,padding] duration-300 ${
           mobileOpen ? 'max-h-[80vh] pb-6' : 'max-h-0 pb-0'
         }`}
       >

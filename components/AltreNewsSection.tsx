@@ -21,8 +21,9 @@ export default function AltreNewsSection({ articles }: AltreNewsSectionProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-        {/* Lista articoli — stessa card orizzontale della colonna hero */}
-        <div className="flex flex-col gap-[3px]">
+        {/* Griglia articoli — stessa card orizzontale della colonna hero,
+            su 2 colonne così restano compatte invece di stirarsi a piena larghezza */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {articles.slice(0, 6).map((article) => (
             <ArticleCardSmall key={article.id} article={article} />
           ))}

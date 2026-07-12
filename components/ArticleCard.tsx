@@ -19,15 +19,20 @@ export function ArticleCardSmall({ article }: { article: Article }) {
     <Link href={`/${article.slug}`} className="group block focus-visible:outline-2 focus-visible:outline-lc-red focus-visible:outline-offset-2 rounded-[21px]">
       <div className="relative h-[94px] w-full bg-lc-card rounded-[21px] overflow-hidden border-t border-b border-r border-white/60 flex items-stretch">
         {/* Immagine a sinistra */}
-        <div className="relative w-[130px] shrink-0 overflow-hidden">
+        <div className="relative w-[140px] shrink-0 overflow-hidden">
           <Image
             src={article.imageUrl}
             alt={article.title}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="130px"
+            sizes="140px"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-lc-card" />
+          {/* Sfumatura verso il testo: l'immagine resta leggibile più a lungo,
+              la dissolvenza comincia solo nell'ultimo terzo */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(90deg, rgba(20,20,24,0) 55%, rgba(20,20,24,1) 100%)' }}
+          />
         </div>
 
         {/* Testo a destra */}
