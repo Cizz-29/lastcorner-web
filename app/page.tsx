@@ -17,7 +17,7 @@ export default async function HomePage() {
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
 
-      <main id="main-content" className="max-w-[1280px] w-full mx-auto px-10 pt-[96px] flex-1">
+      <main id="main-content" className="max-w-[1280px] w-full mx-auto px-20 pt-[96px] flex-1">
 
         {/* ── ULTIM'ORA ─────────────────────────────────────── */}
         <NewsTicker articles={MOCK_ARTICLES} />
