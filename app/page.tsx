@@ -1,19 +1,25 @@
+import { Suspense } from 'react'
 import Navbar from '@/components/Navbar'
+import NewsTicker from '@/components/NewsTicker'
 import HeroSection from '@/components/HeroSection'
 import LatestNewsSection from '@/components/LatestNewsSection'
 import NextEventSection from '@/components/NextEventSection'
+import Footer from '@/components/Footer'
+import { NextEventSkeleton } from '@/components/Skeletons'
 import { MOCK_ARTICLES } from '@/lib/mockData'
 
 export default async function HomePage() {
   const heroArticle = MOCK_ARTICLES[0]
   const sideArticles = MOCK_ARTICLES.slice(1, 5)
-  const latestArticles = MOCK_ARTICLES.slice(0, 4)
 
   return (
-    <div className="min-h-screen bg-lc-bg">
+    <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
 
-      <main className="max-w-[1280px] mx-auto px-6 pt-[96px]">
+      <main id="main-content" className="max-w-[1280px] w-full mx-auto px-6 pt-[96px] flex-1">
+
+        {/* ── ULTIM'ORA ─────────────────────────────────────── */}
+        <NewsTicker articles={MOCK_ARTICLES} />
 
         {/* ── HERO ──────────────────────────────────────────── */}
         <HeroSection
@@ -22,25 +28,21 @@ export default async function HomePage() {
         />
 
         {/* ── LE ULTIME NEWS ────────────────────────────────── */}
-        <LatestNewsSection articles={latestArticles} />
+        <LatestNewsSection articles={MOCK_ARTICLES} />
 
         {/* ── BANNER ORIZZONTALE ───────────────────────────── */}
         <div className="w-full h-[100px] bg-lc-card rounded-card border border-white/10 flex items-center justify-center mb-12">
           <span className="font-montserrat text-[11px] text-lc-subtle">Spazio pubblicitario</span>
         </div>
 
-        {/* ── PROSSIMO EVENTO F1 ────────────────────────────── */}
-        <NextEventSection />
+        {/* ── PROSSIMO EVENTO F1 — in streaming, non blocca il resto della pagina ── */}
+        <Suspense fallback={<NextEventSkeleton />}>
+          <NextEventSection />
+        </Suspense>
 
       </main>
 
-      <footer className="border-t border-white/10 mt-8 py-8">
-        <div className="max-w-[1280px] mx-auto px-6 text-center">
-          <p className="font-montserrat text-[12px] text-lc-subtle">
-            © 2025 Lastcorner.net — Il motorsport a 360°
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

@@ -59,6 +59,20 @@ body {
   overflow: hidden;
 }
 
+/* Nasconde la scrollbar delle tab categoria orizzontali (touch/drag restano attivi) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* sr-only / focus:not-sr-only sono utility native di Tailwind, usate nello skip-link */
+
+/* Rispetta la preferenza utente per animazioni ridotte anche fuori da Tailwind */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
 /* ─── Scrollbar personalizzata ─────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #09090c; }
