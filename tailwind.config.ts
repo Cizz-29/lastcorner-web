@@ -33,6 +33,15 @@ const config: Config = {
         // Gradiente laterale per le card mini nella colonna destra
         'card-side-gradient': 'linear-gradient(to right, rgb(20,20,24) 1.5%, rgba(20,20,24,0.96) 13%, rgba(11,11,11,0.55) 27%, rgba(11,11,11,0) 32%)',
       },
+      keyframes: {
+        marquee: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+      },
+      animation: {
+        marquee: 'marquee 28s linear infinite',
+      },
     },
   },
   plugins: [],
