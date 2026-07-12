@@ -5,6 +5,7 @@ const PLACEHOLDER = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w
 const PLACEHOLDER_2 = 'https://images.unsplash.com/photo-1541447270886-5b0a95c8f8ea?w=800&q=80'
 const PLACEHOLDER_3 = 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&q=80'
 
+// Articoli mostrati in hero + "Le ultime news"
 export const MOCK_ARTICLES: Article[] = [
   {
     id: '1',
@@ -60,6 +61,48 @@ export const MOCK_ARTICLES: Article[] = [
     category: 'Formula 1',
     author: 'Luca Rossi',
     date: '23 maggio',
+    imageUrl: PLACEHOLDER_3,
+  },
+]
+
+// Articoli aggiuntivi per la sezione "Altre News" — non compaiono in
+// hero/"Le ultime news", così la sezione mostra contenuti diversi.
+// Da sostituire con la query Sanity reale quando il CMS sarà collegato.
+export const MOCK_OTHER_ARTICLES: Article[] = [
+  {
+    id: '7',
+    title: 'WRC Rally Italia Sardegna: doppietta Toyota, ordine ribaltato nel finale',
+    slug: 'wrc/rally-italia-sardegna-toyota',
+    category: 'WRC',
+    author: 'Marco Bianchi',
+    date: '22 maggio',
+    imageUrl: PLACEHOLDER_3,
+  },
+  {
+    id: '8',
+    title: 'Formula 3: pole position per il rookie italiano a Barcellona',
+    slug: 'formula-3/pole-rookie-italiano-barcellona',
+    category: 'Formula 3',
+    author: 'Redazione',
+    date: '21 maggio',
+    imageUrl: PLACEHOLDER,
+  },
+  {
+    id: '9',
+    title: 'Mercedes annuncia il rinnovo dello sponsor titolo per il 2026',
+    slug: 'formula-1/mercedes-rinnovo-sponsor-2026',
+    category: 'Formula 1',
+    author: 'Francesco Di Blasi',
+    date: '20 maggio',
+    imageUrl: PLACEHOLDER_2,
+  },
+  {
+    id: '10',
+    title: 'MotoGP a Barcellona: analisi del weekend e classifica aggiornata',
+    slug: 'altro/motogp-barcellona-analisi',
+    category: 'Altro',
+    author: 'Luca Rossi',
+    date: '19 maggio',
     imageUrl: PLACEHOLDER_3,
   },
 ]
