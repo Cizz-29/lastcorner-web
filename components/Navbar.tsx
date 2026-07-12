@@ -85,7 +85,7 @@ export default function Navbar() {
       {/* Striscia decorativa rossa in cima */}
       <div className="h-[3px] bg-lc-red w-full" />
 
-      <div className="max-w-[1280px] mx-auto px-6 flex items-center justify-between h-[72px]">
+      <div className="max-w-[1280px] mx-auto px-10 flex items-center justify-between h-[72px]">
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0 focus-visible:outline-2 focus-visible:outline-lc-red focus-visible:outline-offset-4 rounded">
             <Image
@@ -118,7 +118,7 @@ export default function Navbar() {
                     <Link
                       key={item.label}
                       href={item.slug ? `${link.href}/${item.slug}` : link.href}
-                      className="block px-4 py-2 font-montserrat text-[12px] text-white/75 hover:text-lc-red hover:bg-white/5 transition-colors duration-150"
+                      className="block px-4 py-2 font-akira font-bold text-[11px] tracking-wide text-white/75 hover:text-lc-red hover:bg-white/5 transition-colors duration-150"
                     >
                       {item.label}
                     </Link>
@@ -164,7 +164,7 @@ export default function Navbar() {
       {/* Menu mobile */}
       <div
         id="mobile-menu"
-        className={`lg:hidden bg-lc-header border-t border-white/10 px-6 overflow-y-auto overflow-x-hidden transition-[max-height,padding] duration-300 ${
+        className={`lg:hidden bg-lc-header border-t border-white/10 px-10 overflow-y-auto overflow-x-hidden transition-[max-height,padding] duration-300 ${
           mobileOpen ? 'max-h-[80vh] pb-6' : 'max-h-0 pb-0'
         }`}
       >
@@ -186,7 +186,7 @@ export default function Navbar() {
                     key={item.label}
                     href={item.slug ? `${link.href}/${item.slug}` : link.href}
                     onClick={() => setMobileOpen(false)}
-                    className="font-montserrat text-[10px] text-white/50 hover:text-lc-red transition-colors duration-200"
+                    className="font-akira font-bold text-[9px] tracking-wide text-white/50 hover:text-lc-red transition-colors duration-200"
                   >
                     {item.label}
                   </Link>

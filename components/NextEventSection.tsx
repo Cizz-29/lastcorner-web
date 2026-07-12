@@ -43,7 +43,7 @@ const COUNTRY_COLORS: Record<string, [string, string]> = {
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr)
-  return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
+  return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome' })
 }
 
 function getRaceWeekend(race: any) {
@@ -123,7 +123,7 @@ export default async function NextEventSection() {
         {/* Grande bandiera sfumata come watermark */}
         {flagCode && (
           <div
-            className="absolute right-[-60px] top-1/2 -translate-y-1/2 w-[480px] h-[320px] select-none pointer-events-none"
+            className="absolute right-[-60px] top-[-40px] w-[480px] h-[320px] select-none pointer-events-none"
             style={{ opacity: 0.09, filter: 'blur(1px)' }}
             aria-hidden
           >
@@ -217,9 +217,9 @@ export default async function NextEventSection() {
                   <p className="font-montserrat text-[10px] text-lc-red uppercase tracking-wider">Prossima sessione</p>
                   <p className="font-akira font-bold text-[13px] text-white">{nextSessionLabel}</p>
                   <p className="font-montserrat text-[11px] text-lc-subtle mt-0.5">
-                    {nextSessionDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {nextSessionDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' })}
                     {' — '}
-                    {nextSessionDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                    {nextSessionDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })}
                   </p>
                 </div>
               </div>
@@ -262,10 +262,10 @@ export default async function NextEventSection() {
                         </span>
                       </div>
                       <span className="font-montserrat text-[10px] text-lc-subtle">
-                        {dt.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        {dt.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })}
                         {' '}
                         <span className={isNext ? 'text-lc-red font-semibold' : ''}>
-                          {dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                          {dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })}
                         </span>
                       </span>
                     </div>

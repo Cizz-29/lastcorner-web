@@ -1,4 +1,4 @@
-import { type Article, ArticleCardGrid } from './ArticleCard'
+import { type Article, ArticleCardSmall } from './ArticleCard'
 import SocialCard from './SocialCard'
 
 interface AltreNewsSectionProps {
@@ -21,10 +21,10 @@ export default function AltreNewsSection({ articles }: AltreNewsSectionProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-        {/* Griglia articoli */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Lista articoli — stessa card orizzontale della colonna hero */}
+        <div className="flex flex-col gap-[3px]">
           {articles.slice(0, 6).map((article) => (
-            <ArticleCardGrid key={article.id} article={article} />
+            <ArticleCardSmall key={article.id} article={article} />
           ))}
         </div>
 
@@ -32,15 +32,10 @@ export default function AltreNewsSection({ articles }: AltreNewsSectionProps) {
         <aside className="flex flex-col gap-4">
           <SocialCard />
 
-          <div className="w-full h-[250px] bg-lc-card rounded-card border border-white/10 flex items-center justify-center">
+          {/* Banner verticale unico, dimensione standard AdSense (Half Page) */}
+          <div className="w-full h-[600px] bg-lc-card rounded-card border border-white/10 flex items-center justify-center">
             <span className="font-montserrat text-[11px] text-lc-subtle text-center px-4">
-              Spazio pubblicitario<br/>300×250
-            </span>
-          </div>
-
-          <div className="w-full h-[250px] bg-lc-card rounded-card border border-white/10 flex items-center justify-center">
-            <span className="font-montserrat text-[11px] text-lc-subtle text-center px-4">
-              Spazio pubblicitario<br/>300×250
+              Spazio pubblicitario<br/>300×600
             </span>
           </div>
         </aside>

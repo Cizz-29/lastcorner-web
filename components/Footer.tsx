@@ -29,7 +29,7 @@ export default function Footer() {
 
   return (
     <footer className="border-t border-white/10 mt-8 bg-lc-header">
-      <div className="max-w-[1280px] mx-auto px-6 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+      <div className="max-w-[1280px] mx-auto px-10 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* Brand */}
         <div>
           <Image
@@ -91,7 +91,7 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="max-w-[1280px] mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="max-w-[1280px] mx-auto px-10 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="font-montserrat text-[11px] text-lc-subtle text-center sm:text-left">
             © {year} Lastcorner.net — Next Gen Motorsport Coverage
           </p>
