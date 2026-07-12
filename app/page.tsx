@@ -4,9 +4,10 @@ import NewsTicker from '@/components/NewsTicker'
 import HeroSection from '@/components/HeroSection'
 import LatestNewsSection from '@/components/LatestNewsSection'
 import NextEventSection from '@/components/NextEventSection'
+import AltreNewsSection from '@/components/AltreNewsSection'
 import Footer from '@/components/Footer'
 import { NextEventSkeleton } from '@/components/Skeletons'
-import { MOCK_ARTICLES } from '@/lib/mockData'
+import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
 
 export default async function HomePage() {
   const heroArticle = MOCK_ARTICLES[0]
@@ -39,6 +40,9 @@ export default async function HomePage() {
         <Suspense fallback={<NextEventSkeleton />}>
           <NextEventSection />
         </Suspense>
+
+        {/* ── ALTRE NEWS — articoli non mostrati sopra ────────── */}
+        <AltreNewsSection articles={MOCK_OTHER_ARTICLES} />
 
       </main>
 

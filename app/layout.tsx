@@ -14,7 +14,7 @@ const SITE_URL = 'https://lastcorner.net'
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Lastcorner | Il motorsport a 360°',
+    default: 'Lastcorner | Next Gen Motorsport Coverage',
     template: '%s | Lastcorner',
   },
   description: 'News, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, WEC, WRC e tutto il motorsport.',
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: 'Lastcorner | Il motorsport a 360°',
+    title: 'Lastcorner | Next Gen Motorsport Coverage',
     description: 'News, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, WEC, WRC e tutto il motorsport.',
     url: SITE_URL,
     siteName: 'Lastcorner',
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Lastcorner',
-    description: 'Il motorsport a 360°',
+    description: 'Next Gen Motorsport Coverage',
   },
   robots: {
     index: true,

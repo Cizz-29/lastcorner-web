@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-export const alt = 'Lastcorner — Il motorsport a 360°'
+export const alt = 'Lastcorner — Next Gen Motorsport Coverage'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -50,7 +50,7 @@ export default function OpengraphImage() {
               LASTCORNER
             </span>
             <span style={{ fontSize: 28, color: '#C3C3C3', marginTop: 4 }}>
-              Il motorsport a 360°
+              Next Gen Motorsport Coverage
             </span>
           </div>
         </div>
