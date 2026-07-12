@@ -8,7 +8,7 @@ const FLAGS: Record<string, string> = {
   'Canada': '🇨🇦', 'Spain': '🇪🇸', 'Austria': '🇦🇹', 'UK': '🇬🇧',
   'Hungary': '🇭🇺', 'Belgium': '🇧🇪', 'Netherlands': '🇳🇱', 'Singapore': '🇸🇬',
   'Mexico': '🇲🇽', 'Brazil': '🇧🇷', 'Las Vegas': '🇺🇸', 'Qatar': '🇶🇦',
-  'Abu Dhabi': '🇦🇪', 'Azerbaijan': '🇦🇿', 'Bahrain': '🇧🇭',
+  'Abu Dhabi': '🇦🇪', 'Azerbaijan': '🇦🇿',
 }
 
 // Mappa paese → colore di accento per il gradiente bandiera
