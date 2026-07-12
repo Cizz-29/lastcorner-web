@@ -37,11 +37,9 @@ function DriverStandings({ drivers }: { drivers: DriverStanding[] }) {
         <div className="flex flex-col gap-[2px]">
           {drivers.slice(0, 5).map((d) => {
             const color = getTeamColor(d.Constructors[0]?.name ?? '')
-            const isFirst = d.position === '1'
             return (
               <div key={d.position} className="flex items-center gap-2 py-[5px] px-2 rounded-lg hover:bg-white/5 transition-colors">
-                <span className="font-akira text-[11px] w-4 text-center shrink-0"
-                  style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
+                <span className="font-akira text-[11px] w-4 text-center shrink-0 text-white">
                   {d.position}
                 </span>
                 <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />
@@ -70,11 +68,9 @@ function ConstructorStandings({ teams }: { teams: ConstructorStanding[] }) {
         <div className="flex flex-col gap-[2px]">
           {teams.slice(0, 5).map((t) => {
             const color = getTeamColor(t.Constructor.name)
-            const isFirst = t.position === '1'
             return (
               <div key={t.position} className="flex items-center gap-2 py-[5px] px-2 rounded-lg hover:bg-white/5 transition-colors">
-                <span className="font-akira text-[11px] w-4 text-center shrink-0"
-                  style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
+                <span className="font-akira text-[11px] w-4 text-center shrink-0 text-white">
                   {t.position}
                 </span>
                 <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />

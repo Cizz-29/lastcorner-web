@@ -1,14 +1,18 @@
+import Image from 'next/image'
 import CountdownWidget from './CountdownWidget'
 import { getNextRace } from '@/lib/f1api'
 
-// Mappa paese → emoji bandiera
-const FLAGS: Record<string, string> = {
-  'Australia': '🇦🇺', 'Bahrain': '🇧🇭', 'Saudi Arabia': '🇸🇦', 'Japan': '🇯🇵',
-  'China': '🇨🇳', 'USA': '🇺🇸', 'Italy': '🇮🇹', 'Monaco': '🇲🇨',
-  'Canada': '🇨🇦', 'Spain': '🇪🇸', 'Austria': '🇦🇹', 'UK': '🇬🇧',
-  'Hungary': '🇭🇺', 'Belgium': '🇧🇪', 'Netherlands': '🇳🇱', 'Singapore': '🇸🇬',
-  'Mexico': '🇲🇽', 'Brazil': '🇧🇷', 'Las Vegas': '🇺🇸', 'Qatar': '🇶🇦',
-  'Abu Dhabi': '🇦🇪', 'Azerbaijan': '🇦🇿',
+// Mappa paese → codice ISO 3166-1 alpha-2, usato per le immagini bandiera
+// da flagcdn.com (gratuito, no API key). Le emoji bandiera non si
+// renderizzano su Windows (Chrome/Edge mostrano il codice testuale, es.
+// "BE"), quindi usiamo immagini reali invece del carattere unicode.
+const FLAG_CODES: Record<string, string> = {
+  'Australia': 'au', 'Bahrain': 'bh', 'Saudi Arabia': 'sa', 'Japan': 'jp',
+  'China': 'cn', 'USA': 'us', 'Italy': 'it', 'Monaco': 'mc',
+  'Canada': 'ca', 'Spain': 'es', 'Austria': 'at', 'UK': 'gb',
+  'Hungary': 'hu', 'Belgium': 'be', 'Netherlands': 'nl', 'Singapore': 'sg',
+  'Mexico': 'mx', 'Brazil': 'br', 'Las Vegas': 'us', 'Qatar': 'qa',
+  'Abu Dhabi': 'ae', 'Azerbaijan': 'az',
 }
 
 // Mappa paese → colore di accento per il gradiente bandiera
@@ -91,7 +95,7 @@ export default async function NextEventSection() {
   if (!race) return <NextEventFallback />
 
   const country = race.Circuit?.Location?.country ?? ''
-  const flag = FLAGS[country] ?? '🏁'
+  const flagCode = FLAG_CODES[country] ?? null
   const colors = COUNTRY_COLORS[country] ?? ['#FF3A3A', '#FF3A3A']
   const { sessions, nextSessionLabel, nextSessionDate } = getRaceWeekend(race)
 
@@ -116,14 +120,21 @@ export default async function NextEventSection() {
                          radial-gradient(ellipse 60% 80% at 15% 80%, ${colors[1]}44 0%, transparent 50%)`,
           }}
         />
-        {/* Grande bandiera emoji sfumata come watermark */}
-        <div
-          className="absolute right-[-40px] top-1/2 -translate-y-1/2 text-[240px] leading-none select-none pointer-events-none"
-          style={{ opacity: 0.07, filter: 'blur(2px)' }}
-          aria-hidden
-        >
-          {flag}
-        </div>
+        {/* Grande bandiera sfumata come watermark */}
+        {flagCode && (
+          <div
+            className="absolute right-[-60px] top-1/2 -translate-y-1/2 w-[480px] h-[320px] select-none pointer-events-none"
+            style={{ opacity: 0.09, filter: 'blur(1px)' }}
+            aria-hidden
+          >
+            <Image
+              src={`https://flagcdn.com/w640/${flagCode}.png`}
+              alt=""
+              fill
+              className="object-cover"
+            />
+          </div>
+        )}
         {/* Griglia decorativa F1 */}
         <div
           className="absolute inset-0 opacity-[0.03]"
@@ -158,7 +169,18 @@ export default async function NextEventSection() {
             {/* Nome GP e location */}
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-[48px] leading-none" aria-hidden>{flag}</span>
+                {flagCode ? (
+                  <div className="relative w-[56px] h-[38px] rounded-md overflow-hidden shrink-0 shadow-md ring-1 ring-white/10">
+                    <Image
+                      src={`https://flagcdn.com/w160/${flagCode}.png`}
+                      alt={`Bandiera ${country}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <span className="text-[48px] leading-none" aria-hidden>🏁</span>
+                )}
                 <div>
                   <h3 className="font-akira font-bold text-[22px] lg:text-[28px] text-white leading-tight">
                     {race.raceName}
