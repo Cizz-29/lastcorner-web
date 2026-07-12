@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 const CATEGORY_LINKS = [
   { label: 'Formula 1', href: '/formula-1' },
@@ -31,8 +32,15 @@ export default function Footer() {
       <div className="max-w-[1280px] mx-auto px-6 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* Brand */}
         <div>
+          <Image
+            src="/images/logo.svg"
+            alt="Lastcorner"
+            width={40}
+            height={40}
+            className="h-10 w-auto object-contain mb-3"
+          />
           <p className="font-akira font-extrabold text-[18px] text-white mb-3">
-            LASTCORNER<span className="text-lc-red">.</span>
+            LASTCORNER.NET
           </p>
           <p className="font-montserrat text-[12px] text-lc-subtle leading-relaxed">
             News, analisi e approfondimenti su Formula 1 e tutto il motorsport.
@@ -85,7 +93,7 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="max-w-[1280px] mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="font-montserrat text-[11px] text-lc-subtle text-center sm:text-left">
-            © {year} Lastcorner.net — Il motorsport a 360°
+            © {year} Lastcorner.net — Next Gen Motorsport Coverage
           </p>
           <p className="font-montserrat text-[10px] text-white/30 text-center sm:text-right">
             Dati F1 forniti da Jolpica API. Non affiliato con Formula 1® o FIA.

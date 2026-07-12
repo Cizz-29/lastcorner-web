@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
+import SearchBar from './SearchBar'
 
 const NAV_LINKS = [
   { label: 'FORMULA 1', href: '/formula-1' },
@@ -11,6 +12,15 @@ const NAV_LINKS = [
   { label: 'WEC',       href: '/wec' },
   { label: 'WRC',       href: '/wrc' },
   { label: 'ALTRO',     href: '/altro' },
+]
+
+// Voci del sottomenu, uguali per ogni categoria, nell'ordine richiesto
+const SUBMENU_ITEMS = [
+  { label: 'News',        slug: '' },
+  { label: 'Piloti',      slug: 'piloti' },
+  { label: 'Team',        slug: 'team' },
+  { label: 'Classifica',  slug: 'classifica' },
+  { label: 'Calendario',  slug: 'calendario' },
 ]
 
 const SOCIAL_LINKS = [
@@ -88,21 +98,41 @@ export default function Navbar() {
           />
         </Link>
 
-        {/* Nav desktop */}
+        {/* Nav desktop con dropdown al hover/focus */}
         <nav className="hidden lg:flex items-center gap-10" aria-label="Navigazione principale">
           {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="font-akira font-bold text-[14px] text-white/84 hover:text-lc-red focus-visible:text-lc-red transition-colors duration-200 tracking-[-0.08px] whitespace-nowrap"
-            >
-              {link.label}
-            </Link>
+            <div key={link.href} className="relative group">
+              <Link
+                href={link.href}
+                className="font-akira font-bold text-[14px] text-white/84 hover:text-lc-red focus-visible:text-lc-red transition-colors duration-200 tracking-[-0.08px] whitespace-nowrap py-2 block"
+              >
+                {link.label}
+              </Link>
+
+              {/* Sottomenu: news, piloti, team, classifica, calendario */}
+              <div
+                className="absolute left-1/2 -translate-x-1/2 top-full pt-2 opacity-0 invisible -translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 transition-all duration-150 z-50"
+              >
+                <div className="bg-lc-header border border-white/10 rounded-xl shadow-xl py-2 min-w-[170px]">
+                  {SUBMENU_ITEMS.map((item) => (
+                    <Link
+                      key={item.label}
+                      href={item.slug ? `${link.href}/${item.slug}` : link.href}
+                      className="block px-4 py-2 font-montserrat text-[12px] text-white/75 hover:text-lc-red hover:bg-white/5 transition-colors duration-150"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
           ))}
         </nav>
 
-        {/* Social icons */}
+        {/* Ricerca + Social icons */}
         <div className="hidden lg:flex items-center gap-5">
+          <SearchBar variant="desktop" />
+          <div className="w-px h-5 bg-white/15" />
           {SOCIAL_LINKS.map((s) => (
             <a
               key={s.label}
@@ -134,23 +164,38 @@ export default function Navbar() {
       {/* Menu mobile */}
       <div
         id="mobile-menu"
-        className={`lg:hidden bg-lc-header border-t border-white/10 px-6 overflow-hidden transition-[max-height,padding] duration-300 ${
-          mobileOpen ? 'max-h-[420px] pb-6' : 'max-h-0 pb-0'
+        className={`lg:hidden bg-lc-header border-t border-white/10 px-6 overflow-y-auto overflow-x-hidden transition-[max-height,padding] duration-300 ${
+          mobileOpen ? 'max-h-[80vh] pb-6' : 'max-h-0 pb-0'
         }`}
       >
-        <nav className="flex flex-col gap-4 pt-4" aria-label="Navigazione mobile">
+        <SearchBar variant="mobile" />
+
+        <nav className="flex flex-col gap-1 pt-4" aria-label="Navigazione mobile">
           {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileOpen(false)}
-              className="font-akira font-bold text-[13px] text-white/84 hover:text-lc-red transition-colors duration-200"
-            >
-              {link.label}
-            </Link>
+            <div key={link.href} className="mb-2">
+              <Link
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="font-akira font-bold text-[13px] text-white/84 hover:text-lc-red transition-colors duration-200 block py-1"
+              >
+                {link.label}
+              </Link>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 pl-3 mt-1">
+                {SUBMENU_ITEMS.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.slug ? `${link.href}/${item.slug}` : link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="font-montserrat text-[10px] text-white/50 hover:text-lc-red transition-colors duration-200"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
-        <div className="flex items-center gap-5 mt-6">
+        <div className="flex items-center gap-5 mt-4">
           {SOCIAL_LINKS.map((s) => (
             <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
               aria-label={s.label} className="text-white/70 hover:text-lc-red transition-colors duration-200">
