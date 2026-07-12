@@ -56,15 +56,14 @@ async function DriverStandings() {
           return (
             <div key={d.position} className="flex items-center gap-2 py-[5px] px-2 rounded-lg hover:bg-white/5 transition-colors">
               <span className="font-akira text-[11px] w-4 text-center shrink-0"
-                style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.4)' }}>
+                style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
                 {d.position}
               </span>
               <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />
-              {/* font-akira senza bold = variante più leggera */}
               <span className="font-akira text-[11px] text-white flex-1 truncate tracking-wide">
                 {d.Driver.familyName.toUpperCase()}
               </span>
-              <span className="font-akira font-bold text-[11px] text-lc-red shrink-0">
+              <span className="font-akira font-bold text-[11px] text-white shrink-0">
                 {d.points}
               </span>
             </div>
@@ -87,14 +86,14 @@ async function ConstructorStandings() {
           return (
             <div key={t.position} className="flex items-center gap-2 py-[5px] px-2 rounded-lg hover:bg-white/5 transition-colors">
               <span className="font-akira text-[11px] w-4 text-center shrink-0"
-                style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.4)' }}>
+                style={{ color: isFirst ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
                 {t.position}
               </span>
               <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />
               <span className="font-akira text-[11px] text-white flex-1 truncate tracking-wide">
                 {t.Constructor.name.toUpperCase()}
               </span>
-              <span className="font-akira font-bold text-[11px] text-lc-red shrink-0">
+              <span className="font-akira font-bold text-[11px] text-white shrink-0">
                 {t.points}
               </span>
             </div>

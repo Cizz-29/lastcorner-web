@@ -14,6 +14,7 @@ const FLAGS: Record<string, string> = {
 // Mappa paese → colore di accento per il gradiente bandiera
 const COUNTRY_COLORS: Record<string, [string, string]> = {
   'Australia':   ['#00008B', '#FF0000'],
+  'Belgium':     ['#000000', '#FDDA25'],
   'Bahrain':     ['#CE1126', '#CE1126'],
   'Saudi Arabia':['#006C35', '#FFFFFF'],
   'Japan':       ['#BC002D', '#FFFFFF'],
@@ -26,7 +27,6 @@ const COUNTRY_COLORS: Record<string, [string, string]> = {
   'Austria':     ['#ED2939', '#FFFFFF'],
   'UK':          ['#012169', '#C8102E'],
   'Hungary':     ['#CE2939', '#436F4D'],
-  'Belgium':     ['#000000', '#FAE042'],
   'Netherlands': ['#AE1C28', '#21468B'],
   'Singapore':   ['#EF3340', '#EF3340'],
   'Mexico':      ['#006847', '#CE1126'],

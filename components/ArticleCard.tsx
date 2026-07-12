@@ -17,6 +17,7 @@ export function ArticleCardSmall({ article }: { article: Article }) {
   return (
     <Link href={`/${article.slug}`} className="group block">
       <div className="relative h-[94px] w-full bg-lc-card rounded-[21px] overflow-hidden border-t border-b border-r border-white/60 flex items-stretch">
+        {/* Immagine a sinistra */}
         <div className="relative w-[130px] shrink-0 overflow-hidden">
           <Image
             src={article.imageUrl}
@@ -27,10 +28,14 @@ export function ArticleCardSmall({ article }: { article: Article }) {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent to-lc-card" />
         </div>
+
+        {/* Testo a destra */}
         <div className="flex flex-col justify-between py-2 px-3 flex-1 min-w-0">
           <p className="font-akira font-bold text-[11px] text-white leading-tight line-clamp-3 text-right">
             {article.title}
           </p>
+          {/* Divider sottile vicino al titolo */}
+          <div className="w-full h-px bg-white/25 my-1" />
           <div className="flex items-center justify-end gap-2 text-[10px] text-lc-subtle font-montserrat">
             <span>{article.date}</span>
             <span className="opacity-60">|</span>
@@ -42,38 +47,16 @@ export function ArticleCardSmall({ article }: { article: Article }) {
   )
 }
 
-// ── Card media: griglia "Le ultime news" ────────────────────
+// ── Card griglia: "Le ultime news" ──────────────────────────
+// Struttura: testo in cima → immagine in fondo con glow/sfumatura dal bordo rosso
 export function ArticleCardGrid({ article }: { article: Article }) {
   return (
     <Link href={`/${article.slug}`} className="group block">
       <div className="rounded-card border-b-2 border-lc-red bg-lc-card overflow-hidden flex flex-col">
 
-        {/* Zona immagine — overflow hidden solo qui */}
-        <div className="relative h-[200px] w-full overflow-hidden">
-          <Image
-            src={article.imageUrl}
-            alt={article.title}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, 348px"
-          />
-          {/* Gradiente scuro dal basso */}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(0deg, rgb(5,5,5) 0%, rgba(8,8,8,0) 60%)' }}
-          />
-          {/* Glow radiale rosso sul fondo */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'radial-gradient(ellipse 110% 50% at 50% 115%, rgba(255,58,58,0.9) 0%, rgba(255,58,58,0) 65%)',
-            }}
-          />
-        </div>
-
-        {/* Testo — FUORI dall'immagine, sotto */}
-        <div className="px-4 pt-3 pb-4">
-          <h3 className="font-akira font-bold text-[12px] text-white leading-snug line-clamp-3 text-center mb-2">
+        {/* Testo IN CIMA */}
+        <div className="px-4 pt-4 pb-3 flex flex-col gap-2">
+          <h3 className="font-akira font-bold text-[12px] text-white leading-snug line-clamp-3 text-center">
             {article.title}
           </h3>
           <div className="flex items-center justify-center gap-2 text-[9px] text-lc-muted font-montserrat flex-wrap">
@@ -81,9 +64,34 @@ export function ArticleCardGrid({ article }: { article: Article }) {
             <span className="opacity-60">|</span>
             <span>{article.author}</span>
             <span className="opacity-60">|</span>
-            <span className="text-lc-red">{article.category}</span>
+            {/* categoria bianca come gli altri */}
+            <span>{article.category}</span>
           </div>
         </div>
+
+        {/* Immagine IN FONDO — glow parte dal bordo rosso inferiore */}
+        <div className="relative h-[180px] w-full overflow-hidden mt-auto">
+          <Image
+            src={article.imageUrl}
+            alt={article.title}
+            fill
+            className="object-cover object-top transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 348px"
+          />
+          {/* Sfumatura scura DAL BASSO verso l'alto — parte dal bordo rosso */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(180deg, rgb(20,20,24) 0%, rgba(20,20,24,0.5) 30%, rgba(20,20,24,0) 70%)' }}
+          />
+          {/* Glow rosso SUL FONDO — parte dal bordo rosso inferiore */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(ellipse 120% 55% at 50% 115%, rgba(255,58,58,0.95) 0%, rgba(255,58,58,0) 65%)',
+            }}
+          />
+        </div>
+
       </div>
     </Link>
   )
@@ -106,7 +114,7 @@ export function ArticleCardHero({ article }: { article: Article }) {
         className="absolute inset-0"
         style={{ background: 'linear-gradient(0deg, rgb(5,5,5) 24%, rgba(8,8,8,0) 75%)' }}
       />
-      {/* Glow radiale — più tondo e alto, sale verso il centro */}
+      {/* Glow radiale — radioso verso il centro */}
       <div
         className="absolute inset-0"
         style={{
@@ -123,7 +131,7 @@ export function ArticleCardHero({ article }: { article: Article }) {
           <span className="opacity-60">|</span>
           <span>{article.author}</span>
           <span className="opacity-60">|</span>
-          <span className="text-lc-red">{article.category}</span>
+          <span>{article.category}</span>
         </div>
       </div>
     </Link>
