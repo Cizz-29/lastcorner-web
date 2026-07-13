@@ -6,6 +6,7 @@ import LatestNewsSection from '@/components/LatestNewsSection'
 import NextEventSection from '@/components/NextEventSection'
 import AltreNewsSection from '@/components/AltreNewsSection'
 import Footer from '@/components/Footer'
+import AdSlot from '@/components/AdSlot'
 import { NextEventSkeleton } from '@/components/Skeletons'
 import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
 
@@ -32,9 +33,7 @@ export default async function HomePage() {
         <LatestNewsSection articles={MOCK_ARTICLES} />
 
         {/* ── BANNER ORIZZONTALE ───────────────────────────── */}
-        <div className="w-full h-[100px] bg-lc-card rounded-card border border-white/10 flex items-center justify-center mb-12">
-          <span className="font-montserrat text-[11px] text-lc-subtle">Spazio pubblicitario</span>
-        </div>
+        <AdSlot height={100} className="mb-12" />
 
         {/* ── PROSSIMO EVENTO F1 — in streaming, non blocca il resto della pagina ── */}
         <Suspense fallback={<NextEventSkeleton />}>
