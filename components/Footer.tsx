@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import CookiePreferencesButton from './CookiePreferencesButton'
 
 const CATEGORY_LINKS = [
   { label: 'Formula 1', href: '/formula-1' },
@@ -15,6 +16,7 @@ const INFO_LINKS = [
   { label: 'Contatti', href: '/contatti' },
   { label: 'Privacy Policy', href: '/privacy' },
   { label: 'Cookie Policy', href: '/cookie' },
+  { label: 'Note Legali', href: '/note-legali' },
 ]
 
 const SOCIAL_LINKS = [
@@ -29,7 +31,7 @@ export default function Footer() {
 
   return (
     <footer className="border-t border-white/10 mt-8 bg-lc-header">
-      <div className="max-w-[1280px] mx-auto px-20 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-20 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* Brand */}
         <div>
           <Image
@@ -72,6 +74,9 @@ export default function Footer() {
                 </Link>
               </li>
             ))}
+            <li>
+              <CookiePreferencesButton />
+            </li>
           </ul>
         </div>
 
@@ -91,7 +96,7 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="max-w-[1280px] mx-auto px-20 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-20 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="font-montserrat text-[11px] text-lc-subtle text-center sm:text-left">
             © {year} Lastcorner.net — Next Gen Motorsport Coverage
           </p>
