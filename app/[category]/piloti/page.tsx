@@ -6,8 +6,10 @@ import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
 import AdSlot from '@/components/AdSlot'
 import DriverCard from '@/components/DriverCard'
-import { getDriverStandings } from '@/lib/f1api'
+import { getDriverStandings, toRosterDriver } from '@/lib/f1api'
+import { getRosterDrivers } from '@/lib/rosterData'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
+import type { RosterDriver } from '@/lib/rosterTypes'
 
 const AD_EVERY_N_ROWS = 3 // ogni 3 righe da 3 card (grid-cols-3 su desktop)
 const CARDS_PER_AD_BLOCK = AD_EVERY_N_ROWS * 3
@@ -26,13 +28,22 @@ export function generateMetadata({ params }: PageProps): Metadata {
   return { title: `Piloti ${config.label}` }
 }
 
+// La F1 ha dati live (Jolpica); F2/F3 usano un roster statico raccolto dai
+// siti ufficiali; WEC/WRC/Altro non hanno una fonte affidabile e restano
+// vuote in attesa di contenuti.
+async function getDrivers(categorySlug: string): Promise<RosterDriver[]> {
+  if (categorySlug === 'formula-1') {
+    const drivers = await getDriverStandings()
+    return drivers.map(toRosterDriver)
+  }
+  return getRosterDrivers(categorySlug)
+}
+
 export default async function DriversOverviewPage({ params }: PageProps) {
   const config = getCategoryConfig(params.category)
   if (!config) notFound()
 
-  // Solo la F1 ha una fonte dati live e gratuita (Jolpica): per le altre
-  // categorie, in attesa dei dati, la pagina resta pronta ma vuota.
-  const drivers = config.slug === 'formula-1' ? await getDriverStandings() : []
+  const drivers = await getDrivers(config.slug)
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -52,7 +63,7 @@ export default async function DriversOverviewPage({ params }: PageProps) {
                 {drivers.map((d, i) => {
                   const showAd = (i + 1) % CARDS_PER_AD_BLOCK === 0 && i !== drivers.length - 1
                   return (
-                    <Fragment key={d.Driver.driverId}>
+                    <Fragment key={d.driverId}>
                       <DriverCard driver={d} categorySlug={config.slug} />
                       {showAd && (
                         <div className="col-span-2 sm:col-span-3">
@@ -66,8 +77,7 @@ export default async function DriversOverviewPage({ params }: PageProps) {
             ) : (
               <div className="pb-16">
                 <p className="font-montserrat text-[14px] text-lc-subtle mb-8 max-w-xl leading-relaxed">
-                  L&apos;elenco piloti {config.label} sarà disponibile a breve: al momento non
-                  esiste una fonte dati gratuita e affidabile per questa categoria.
+                  L&apos;elenco piloti {config.label} sarà disponibile a breve.
                 </p>
                 <AdSlot height={250} label="300×250" />
               </div>
