@@ -6,8 +6,10 @@ import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
 import AdSlot from '@/components/AdSlot'
 import TeamCard from '@/components/TeamCard'
-import { getConstructorStandings } from '@/lib/f1api'
+import { getConstructorStandings, toRosterTeam } from '@/lib/f1api'
+import { getRosterTeams } from '@/lib/rosterData'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
+import type { RosterTeam } from '@/lib/rosterTypes'
 
 const CARDS_PER_AD_BLOCK = 6 // ogni 3 righe da 2 card (grid-cols-2)
 
@@ -25,11 +27,22 @@ export function generateMetadata({ params }: PageProps): Metadata {
   return { title: `Team ${config.label}` }
 }
 
+// La F1 ha dati live (Jolpica); F2/F3 usano un roster statico raccolto dai
+// siti ufficiali; WEC/WRC/Altro non hanno una fonte affidabile e restano
+// vuote in attesa di contenuti.
+async function getTeams(categorySlug: string): Promise<RosterTeam[]> {
+  if (categorySlug === 'formula-1') {
+    const teams = await getConstructorStandings()
+    return teams.map(toRosterTeam)
+  }
+  return getRosterTeams(categorySlug)
+}
+
 export default async function TeamsOverviewPage({ params }: PageProps) {
   const config = getCategoryConfig(params.category)
   if (!config) notFound()
 
-  const teams = config.slug === 'formula-1' ? await getConstructorStandings() : []
+  const teams = await getTeams(config.slug)
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -49,7 +62,7 @@ export default async function TeamsOverviewPage({ params }: PageProps) {
                 {teams.map((t, i) => {
                   const showAd = (i + 1) % CARDS_PER_AD_BLOCK === 0 && i !== teams.length - 1
                   return (
-                    <Fragment key={t.Constructor.constructorId}>
+                    <Fragment key={t.constructorId}>
                       <TeamCard team={t} categorySlug={config.slug} />
                       {showAd && (
                         <div className="sm:col-span-2">
@@ -63,8 +76,7 @@ export default async function TeamsOverviewPage({ params }: PageProps) {
             ) : (
               <div className="pb-16">
                 <p className="font-montserrat text-[14px] text-lc-subtle mb-8 max-w-xl leading-relaxed">
-                  L&apos;elenco team {config.label} sarà disponibile a breve: al momento non
-                  esiste una fonte dati gratuita e affidabile per questa categoria.
+                  L&apos;elenco team {config.label} sarà disponibile a breve.
                 </p>
                 <AdSlot height={250} label="300×250" />
               </div>
