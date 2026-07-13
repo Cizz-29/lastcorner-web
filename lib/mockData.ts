@@ -63,6 +63,24 @@ export const MOCK_ARTICLES: Article[] = [
     date: '23 maggio',
     imageUrl: PLACEHOLDER_3,
   },
+  {
+    id: '11',
+    title: 'Leclerc: "Il passo gara della Ferrari è cresciuto molto nelle ultime settimane"',
+    slug: 'formula-1/leclerc-passo-gara-ferrari',
+    category: 'Formula 1',
+    author: 'Redazione',
+    date: '22 maggio',
+    imageUrl: PLACEHOLDER,
+  },
+  {
+    id: '12',
+    title: 'Russell: "Mercedes può ancora giocarsi il mondiale costruttori"',
+    slug: 'formula-1/russell-mercedes-mondiale-costruttori',
+    category: 'Formula 1',
+    author: 'Marco Bianchi',
+    date: '21 maggio',
+    imageUrl: PLACEHOLDER_2,
+  },
 ]
 
 // Articoli aggiuntivi per la sezione "Altre News" — non compaiono in
@@ -103,6 +121,33 @@ export const MOCK_OTHER_ARTICLES: Article[] = [
     category: 'Altro',
     author: 'Luca Rossi',
     date: '19 maggio',
+    imageUrl: PLACEHOLDER_3,
+  },
+  {
+    id: '13',
+    title: 'WEC: Toyota risponde a Ferrari nei test privati di Portimao',
+    slug: 'wec/toyota-test-portimao',
+    category: 'WEC',
+    author: 'Marco Bianchi',
+    date: '18 maggio',
+    imageUrl: PLACEHOLDER,
+  },
+  {
+    id: '14',
+    title: 'Formula 2: cambio di rotta tecnico per il team Prema in vista di Barcellona',
+    slug: 'formula-2/prema-cambio-tecnico-barcellona',
+    category: 'Formula 2',
+    author: 'Francesco Di Blasi',
+    date: '17 maggio',
+    imageUrl: PLACEHOLDER_2,
+  },
+  {
+    id: '15',
+    title: 'WRC: la Hyundai presenta gli aggiornamenti in vista del Rally di Sardegna',
+    slug: 'wrc/hyundai-aggiornamenti-sardegna',
+    category: 'WRC',
+    author: 'Redazione',
+    date: '16 maggio',
     imageUrl: PLACEHOLDER_3,
   },
 ]
