@@ -21,6 +21,8 @@ export interface Article {
   breaking?: boolean
   /** Corpo dell'articolo a blocchi — assente per gli articoli mock "di contorno" */
   content?: ArticleBlock[]
+  /** driverId/constructorId (Jolpica) associati, per la sezione "news relative a" */
+  tags?: string[]
 }
 
 // ── Card piccola: colonna destra hero (orizzontale) ──────────

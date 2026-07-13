@@ -5,19 +5,7 @@ import {
   type DriverStanding,
   type ConstructorStanding,
 } from '@/lib/f1api'
-
-const TEAM_COLORS: Record<string, string> = {
-  'Red Bull': '#3671C6', 'Ferrari': '#E8002D', 'Mercedes': '#27F4D2',
-  'McLaren': '#FF8000', 'Aston Martin': '#229971', 'Alpine': '#FF87BC',
-  'Williams': '#64C4FF', 'RB': '#6692FF', 'Haas F1 Team': '#B6BABD', 'Sauber': '#52E252',
-}
-
-function getTeamColor(teamName: string): string {
-  for (const [key, color] of Object.entries(TEAM_COLORS)) {
-    if (teamName.includes(key)) return color
-  }
-  return '#FF3A3A'
-}
+import { getTeamColor } from '@/lib/teamColors'
 
 function EmptyState({ label }: { label: string }) {
   return (
