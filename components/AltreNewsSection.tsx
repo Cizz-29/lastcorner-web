@@ -1,5 +1,6 @@
 import { type Article, ArticleCardSmall } from './ArticleCard'
 import SocialCard from './SocialCard'
+import AdSlot from './AdSlot'
 
 interface AltreNewsSectionProps {
   articles: Article[]
@@ -23,10 +24,10 @@ export default function AltreNewsSection({ articles }: AltreNewsSectionProps) {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
         {/* Griglia articoli — stessa card orizzontale della colonna hero,
             su 2 colonne così restano compatte invece di stirarsi a piena larghezza.
-            Gap verticale ridotto rispetto a quello orizzontale: le righe restano
-            più ravvicinate, e mostriamo più articoli per riempire l'altezza della sidebar. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-          {articles.slice(0, 7).map((article) => (
+            Gap verticale minimo: le righe restano molto ravvicinate, e mostriamo
+            fino a 9 righe (18 articoli) per riempire lo spazio disponibile. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+          {articles.slice(0, 18).map((article) => (
             <ArticleCardSmall key={article.id} article={article} />
           ))}
         </div>
@@ -36,11 +37,7 @@ export default function AltreNewsSection({ articles }: AltreNewsSectionProps) {
           <SocialCard />
 
           {/* Banner verticale unico, dimensione standard AdSense (Half Page) */}
-          <div className="w-full h-[600px] bg-lc-card rounded-card border border-white/10 flex items-center justify-center">
-            <span className="font-montserrat text-[11px] text-lc-subtle text-center px-4">
-              Spazio pubblicitario<br/>300×600
-            </span>
-          </div>
+          <AdSlot height={600} label="300×600" />
         </aside>
       </div>
     </section>

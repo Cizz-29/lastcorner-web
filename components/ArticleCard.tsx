@@ -1,6 +1,14 @@
 import Link from 'next/link'
 import Image from 'next/image'
 
+// Blocco di contenuto per il corpo di un articolo. Struttura volutamente
+// minimale: quando arriverà il CMS (Sanity) questi blocchi verranno
+// popolati dalla query invece che dai mock, senza cambiare i componenti
+// che li consumano.
+export type ArticleBlock =
+  | { type: 'paragraph'; text: string }
+  | { type: 'image'; src: string; caption?: string }
+
 export interface Article {
   id: string
   title: string
@@ -11,6 +19,8 @@ export interface Article {
   imageUrl: string
   excerpt?: string
   breaking?: boolean
+  /** Corpo dell'articolo a blocchi — assente per gli articoli mock "di contorno" */
+  content?: ArticleBlock[]
 }
 
 // ── Card piccola: colonna destra hero (orizzontale) ──────────

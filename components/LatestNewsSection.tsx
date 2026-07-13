@@ -4,6 +4,7 @@ import NewsGrid from './NewsGrid'
 import StandingsWidget from './StandingsWidget'
 import InstagramCTA from './InstagramCTA'
 import { StandingsWidgetSkeleton } from './Skeletons'
+import AdSlot from './AdSlot'
 
 interface LatestNewsSectionProps {
   articles: Article[]
@@ -38,15 +39,7 @@ export default function LatestNewsSection({ articles, adSlot }: LatestNewsSectio
           <InstagramCTA />
 
           {/* Slot pubblicitario 300x600 */}
-          {adSlot ? (
-            adSlot
-          ) : (
-            <div className="w-full h-[250px] bg-lc-card rounded-card border border-white/10 flex items-center justify-center">
-              <span className="font-montserrat text-[11px] text-lc-subtle text-center px-4">
-                Spazio pubblicitario<br/>300×250
-              </span>
-            </div>
-          )}
+          {adSlot ? adSlot : <AdSlot height={250} label="300×250" />}
         </aside>
       </div>
     </section>
