@@ -16,6 +16,7 @@ export const MOCK_ARTICLES: Article[] = [
     date: '28 maggio',
     imageUrl: PLACEHOLDER,
     breaking: true,
+    tags: ['haas'],
     excerpt: 'Il pilota brasiliano prenderà il volante della seconda Haas dal prossimo campionato: le prime parole dopo l\'ufficialità.',
     content: [
       { type: 'paragraph', text: 'L\'annuncio è arrivato nella mattinata di martedì e ha chiuso settimane di indiscrezioni: Gabriel Camara sarà il compagno di squadra in Haas a partire dalla prossima stagione, prendendo il posto lasciato libero da Esteban Ocon.' },
@@ -37,6 +38,7 @@ export const MOCK_ARTICLES: Article[] = [
     date: '27 maggio',
     imageUrl: PLACEHOLDER_2,
     breaking: true,
+    tags: ['hamilton', 'ferrari'],
   },
   {
     id: '3',
@@ -46,6 +48,7 @@ export const MOCK_ARTICLES: Article[] = [
     author: 'Luca Rossi',
     date: '26 maggio',
     imageUrl: PLACEHOLDER_3,
+    tags: ['max_verstappen', 'red_bull'],
   },
   {
     id: '4',
@@ -73,6 +76,7 @@ export const MOCK_ARTICLES: Article[] = [
     author: 'Luca Rossi',
     date: '23 maggio',
     imageUrl: PLACEHOLDER_3,
+    tags: ['norris', 'mclaren'],
   },
   {
     id: '11',
@@ -82,6 +86,7 @@ export const MOCK_ARTICLES: Article[] = [
     author: 'Redazione',
     date: '22 maggio',
     imageUrl: PLACEHOLDER,
+    tags: ['leclerc', 'ferrari'],
   },
   {
     id: '12',
@@ -91,6 +96,7 @@ export const MOCK_ARTICLES: Article[] = [
     author: 'Marco Bianchi',
     date: '21 maggio',
     imageUrl: PLACEHOLDER_2,
+    tags: ['russell', 'mercedes'],
   },
 ]
 
@@ -124,6 +130,7 @@ export const MOCK_OTHER_ARTICLES: Article[] = [
     author: 'Francesco Di Blasi',
     date: '20 maggio',
     imageUrl: PLACEHOLDER_2,
+    tags: ['mercedes'],
   },
   {
     id: '10',
@@ -205,6 +212,7 @@ export const MOCK_OTHER_ARTICLES: Article[] = [
     author: 'Luca Rossi',
     date: '11 maggio',
     imageUrl: PLACEHOLDER_2,
+    tags: ['aston_martin'],
   },
   {
     id: '21',
@@ -232,6 +240,7 @@ export const MOCK_OTHER_ARTICLES: Article[] = [
     author: 'Francesco Di Blasi',
     date: '8 maggio',
     imageUrl: PLACEHOLDER_2,
+    tags: ['sainz', 'williams'],
   },
   {
     id: '24',
@@ -259,5 +268,6 @@ export const MOCK_OTHER_ARTICLES: Article[] = [
     author: 'Luca Rossi',
     date: '5 maggio',
     imageUrl: PLACEHOLDER_2,
+    tags: ['alpine'],
   },
 ]
