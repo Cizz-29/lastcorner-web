@@ -23,6 +23,8 @@ export interface Article {
   content?: ArticleBlock[]
   /** driverId/constructorId (Jolpica) associati, per la sezione "news relative a" */
   tags?: string[]
+  /** Sotto-categoria opzionale (es. "classifiche") per filtrare all'interno di una categoria */
+  subcategory?: string
 }
 
 // ── Card piccola: colonna destra hero (orizzontale) ──────────

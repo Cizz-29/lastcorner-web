@@ -4,17 +4,15 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import SearchBar from './SearchBar'
+import { CATEGORIES } from '@/lib/categories'
 
-const NAV_LINKS = [
-  { label: 'FORMULA 1', href: '/formula-1' },
-  { label: 'FORMULA 2', href: '/formula-2' },
-  { label: 'FORMULA 3', href: '/formula-3' },
-  { label: 'WEC',       href: '/wec' },
-  { label: 'WRC',       href: '/wrc' },
-  { label: 'ALTRO',     href: '/altro' },
-]
+// Derivate da lib/categories.ts, così le voci del menu restano in sync
+// con l'elenco categorie usato dal resto del sito.
+const NAV_LINKS = CATEGORIES.map((c) => ({ label: c.label.toUpperCase(), href: `/${c.slug}`, slug: c.slug }))
 
-// Voci del sottomenu, uguali per ogni categoria, nell'ordine richiesto
+// Voci del sottomenu, nell'ordine richiesto. "Calendario" esiste solo per
+// la F1 (le altre categorie non hanno una fonte dati per mantenerlo), e
+// "Altro" non ha alcun sottomenu: la sua pagina mostra già tutte le news.
 const SUBMENU_ITEMS = [
   { label: 'News',        slug: '' },
   { label: 'Piloti',      slug: 'piloti' },
@@ -22,6 +20,12 @@ const SUBMENU_ITEMS = [
   { label: 'Classifica',  slug: 'classifica' },
   { label: 'Calendario',  slug: 'calendario' },
 ]
+
+function getSubmenuItems(categorySlug: string) {
+  if (categorySlug === 'altro') return []
+  if (categorySlug === 'formula-1') return SUBMENU_ITEMS
+  return SUBMENU_ITEMS.filter((item) => item.slug !== 'calendario')
+}
 
 const SOCIAL_LINKS = [
   {
@@ -100,33 +104,38 @@ export default function Navbar() {
 
         {/* Nav desktop con dropdown al hover/focus */}
         <nav className="hidden lg:flex items-center gap-10" aria-label="Navigazione principale">
-          {NAV_LINKS.map((link) => (
-            <div key={link.href} className="relative group">
-              <Link
-                href={link.href}
-                className="font-akira font-bold text-[14px] text-white/84 hover:text-lc-red focus-visible:text-lc-red transition-colors duration-200 tracking-[-0.08px] whitespace-nowrap py-2 block"
-              >
-                {link.label}
-              </Link>
+          {NAV_LINKS.map((link) => {
+            const submenuItems = getSubmenuItems(link.slug)
+            return (
+              <div key={link.href} className="relative group">
+                <Link
+                  href={link.href}
+                  className="font-akira font-bold text-[14px] text-white/84 hover:text-lc-red focus-visible:text-lc-red transition-colors duration-200 tracking-[-0.08px] whitespace-nowrap py-2 block"
+                >
+                  {link.label}
+                </Link>
 
-              {/* Sottomenu: news, piloti, team, classifica, calendario */}
-              <div
-                className="absolute left-1/2 -translate-x-1/2 top-full pt-2 opacity-0 invisible -translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 transition-all duration-150 z-50"
-              >
-                <div className="bg-lc-header border border-white/10 rounded-xl shadow-xl py-2 min-w-[170px]">
-                  {SUBMENU_ITEMS.map((item) => (
-                    <Link
-                      key={item.label}
-                      href={item.slug ? `${link.href}/${item.slug}` : link.href}
-                      className="block px-4 py-2 font-akira font-bold text-[11px] tracking-wide text-white/75 hover:text-lc-red hover:bg-white/5 transition-colors duration-150"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
+                {/* Sottomenu: assente per "Altro", senza calendario fuori dalla F1 */}
+                {submenuItems.length > 0 && (
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2 top-full pt-2 opacity-0 invisible -translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 transition-all duration-150 z-50"
+                  >
+                    <div className="bg-lc-header border border-white/10 rounded-xl shadow-xl py-2 min-w-[170px]">
+                      {submenuItems.map((item) => (
+                        <Link
+                          key={item.label}
+                          href={item.slug ? `${link.href}/${item.slug}` : link.href}
+                          className="block px-4 py-2 font-akira font-bold text-[11px] tracking-wide text-white/75 hover:text-lc-red hover:bg-white/5 transition-colors duration-150"
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </nav>
 
         {/* Ricerca + Social icons */}
@@ -171,29 +180,34 @@ export default function Navbar() {
         <SearchBar variant="mobile" />
 
         <nav className="flex flex-col gap-1 pt-4" aria-label="Navigazione mobile">
-          {NAV_LINKS.map((link) => (
-            <div key={link.href} className="mb-2">
-              <Link
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className="font-akira font-bold text-[13px] text-white/84 hover:text-lc-red transition-colors duration-200 block py-1"
-              >
-                {link.label}
-              </Link>
-              <div className="flex flex-wrap gap-x-3 gap-y-1 pl-3 mt-1">
-                {SUBMENU_ITEMS.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.slug ? `${link.href}/${item.slug}` : link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="font-akira font-bold text-[9px] tracking-wide text-white/50 hover:text-lc-red transition-colors duration-200"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+          {NAV_LINKS.map((link) => {
+            const submenuItems = getSubmenuItems(link.slug)
+            return (
+              <div key={link.href} className="mb-2">
+                <Link
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="font-akira font-bold text-[13px] text-white/84 hover:text-lc-red transition-colors duration-200 block py-1"
+                >
+                  {link.label}
+                </Link>
+                {submenuItems.length > 0 && (
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 pl-3 mt-1">
+                    {submenuItems.map((item) => (
+                      <Link
+                        key={item.label}
+                        href={item.slug ? `${link.href}/${item.slug}` : link.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="font-akira font-bold text-[9px] tracking-wide text-white/50 hover:text-lc-red transition-colors duration-200"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </nav>
         <div className="flex items-center gap-5 mt-4">
           {SOCIAL_LINKS.map((s) => (

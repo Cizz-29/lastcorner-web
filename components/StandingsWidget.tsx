@@ -1,5 +1,6 @@
 // Server Component — fetch diretto (parallelo), cache 1 ora
 
+import Link from 'next/link'
 import {
   getAllStandings,
   type DriverStanding,
@@ -31,9 +32,12 @@ function DriverStandings({ drivers }: { drivers: DriverStanding[] }) {
                   {d.position}
                 </span>
                 <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />
-                <span className="font-akira text-[11px] text-white flex-1 truncate tracking-wide">
+                <Link
+                  href={`/formula-1/piloti/${d.Driver.driverId}`}
+                  className="font-akira text-[11px] text-white flex-1 truncate tracking-wide hover:text-lc-red transition-colors duration-200"
+                >
                   {d.Driver.familyName.toUpperCase()}
-                </span>
+                </Link>
                 <span className="font-akira font-bold text-[11px] text-white shrink-0">
                   {d.points}
                 </span>
@@ -62,9 +66,12 @@ function ConstructorStandings({ teams }: { teams: ConstructorStanding[] }) {
                   {t.position}
                 </span>
                 <div className="w-[3px] h-[14px] rounded-full shrink-0" style={{ background: color }} />
-                <span className="font-akira text-[11px] text-white flex-1 truncate tracking-wide">
+                <Link
+                  href={`/formula-1/team/${t.Constructor.constructorId}`}
+                  className="font-akira text-[11px] text-white flex-1 truncate tracking-wide hover:text-lc-red transition-colors duration-200"
+                >
                   {t.Constructor.name.toUpperCase()}
-                </span>
+                </Link>
                 <span className="font-akira font-bold text-[11px] text-white shrink-0">
                   {t.points}
                 </span>

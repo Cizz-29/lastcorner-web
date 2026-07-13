@@ -6,7 +6,7 @@ import { getNextRace } from '@/lib/f1api'
 // da flagcdn.com (gratuito, no API key). Le emoji bandiera non si
 // renderizzano su Windows (Chrome/Edge mostrano il codice testuale, es.
 // "BE"), quindi usiamo immagini reali invece del carattere unicode.
-const FLAG_CODES: Record<string, string> = {
+export const FLAG_CODES: Record<string, string> = {
   'Australia': 'au', 'Bahrain': 'bh', 'Saudi Arabia': 'sa', 'Japan': 'jp',
   'China': 'cn', 'USA': 'us', 'Italy': 'it', 'Monaco': 'mc',
   'Canada': 'ca', 'Spain': 'es', 'Austria': 'at', 'UK': 'gb',
@@ -16,7 +16,7 @@ const FLAG_CODES: Record<string, string> = {
 }
 
 // Mappa paese → colore di accento per il gradiente bandiera
-const COUNTRY_COLORS: Record<string, [string, string]> = {
+export const COUNTRY_COLORS: Record<string, [string, string]> = {
   'Australia':   ['#00008B', '#FF0000'],
   'Belgium':     ['#000000', '#FDDA25'],
   'Bahrain':     ['#CE1126', '#CE1126'],
