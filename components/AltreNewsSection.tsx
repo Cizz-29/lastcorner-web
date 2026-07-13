@@ -22,9 +22,11 @@ export default function AltreNewsSection({ articles }: AltreNewsSectionProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
         {/* Griglia articoli — stessa card orizzontale della colonna hero,
-            su 2 colonne così restano compatte invece di stirarsi a piena larghezza */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {articles.slice(0, 6).map((article) => (
+            su 2 colonne così restano compatte invece di stirarsi a piena larghezza.
+            Gap verticale ridotto rispetto a quello orizzontale: le righe restano
+            più ravvicinate, e mostriamo più articoli per riempire l'altezza della sidebar. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+          {articles.slice(0, 7).map((article) => (
             <ArticleCardSmall key={article.id} article={article} />
           ))}
         </div>
