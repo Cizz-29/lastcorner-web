@@ -11,6 +11,7 @@ import { StandingsWidgetSkeleton } from '@/components/Skeletons'
 import AdSlot from '@/components/AdSlot'
 import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
 import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
+import { getCategoryConfig } from '@/lib/categories'
 
 const ALL_ARTICLES: Article[] = [...MOCK_ARTICLES, ...MOCK_OTHER_ARTICLES]
 
@@ -94,6 +95,8 @@ export default function ArticlePage({ params }: ArticlePageProps) {
   const article = findArticle(params.category, params.slug)
   if (!article) notFound()
 
+  const hasStandings = getCategoryConfig(params.category)?.hasStandings ?? false
+
   const otherArticles = ALL_ARTICLES
     .filter((a) => a.id !== article.id)
     .slice(0, OTHER_ARTICLES_COUNT)
@@ -168,9 +171,13 @@ export default function ArticlePage({ params }: ArticlePageProps) {
 
             <AdSlot height={200} label="300×250" />
 
-            <Suspense fallback={<StandingsWidgetSkeleton />}>
-              <StandingsWidget />
-            </Suspense>
+            {hasStandings ? (
+              <Suspense fallback={<StandingsWidgetSkeleton />}>
+                <StandingsWidget />
+              </Suspense>
+            ) : (
+              <AdSlot height={250} label="300×250" />
+            )}
 
             {otherArticles.length > 0 && (
               <div>
