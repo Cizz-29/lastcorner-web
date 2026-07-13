@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Montserrat } from 'next/font/google'
+import CookieConsent from '@/components/CookieConsent'
 import './globals.css'
 
 const montserrat = Montserrat({
@@ -90,6 +91,7 @@ export default function RootLayout({
           Vai al contenuto principale
         </a>
         {children}
+        <CookieConsent />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
