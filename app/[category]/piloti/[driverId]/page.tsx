@@ -7,12 +7,14 @@ import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
 import AdSlot from '@/components/AdSlot'
 import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
-import { getDriverStandings, getDriverPodiums } from '@/lib/f1api'
+import { getDriverStandings, getDriverPodiums, toRosterDriver } from '@/lib/f1api'
+import { getRosterDrivers, getRosterDriver, hasStaticRoster } from '@/lib/rosterData'
 import { getTeamColor } from '@/lib/teamColors'
 import { getFlagUrl } from '@/lib/nationalityFlags'
 import { getDriverBio } from '@/lib/driverBios'
 import { getCategoryConfig } from '@/lib/categories'
 import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
+import type { RosterDriver } from '@/lib/rosterTypes'
 
 const ALL_ARTICLES: Article[] = [...MOCK_ARTICLES, ...MOCK_OTHER_ARTICLES]
 
@@ -20,20 +22,33 @@ interface DriverPageProps {
   params: { category: string; driverId: string }
 }
 
-// Pagine individuali generate solo per la F1: per le altre categorie non
-// esiste una fonte dati gratuita, quindi non vengono create pagine pilota.
+// Pagine individuali generate per la F1 (dati live) e per F2/F3 (roster
+// statico). WEC/WRC/Altro non hanno una fonte affidabile, quindi non
+// generano pagine pilota.
 export async function generateStaticParams({ params }: { params: { category: string } }) {
-  if (params.category !== 'formula-1') return []
-  const drivers = await getDriverStandings()
-  return drivers.map((d) => ({ driverId: d.Driver.driverId }))
+  if (params.category === 'formula-1') {
+    const drivers = await getDriverStandings()
+    return drivers.map((d) => ({ driverId: d.Driver.driverId }))
+  }
+  if (hasStaticRoster(params.category)) {
+    return getRosterDrivers(params.category).map((d) => ({ driverId: d.driverId }))
+  }
+  return []
+}
+
+async function findDriver(category: string, driverId: string): Promise<RosterDriver | undefined> {
+  if (category === 'formula-1') {
+    const drivers = await getDriverStandings()
+    const found = drivers.find((d) => d.Driver.driverId === driverId)
+    return found ? toRosterDriver(found) : undefined
+  }
+  return getRosterDriver(category, driverId)
 }
 
 export async function generateMetadata({ params }: DriverPageProps): Promise<Metadata> {
-  if (params.category !== 'formula-1') return { title: 'Pilota non trovato' }
-  const drivers = await getDriverStandings()
-  const driver = drivers.find((d) => d.Driver.driverId === params.driverId)
+  const driver = await findDriver(params.category, params.driverId)
   if (!driver) return { title: 'Pilota non trovato' }
-  return { title: `${driver.Driver.givenName} ${driver.Driver.familyName}` }
+  return { title: `${driver.givenName} ${driver.familyName}` }
 }
 
 function StatTile({ label, value }: { label: string; value: string | number }) {
@@ -47,22 +62,20 @@ function StatTile({ label, value }: { label: string; value: string | number }) {
 
 export default async function DriverPage({ params }: DriverPageProps) {
   const config = getCategoryConfig(params.category)
-  if (!config || params.category !== 'formula-1') notFound()
+  if (!config) notFound()
 
-  const drivers = await getDriverStandings()
-  const driver = drivers.find((d) => d.Driver.driverId === params.driverId)
+  const driver = await findDriver(params.category, params.driverId)
   if (!driver) notFound()
 
-  const podiums = await getDriverPodiums(params.driverId)
-  const constructor = driver.Constructors[0]
-  const color = getTeamColor(constructor?.name ?? '')
-  const flagUrl = getFlagUrl(driver.Driver.nationality)
-  const fullName = `${driver.Driver.givenName} ${driver.Driver.familyName}`
+  const isLive = params.category === 'formula-1' && driver.position !== undefined
+  const podiums = isLive ? await getDriverPodiums(driver.driverId) : null
+
+  const color = getTeamColor(driver.teamName)
+  const flagUrl = driver.nationality ? getFlagUrl(driver.nationality) : null
+  const fullName = `${driver.givenName} ${driver.familyName}`
 
   const relatedNews = ALL_ARTICLES.filter(
-    (a) =>
-      a.tags?.includes(driver.Driver.driverId) ||
-      (constructor && a.tags?.includes(constructor.constructorId))
+    (a) => a.tags?.includes(driver.driverId) || a.tags?.includes(driver.teamId)
   ).slice(0, 6)
 
   return (
@@ -87,57 +100,61 @@ export default async function DriverPage({ params }: DriverPageProps) {
             <div>
               <div className="flex items-center gap-3 mb-3">
                 {flagUrl && (
-                  <Image src={flagUrl} alt={driver.Driver.nationality} width={30} height={21} className="rounded-[2px]" />
+                  <Image src={flagUrl} alt={driver.nationality ?? ''} width={30} height={21} className="rounded-[2px]" />
                 )}
                 <span className="font-montserrat text-[11px] text-lc-subtle uppercase tracking-widest">
-                  {driver.Driver.nationality} — {driver.Driver.code}
+                  {[driver.nationality, driver.code].filter(Boolean).join(' — ')}
                 </span>
               </div>
               <h1 className="font-akira font-extrabold text-[26px] lg:text-[38px] text-white leading-tight mb-2">
                 {fullName.toUpperCase()}
               </h1>
               <Link
-                href={`/${config.slug}/team/${constructor?.constructorId}`}
+                href={`/${config.slug}/team/${driver.teamId}`}
                 className="font-montserrat text-[13px] text-lc-subtle hover:text-lc-red transition-colors duration-200"
               >
-                {constructor?.name} →
+                {driver.teamName} →
               </Link>
             </div>
             <span
               className="font-akira font-extrabold text-[64px] lg:text-[88px] leading-none shrink-0 tabular-nums"
               style={{ color }}
             >
-              {driver.Driver.permanentNumber}
+              {driver.permanentNumber}
             </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10 mb-16">
           <div>
-            {/* Statistiche stagione */}
-            <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">
-              Stagione {new Date().getFullYear()}
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
-              <StatTile label="Posizione" value={`P${driver.position}`} />
-              <StatTile label="Punti" value={driver.points} />
-              <StatTile label="Vittorie" value={driver.wins} />
-              <StatTile label="Podi" value={podiums} />
-            </div>
+            {/* Statistiche stagione — solo dove disponibile un dato live (F1) */}
+            {isLive && (
+              <>
+                <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">
+                  Stagione {new Date().getFullYear()}
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+                  <StatTile label="Posizione" value={`P${driver.position}`} />
+                  <StatTile label="Punti" value={driver.points ?? '—'} />
+                  <StatTile label="Vittorie" value={driver.wins ?? '—'} />
+                  <StatTile label="Podi" value={podiums ?? '—'} />
+                </div>
+              </>
+            )}
 
             {/* Overview carriera */}
             <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">
               Carriera
             </h2>
             <p className="font-montserrat text-[14px] text-white/85 leading-relaxed mb-10">
-              {getDriverBio(driver.Driver.driverId)}
+              {getDriverBio(driver.driverId)}
             </p>
 
             <AdSlot height={120} label="Google AdSense" className="mb-10" />
 
             {/* News correlate */}
             <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">
-              News relative a {driver.Driver.familyName}
+              News relative a {driver.familyName}
             </h2>
             {relatedNews.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
