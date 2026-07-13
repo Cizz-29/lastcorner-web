@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import StandingsWidget from '@/components/StandingsWidget'
+import SocialCard from '@/components/SocialCard'
 import { StandingsWidgetSkeleton } from '@/components/Skeletons'
 import AdSlot from '@/components/AdSlot'
 import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
@@ -124,7 +125,7 @@ export default function ArticlePage({ params }: ArticlePageProps) {
             </span>
 
             {/* Titolo — variante più pesante di Akira (SuperBold, 800) */}
-            <h1 className="font-akira font-extrabold text-[28px] lg:text-[38px] text-white leading-tight mb-4">
+            <h1 className="font-akira font-extrabold text-[28px] lg:text-[38px] text-white leading-[1.1] mb-4">
               {article.title}
             </h1>
 
@@ -158,8 +159,15 @@ export default function ArticlePage({ params }: ArticlePageProps) {
             )}
           </article>
 
-          {/* Sidebar */}
+          {/* Sidebar — il widget social è il primo elemento; il resto (classifica in
+              giù) riprende circa all'altezza dell'immagine in evidenza. Lo scarto
+              tra i due varia con la lunghezza del titolo, quindi lo spazio è
+              colmato con un annuncio invece di un margine fisso "a occhio". */}
           <aside className="flex flex-col gap-4">
+            <SocialCard />
+
+            <AdSlot height={200} label="300×250" />
+
             <Suspense fallback={<StandingsWidgetSkeleton />}>
               <StandingsWidget />
             </Suspense>
