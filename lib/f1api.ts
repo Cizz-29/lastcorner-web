@@ -1,6 +1,8 @@
 // Tutte le chiamate API F1 - Jolpica (gratuita, no API key)
 // Cache Next.js: revalidate ogni ora
 
+import type { RosterDriver, RosterTeam } from './rosterTypes'
+
 const BASE = 'https://api.jolpi.ca/ergast/f1'
 
 export async function getNextRace() {
@@ -126,5 +128,36 @@ export async function getConstructorPodiums(constructorId: string): Promise<numb
     ).length
   } catch {
     return 0
+  }
+}
+
+// Adatta i dati live Jolpica (DriverStanding/ConstructorStanding) alla forma
+// comune RosterDriver/RosterTeam, così le card e le pagine piloti/team
+// possono essere condivise con i roster statici F2/F3.
+export function toRosterDriver(d: DriverStanding): RosterDriver {
+  const constructor = d.Constructors[0]
+  return {
+    driverId: d.Driver.driverId,
+    permanentNumber: d.Driver.permanentNumber,
+    code: d.Driver.code,
+    givenName: d.Driver.givenName,
+    familyName: d.Driver.familyName,
+    nationality: d.Driver.nationality,
+    teamId: constructor?.constructorId ?? '',
+    teamName: constructor?.name ?? '',
+    position: d.position,
+    points: d.points,
+    wins: d.wins,
+  }
+}
+
+export function toRosterTeam(t: ConstructorStanding): RosterTeam {
+  return {
+    constructorId: t.Constructor.constructorId,
+    name: t.Constructor.name,
+    nationality: t.Constructor.nationality,
+    position: t.position,
+    points: t.points,
+    wins: t.wins,
   }
 }
