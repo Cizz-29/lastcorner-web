@@ -18,8 +18,8 @@ export default function PrivacyPage() {
 
       <LegalSection title="Titolare del trattamento">
         <p>
-          Il Titolare del trattamento è il gestore di Lastcorner.net, contattabile
-          all&rsquo;indirizzo email{' '}
+          Il Titolare del trattamento è Francesco Di Blasi, in qualità di gestore di
+          Lastcorner.net, contattabile all&rsquo;indirizzo email{' '}
           <a href="mailto:info@lastcorner.net" className="text-white hover:text-lc-red transition-colors duration-200">
             info@lastcorner.net
           </a>
