@@ -108,7 +108,7 @@ export default function ArticlePage({ params }: ArticlePageProps) {
       <Navbar />
 
       {/* Padding orizzontale: quello della home page (80px) + 8px extra */}
-      <main id="main-content" className="max-w-[1280px] w-full mx-auto px-[88px] pt-[96px] flex-1">
+      <main id="main-content" className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-[88px] pt-[96px] flex-1">
 
         {/* Breadcrumb */}
         <nav aria-label="Percorso" className="font-montserrat text-[11px] text-lc-subtle mb-6 flex items-center gap-2 flex-wrap">
