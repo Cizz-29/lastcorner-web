@@ -81,7 +81,7 @@ export default async function DriverPage({ params }: DriverPageProps) {
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
-      <main className="max-w-[1280px] w-full mx-auto px-20 pt-[96px] flex-1">
+      <main className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
         {/* Breadcrumb */}
         <nav aria-label="Percorso" className="font-montserrat text-[11px] text-lc-subtle mb-6 flex items-center gap-2 flex-wrap">
           <Link href="/" className="hover:text-lc-red transition-colors duration-200">Home</Link>
@@ -117,7 +117,7 @@ export default async function DriverPage({ params }: DriverPageProps) {
               </Link>
             </div>
             <span
-              className="font-akira font-extrabold text-[64px] lg:text-[88px] leading-none shrink-0 tabular-nums"
+              className="font-akira font-extrabold text-[40px] sm:text-[64px] lg:text-[88px] leading-none shrink-0 tabular-nums"
               style={{ color }}
             >
               {driver.permanentNumber}
