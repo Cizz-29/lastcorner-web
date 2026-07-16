@@ -8,11 +8,18 @@ import AltreNewsSection from '@/components/AltreNewsSection'
 import Footer from '@/components/Footer'
 import AdSlot from '@/components/AdSlot'
 import { NextEventSkeleton } from '@/components/Skeletons'
-import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
+import { getAllArticles } from '@/lib/sanity/articles'
+
+// Numero di articoli "in evidenza" (hero + ultime news): gli articoli reali
+// da Sanity, essendo in testa all'elenco, hanno sempre la priorità qui.
+const NEWS_COUNT = 8
 
 export default async function HomePage() {
-  const heroArticle = MOCK_ARTICLES[0]
-  const sideArticles = MOCK_ARTICLES.slice(1, 5)
+  const allArticles = await getAllArticles()
+  const heroArticle = allArticles[0]
+  const sideArticles = allArticles.slice(1, 5)
+  const latestNewsArticles = allArticles.slice(0, NEWS_COUNT)
+  const altreNewsArticles = allArticles.slice(NEWS_COUNT)
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -21,7 +28,7 @@ export default async function HomePage() {
       <main id="main-content" className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
 
         {/* ── ULTIM'ORA ─────────────────────────────────────── */}
-        <NewsTicker articles={MOCK_ARTICLES} />
+        <NewsTicker articles={allArticles} />
 
         {/* ── HERO ──────────────────────────────────────────── */}
         <HeroSection
@@ -30,7 +37,7 @@ export default async function HomePage() {
         />
 
         {/* ── LE ULTIME NEWS ────────────────────────────────── */}
-        <LatestNewsSection articles={MOCK_ARTICLES} />
+        <LatestNewsSection articles={latestNewsArticles} />
 
         {/* ── BANNER ORIZZONTALE ───────────────────────────── */}
         <AdSlot height={100} className="mb-12" />
@@ -41,7 +48,7 @@ export default async function HomePage() {
         </Suspense>
 
         {/* ── ALTRE NEWS — articoli non mostrati sopra ────────── */}
-        <AltreNewsSection articles={MOCK_OTHER_ARTICLES} />
+        <AltreNewsSection articles={altreNewsArticles} />
 
       </main>
 
