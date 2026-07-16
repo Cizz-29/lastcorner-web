@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   }
 
   const duplicateGroups: { slug: string; keep: string; remove: string[] }[] = []
-  for (const [slug, group] of bySlug) {
+  for (const [slug, group] of Array.from(bySlug.entries())) {
     if (group.length <= 1) continue
     const sorted = [...group].sort((a, b) => a._createdAt.localeCompare(b._createdAt))
     const [keep, ...rest] = sorted
