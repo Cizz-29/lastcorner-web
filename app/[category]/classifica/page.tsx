@@ -6,14 +6,12 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
 import AdSlot from '@/components/AdSlot'
-import { ArticleCardGrid, ArticleCardSmall, type Article } from '@/components/ArticleCard'
+import { ArticleCardGrid, ArticleCardSmall } from '@/components/ArticleCard'
 import { getAllStandings } from '@/lib/f1api'
 import { getTeamColor } from '@/lib/teamColors'
 import { getFlagUrl } from '@/lib/nationalityFlags'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
-import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
-
-const ALL_ARTICLES: Article[] = [...MOCK_ARTICLES, ...MOCK_OTHER_ARTICLES]
+import { getAllArticles } from '@/lib/sanity/articles'
 
 interface PageProps {
   params: { category: string }
@@ -154,8 +152,9 @@ export default async function ClassificaPage({ params }: PageProps) {
   // F2 / F3 / WEC / WRC: nessuna classifica automatica disponibile, la
   // pagina mostra invece gli articoli di recap scritti dopo ogni weekend
   // (categoria = etichetta categoria, sottocategoria = "classifiche").
-  const articles = ALL_ARTICLES.filter(
-        (a) => a.category === config.label && a.subcategory?.toLowerCase() === 'classifiche'
+  const allArticles = await getAllArticles()
+  const articles = allArticles.filter(
+    (a) => a.category === config.label && a.subcategory?.toLowerCase() === 'classifiche'
   )
   const gridArticles = articles.slice(0, 4)
   const smallArticles = articles.slice(4)
