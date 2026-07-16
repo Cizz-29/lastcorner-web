@@ -17,6 +17,13 @@ import { getCategoryConfig } from '@/lib/categories'
 // Quanti articoli mostrare nella sidebar (ridotti rispetto alla vecchia lista)
 const OTHER_ARTICLES_COUNT = 5
 
+// Rigenera la pagina al massimo ogni 60s: senza questo, un articolo appena
+// pubblicato su Sanity non comparirebbe finché non si rifà il deploy
+// (i nuovi slug non presenti in generateStaticParams al momento del build
+// vengono comunque generati "on demand" alla prima richiesta grazie a
+// dynamicParams, ma la richiesta deve poter leggere dati freschi).
+export const revalidate = 60
+
 interface ArticlePageProps {
   params: { category: string; slug: string }
 }
