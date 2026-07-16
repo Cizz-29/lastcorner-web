@@ -6,17 +6,15 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
 import AdSlot from '@/components/AdSlot'
-import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
+import { ArticleCardSmall } from '@/components/ArticleCard'
 import { getConstructorStandings, getDriverStandings, getConstructorPodiums, toRosterTeam, toRosterDriver } from '@/lib/f1api'
 import { getRosterTeams, getRosterTeam, getRosterTeamDrivers, hasStaticRoster } from '@/lib/rosterData'
 import { getTeamColor } from '@/lib/teamColors'
 import { getFlagUrl } from '@/lib/nationalityFlags'
 import { getTeamBio } from '@/lib/teamBios'
 import { getCategoryConfig } from '@/lib/categories'
-import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
+import { getAllArticles } from '@/lib/sanity/articles'
 import type { RosterTeam, RosterDriver } from '@/lib/rosterTypes'
-
-const ALL_ARTICLES: Article[] = [...MOCK_ARTICLES, ...MOCK_OTHER_ARTICLES]
 
 interface TeamPageProps {
   params: { category: string; teamId: string }
@@ -83,11 +81,12 @@ export default async function TeamPage({ params }: TeamPageProps) {
   const color = getTeamColor(team.name)
   const flagUrl = team.nationality ? getFlagUrl(team.nationality) : null
 
-    const relatedNews = ALL_ARTICLES.filter((a) =>
-          a.tags?.some((t) => t.toLowerCase() === params.teamId.toLowerCase())
-        ).slice(0, 6)
+  const allArticles = await getAllArticles()
+  const relatedNews = allArticles.filter((a) =>
+    a.tags?.some((t) => t.toLowerCase() === params.teamId.toLowerCase())
+  ).slice(0, 6)
   const bio = await getTeamBio(team.constructorId)
-  
+
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
