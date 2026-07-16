@@ -6,17 +6,15 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
 import AdSlot from '@/components/AdSlot'
-import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
+import { ArticleCardSmall } from '@/components/ArticleCard'
 import { getDriverStandings, getDriverPodiums, toRosterDriver } from '@/lib/f1api'
 import { getRosterDrivers, getRosterDriver, hasStaticRoster } from '@/lib/rosterData'
 import { getTeamColor } from '@/lib/teamColors'
 import { getFlagUrl } from '@/lib/nationalityFlags'
 import { getDriverBio } from '@/lib/driverBios'
 import { getCategoryConfig } from '@/lib/categories'
-import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
+import { getAllArticles } from '@/lib/sanity/articles'
 import type { RosterDriver } from '@/lib/rosterTypes'
-
-const ALL_ARTICLES: Article[] = [...MOCK_ARTICLES, ...MOCK_OTHER_ARTICLES]
 
 interface DriverPageProps {
   params: { category: string; driverId: string }
@@ -74,10 +72,12 @@ export default async function DriverPage({ params }: DriverPageProps) {
   const flagUrl = driver.nationality ? getFlagUrl(driver.nationality) : null
   const fullName = `${driver.givenName} ${driver.familyName}`
 
-  const relatedNews = ALL_ARTICLES.filter((a) =>
-        a.tags?.some((t) => t.toLowerCase() === driver.driverId.toLowerCase() || t.toLowerCase() === driver.teamId.toLowerCase())
-      ).slice(0, 6)
+  const allArticles = await getAllArticles()
+  const relatedNews = allArticles.filter((a) =>
+    a.tags?.some((t) => t.toLowerCase() === driver.driverId.toLowerCase() || t.toLowerCase() === driver.teamId.toLowerCase())
+  ).slice(0, 6)
   const bio = await getDriverBio(driver.driverId)
+
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
