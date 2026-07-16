@@ -14,6 +14,11 @@ import { getAllArticles } from '@/lib/sanity/articles'
 // da Sanity, essendo in testa all'elenco, hanno sempre la priorità qui.
 const NEWS_COUNT = 8
 
+// Rigenera la pagina al massimo ogni 60s: senza questo la pagina resta
+// statica al contenuto dell'ultimo deploy e i nuovi articoli Sanity non
+// comparirebbero finché non si ricarica manualmente.
+export const revalidate = 60
+
 export default async function HomePage() {
   const allArticles = await getAllArticles()
   const heroArticle = allArticles[0]
