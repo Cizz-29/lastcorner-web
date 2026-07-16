@@ -77,6 +77,7 @@ export default async function DriverPage({ params }: DriverPageProps) {
   const relatedNews = ALL_ARTICLES.filter((a) =>
         a.tags?.some((t) => t.toLowerCase() === driver.driverId.toLowerCase() || t.toLowerCase() === driver.teamId.toLowerCase())
       ).slice(0, 6)
+  const bio = await getDriverBio(driver.driverId)
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
@@ -146,7 +147,7 @@ export default async function DriverPage({ params }: DriverPageProps) {
               Carriera
             </h2>
             <p className="font-montserrat text-[14px] text-white/85 leading-relaxed mb-10">
-              {getDriverBio(driver.driverId)}
+              {bio}
             </p>
 
             <AdSlot height={120} label="Google AdSense" className="mb-10" />
