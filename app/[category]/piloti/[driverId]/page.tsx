@@ -16,6 +16,10 @@ import { getCategoryConfig } from '@/lib/categories'
 import { getAllArticles } from '@/lib/sanity/articles'
 import type { RosterDriver } from '@/lib/rosterTypes'
 
+// Rigenera la pagina al massimo ogni 60s per non restare bloccati sul
+// contenuto articoli dell'ultimo deploy (vedi nota in app/page.tsx).
+export const revalidate = 60
+
 interface DriverPageProps {
   params: { category: string; driverId: string }
 }
