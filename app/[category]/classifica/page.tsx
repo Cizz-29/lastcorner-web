@@ -1,5 +1,3 @@
-import Link from 'next/link'
-import Image from 'next/image'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -7,9 +5,8 @@ import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
 import AdSlot from '@/components/AdSlot'
 import { ArticleCardGrid, ArticleCardSmall } from '@/components/ArticleCard'
+import StandingsToggle from '@/components/StandingsToggle'
 import { getAllStandings } from '@/lib/f1api'
-import { getTeamColor } from '@/lib/teamColors'
-import { getFlagUrl } from '@/lib/nationalityFlags'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import { getAllArticles } from '@/lib/sanity/articles'
 
@@ -57,80 +54,7 @@ export default async function ClassificaPage({ params }: PageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
             <div>
               {drivers.length > 0 || constructors.length > 0 ? (
-                <>
-                  <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">
-                    Piloti
-                  </h2>
-                  <div className="flex flex-col gap-[2px] mb-10">
-                    {drivers.map((d) => {
-                      const color = getTeamColor(d.Constructors[0]?.name ?? '')
-                      const flagUrl = getFlagUrl(d.Driver.nationality)
-                      return (
-                        <Link
-                          key={d.Driver.driverId}
-                          href={`/${config.slug}/piloti/${d.Driver.driverId}`}
-                          className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                        >
-                          <span className="font-akira font-bold text-[13px] w-6 text-center shrink-0 text-white">
-                            {d.position}
-                          </span>
-                          <div className="w-[3px] h-[18px] rounded-full shrink-0" style={{ background: color }} />
-                          {flagUrl && (
-                            <Image src={flagUrl} alt={d.Driver.nationality} width={22} height={15} className="rounded-[2px] shrink-0" />
-                          )}
-                          <span className="font-akira text-[13px] text-white flex-1 truncate">
-                            {d.Driver.givenName} {d.Driver.familyName.toUpperCase()}
-                          </span>
-                          <span className="font-montserrat text-[11px] text-lc-subtle w-28 truncate hidden sm:block">
-                            {d.Constructors[0]?.name}
-                          </span>
-                          <span className="font-montserrat text-[10px] text-lc-subtle w-10 text-center shrink-0">
-                            {d.wins}V
-                          </span>
-                          <span className="font-akira font-bold text-[13px] text-white w-14 text-right shrink-0">
-                            {d.points} pt
-                          </span>
-                        </Link>
-                      )
-                    })}
-                  </div>
-
-                  <AdSlot height={100} className="mb-10" />
-
-                  <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">
-                    Costruttori
-                  </h2>
-                  <div className="flex flex-col gap-[2px]">
-                    {constructors.map((t) => {
-                      const color = getTeamColor(t.Constructor.name)
-                      const flagUrl = getFlagUrl(t.Constructor.nationality)
-                      return (
-                        <Link
-                          key={t.Constructor.constructorId}
-                          href={`/${config.slug}/team/${t.Constructor.constructorId}`}
-                          className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                        >
-                          <span className="font-akira font-bold text-[13px] w-6 text-center shrink-0 text-white">
-                            {t.position}
-                          </span>
-                          <div className="w-[3px] h-[18px] rounded-full shrink-0" style={{ background: color }} />
-                          {flagUrl && (
-                            <Image src={flagUrl} alt={t.Constructor.nationality} width={22} height={15} className="rounded-[2px] shrink-0" />
-                          )}
-                          <span className="font-akira text-[13px] text-white flex-1 truncate">
-                            {t.Constructor.name}
-                          </span>
-                          <span className="font-montserrat text-[10px] text-lc-subtle w-10 text-center shrink-0">
-                            {t.wins}V
-                          </span>
-                          <span className="font-akira font-bold text-[13px] text-white w-14 text-right shrink-0">
-                            {t.points} pt
-                          </span>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </>
+                <StandingsToggle categorySlug={config.slug} drivers={drivers} constructors={constructors} />
               ) : (
                 <div className="pb-16">
                   <p className="font-montserrat text-[14px] text-lc-subtle mb-8 max-w-xl leading-relaxed">
