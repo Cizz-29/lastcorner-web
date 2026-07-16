@@ -4,6 +4,10 @@ import Footer from '@/components/Footer'
 import { ArticleCardGrid } from '@/components/ArticleCard'
 import { getAllArticles } from '@/lib/sanity/articles'
 
+// Rigenera la pagina al massimo ogni 60s per non restare bloccati sul
+// contenuto articoli dell'ultimo deploy (vedi nota in app/page.tsx).
+export const revalidate = 60
+
 interface SearchPageProps {
   searchParams: { q?: string }
 }
