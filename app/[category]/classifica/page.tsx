@@ -13,6 +13,10 @@ import { getFlagUrl } from '@/lib/nationalityFlags'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import { getAllArticles } from '@/lib/sanity/articles'
 
+// Rigenera la pagina al massimo ogni 60s per non restare bloccati sul
+// contenuto articoli dell'ultimo deploy (vedi nota in app/page.tsx).
+export const revalidate = 60
+
 interface PageProps {
   params: { category: string }
 }
