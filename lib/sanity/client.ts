@@ -1,5 +1,5 @@
 import { createClient } from '@sanity/client'
-import { projectId, dataset } from '@/sanity.config'
+import { projectId, dataset } from '@/lib/sanity/env'
 
 // Client di sola lettura per il sito pubblico. Usa @sanity/client (non
 // next-sanity) perche' quest'ultimo include codice legato a React che fa
