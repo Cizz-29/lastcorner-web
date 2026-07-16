@@ -8,11 +8,9 @@ import StandingsWidget from '@/components/StandingsWidget'
 import { StandingsWidgetSkeleton } from '@/components/Skeletons'
 import AdSlot from '@/components/AdSlot'
 import Pagination from '@/components/Pagination'
-import { ArticleCardGrid, ArticleCardSmall, type Article } from '@/components/ArticleCard'
-import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
+import { ArticleCardGrid, ArticleCardSmall } from '@/components/ArticleCard'
+import { getAllArticles } from '@/lib/sanity/articles'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
-
-const ALL_ARTICLES: Article[] = [...MOCK_ARTICLES, ...MOCK_OTHER_ARTICLES]
 
 const ARTICLES_PER_PAGE = 14
 const GRID_COUNT = 4              // le più recenti, stile card "Le ultime news"
@@ -33,11 +31,12 @@ export function generateMetadata({ params }: CategoryPageProps): Metadata {
   return { title: config.label }
 }
 
-export default function CategoryPage({ params, searchParams }: CategoryPageProps) {
+export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const config = getCategoryConfig(params.category)
   if (!config) notFound()
 
-  const categoryArticles = ALL_ARTICLES.filter((a) => a.category === config.label)
+  const allArticles = await getAllArticles()
+  const categoryArticles = allArticles.filter((a) => a.category === config.label)
 
   const totalPages = Math.max(1, Math.ceil(categoryArticles.length / ARTICLES_PER_PAGE))
   const requestedPage = Number(searchParams.page) || 1
