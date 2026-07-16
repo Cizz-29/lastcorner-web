@@ -9,9 +9,30 @@ import { sanityWriteClient } from '@/lib/sanity/writeClient'
 // le copie tranne la piu' vecchia (_createdAt minore).
 // Protetta da MIGRATION_SECRET. Senza ?confirm=true e' un dry-run
 // (nessuna cancellazione, solo report).
+//
+// IMPORTANTE: le prime versioni di questa route restituivano sempre la
+// stessa risposta (stesso transactionId) su chiamate successive: la
+// funzione veniva servita da una cache (edge/CDN) nonostante
+// dynamic="force-dynamic". Per essere sicuri che ogni chiamata esegua
+// davvero query e mutazioni fresche, ogni risposta include header
+// Cache-Control: no-store espliciti.
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+export const revalidate = 0
 export const maxDuration = 60
+
+function noStoreJson(body: any, init?: { status?: number }) {
+  return NextResponse.json(body, {
+    status: init?.status,
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'CDN-Cache-Control': 'no-store',
+      'Vercel-CDN-Cache-Control': 'no-store',
+      Pragma: 'no-cache',
+    },
+  })
+}
 
 interface ArticleRow {
   _id: string
@@ -23,12 +44,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const secret = searchParams.get('secret')
   if (!process.env.MIGRATION_SECRET || secret !== process.env.MIGRATION_SECRET) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    return noStoreJson({ error: 'unauthorized' }, { status: 401 })
   }
   const confirm = searchParams.get('confirm') === 'true'
 
   const rows = await sanityWriteClient.fetch<ArticleRow[]>(
-    `*[_type == "article" && defined(slug.current)]{ _id, _createdAt, "slug": slug.current } | order(slug asc, _createdAt asc)`
+    `*[_type == "article" && defined(slug.current)]{ _id, _createdAt, "slug": slug.current } | order(slug asc, _createdAt asc)`,
+    {},
+    { cache: 'no-store' }
   )
 
   const bySlug = new Map<string, ArticleRow[]>()
@@ -49,13 +72,10 @@ export async function GET(req: NextRequest) {
   const allIdsToRemove = duplicateGroups.flatMap((g) => g.remove)
   const totalToRemove = allIdsToRemove.length
 
-  // Modalita' diagnostica: cancella UN solo documento (il primo duplicato
-  // trovato) e verifica subito dopo, nella stessa richiesta, se esiste
-  // ancora - per capire se le cancellazioni stanno davvero avvenendo.
   if (searchParams.get('debug') === 'true') {
     const testId = allIdsToRemove[0]
     if (!testId) {
-      return NextResponse.json({ debug: true, message: 'nessun duplicato da testare', totalToRemove })
+      return noStoreJson({ debug: true, message: 'nessun duplicato da testare', totalToRemove })
     }
     let deleteResult: any = null
     let deleteError: string | null = null
@@ -64,8 +84,12 @@ export async function GET(req: NextRequest) {
     } catch (err: any) {
       deleteError = err?.message ?? String(err)
     }
-    const stillExists = await sanityWriteClient.fetch<any>(`*[_id == $id][0]`, { id: testId })
-    return NextResponse.json({
+    const stillExists = await sanityWriteClient.fetch<any>(
+      `*[_id == $id][0]`,
+      { id: testId },
+      { cache: 'no-store' }
+    )
+    return noStoreJson({
       debug: true,
       testId,
       deleteResult,
@@ -75,7 +99,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!confirm) {
-    return NextResponse.json({
+    return noStoreJson({
       dryRun: true,
       totalArticles: rows.length,
       duplicateSlugs: duplicateGroups.length,
@@ -84,9 +108,6 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // Cancellazione a batch per restare sotto i limiti di durata delle
-  // funzioni serverless: va richiamata ripetutamente (stesso URL con
-  // confirm=true) finche' remainingAfterThisBatch non e' 0.
   const limit = Math.min(30, Math.max(1, Number(searchParams.get('limit') ?? '20') || 20))
   const batch = allIdsToRemove.slice(0, limit)
 
@@ -101,7 +122,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({
+  return noStoreJson({
     dryRun: false,
     totalArticlesBefore: rows.length,
     duplicateSlugsBefore: duplicateGroups.length,
