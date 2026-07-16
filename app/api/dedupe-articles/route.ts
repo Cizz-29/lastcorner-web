@@ -49,6 +49,31 @@ export async function GET(req: NextRequest) {
   const allIdsToRemove = duplicateGroups.flatMap((g) => g.remove)
   const totalToRemove = allIdsToRemove.length
 
+  // Modalita' diagnostica: cancella UN solo documento (il primo duplicato
+  // trovato) e verifica subito dopo, nella stessa richiesta, se esiste
+  // ancora - per capire se le cancellazioni stanno davvero avvenendo.
+  if (searchParams.get('debug') === 'true') {
+    const testId = allIdsToRemove[0]
+    if (!testId) {
+      return NextResponse.json({ debug: true, message: 'nessun duplicato da testare', totalToRemove })
+    }
+    let deleteResult: any = null
+    let deleteError: string | null = null
+    try {
+      deleteResult = await sanityWriteClient.delete(testId)
+    } catch (err: any) {
+      deleteError = err?.message ?? String(err)
+    }
+    const stillExists = await sanityWriteClient.fetch<any>(`*[_id == $id][0]`, { id: testId })
+    return NextResponse.json({
+      debug: true,
+      testId,
+      deleteResult,
+      deleteError,
+      stillExists,
+    })
+  }
+
   if (!confirm) {
     return NextResponse.json({
       dryRun: true,
