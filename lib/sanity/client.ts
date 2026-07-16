@@ -1,12 +1,12 @@
-import { createClient } from 'next-sanity'
+import { createClient } from '@sanity/client'
 import { projectId, dataset } from '@/sanity.config'
 
-// Client di sola lettura per il sito pubblico. Non collegato ancora a
-// nessuna pagina: verra' usato quando sostituiremo lib/mockData.ts,
-// lib/driverBios.ts e lib/teamBios.ts con query reali.
+// Client di sola lettura per il sito pubblico. Usa @sanity/client (non
+// next-sanity) perche' quest'ultimo include codice legato a React che fa
+// fallire la fase di "collect page data" di Next.js in build su Vercel.
 export const sanityClient = createClient({
-    projectId,
-    dataset,
-    apiVersion: '2025-01-01',
-    useCdn: true,
+      projectId,
+      dataset,
+      apiVersion: '2025-01-01',
+      useCdn: true,
 })
