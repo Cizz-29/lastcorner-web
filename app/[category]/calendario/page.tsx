@@ -79,7 +79,7 @@ export default async function CalendarioPage({ params }: PageProps) {
                       <div
                         className={`relative bg-lc-card rounded-card-sm border overflow-hidden flex items-center gap-4 p-4 transition-colors ${
                           isNext ? 'border-lc-red/40' : 'border-white/10'
-                        } ${isPast ? 'opacity-50' : ''}`}
+                        } ${isPast ? 'opacity-75' : ''}`}
                       >
                         <div className="absolute top-0 left-0 bottom-0 w-1" style={{ background: accent }} />
                         <span className="font-akira font-extrabold text-[13px] text-lc-subtle w-8 text-center shrink-0">
