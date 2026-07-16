@@ -5,6 +5,17 @@ const PLACEHOLDER = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w
 const PLACEHOLDER_2 = 'https://images.unsplash.com/photo-1541447270886-5b0a95c8f8ea?w=800&q=80'
 const PLACEHOLDER_3 = 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&q=80'
 
+// Piccolo helper per non ripetere la struttura Portable Text a mano per
+// ogni paragrafo semplice del corpo dell'unico articolo mock con contenuto.
+function paragraph(key: string, text: string) {
+  return {
+    _type: 'block',
+    _key: key,
+    style: 'normal',
+    children: [{ _type: 'span', _key: `${key}-s`, text }],
+  }
+}
+
 // Articoli mostrati in hero + "Le ultime news"
 export const MOCK_ARTICLES: Article[] = [
   {
@@ -19,14 +30,14 @@ export const MOCK_ARTICLES: Article[] = [
     tags: ['haas'],
     excerpt: 'Il pilota brasiliano prenderà il volante della seconda Haas dal prossimo campionato: le prime parole dopo l\'ufficialità.',
     content: [
-      { type: 'paragraph', text: 'L\'annuncio è arrivato nella mattinata di martedì e ha chiuso settimane di indiscrezioni: Gabriel Camara sarà il compagno di squadra in Haas a partire dalla prossima stagione, prendendo il posto lasciato libero da Esteban Ocon.' },
-      { type: 'paragraph', text: 'Il pilota brasiliano, reduce da una stagione di Formula 2 chiusa nelle prime posizioni del campionato, ha commentato la notizia con un misto di entusiasmo e consapevolezza della sfida che lo attende: "È il momento più importante della mia carriera. So che Haas mi sta dando una possibilità che in pochi ottengono, e voglio ripagarla con il lavoro."' },
-      { type: 'paragraph', text: 'Il team principal ha spiegato che la scelta è arrivata dopo un lungo processo di valutazione che ha coinvolto sessioni al simulatore e diversi test privati con la vettura del 2025, in cui Camara avrebbe convinto per costanza di rendimento più che per il singolo giro veloce.' },
-      { type: 'image', src: PLACEHOLDER_2, caption: 'Gabriel Camara durante un test privato con la vettura Haas' },
-      { type: 'paragraph', text: 'Non sono mancate le voci critiche, legate soprattutto alla scarsa esperienza del brasiliano nelle categorie propedeutiche europee. Camara ha risposto a modo suo, ricordando come il suo percorso — cresciuto lontano dai circuiti tradizionali del motorsport continentale — sia già di per sé un caso studio.' },
-      { type: 'paragraph', text: 'Resta da capire come si evolverà il resto della griglia piloti Haas per la prossima stagione, con il team che ha lasciato intendere di voler sciogliere le riserve sul secondo sedile solo dopo la pausa estiva.' },
-      { type: 'paragraph', text: 'Intanto la reazione dei tifosi sui social è stata in larga parte positiva, con molti che sottolineano il coraggio della scelta in un mercato piloti sempre più conservativo, orientato verso nomi già affermati piuttosto che verso le nuove leve.' },
-      { type: 'paragraph', text: 'Camara avrà a disposizione le prossime settimane per iniziare il lavoro di preparazione fisica e tecnica insieme al team, in vista dei primi test collettivi in programma alla fine della stagione corrente.' },
+      paragraph('b1', 'L\'annuncio è arrivato nella mattinata di martedì e ha chiuso settimane di indiscrezioni: Gabriel Camara sarà il compagno di squadra in Haas a partire dalla prossima stagione, prendendo il posto lasciato libero da Esteban Ocon.'),
+      paragraph('b2', 'Il pilota brasiliano, reduce da una stagione di Formula 2 chiusa nelle prime posizioni del campionato, ha commentato la notizia con un misto di entusiasmo e consapevolezza della sfida che lo attende: "È il momento più importante della mia carriera. So che Haas mi sta dando una possibilità che in pochi ottengono, e voglio ripagarla con il lavoro."'),
+      paragraph('b3', 'Il team principal ha spiegato che la scelta è arrivata dopo un lungo processo di valutazione che ha coinvolto sessioni al simulatore e diversi test privati con la vettura del 2025, in cui Camara avrebbe convinto per costanza di rendimento più che per il singolo giro veloce.'),
+      { _type: 'image', _key: 'img1', asset: { url: PLACEHOLDER_2 }, caption: 'Gabriel Camara durante un test privato con la vettura Haas' },
+      paragraph('b4', 'Non sono mancate le voci critiche, legate soprattutto alla scarsa esperienza del brasiliano nelle categorie propedeutiche europee. Camara ha risposto a modo suo, ricordando come il suo percorso — cresciuto lontano dai circuiti tradizionali del motorsport continentale — sia già di per sé un caso studio.'),
+      paragraph('b5', 'Resta da capire come si evolverà il resto della griglia piloti Haas per la prossima stagione, con il team che ha lasciato intendere di voler sciogliere le riserve sul secondo sedile solo dopo la pausa estiva.'),
+      paragraph('b6', 'Intanto la reazione dei tifosi sui social è stata in larga parte positiva, con molti che sottolineano il coraggio della scelta in un mercato piloti sempre più conservativo, orientato verso nomi già affermati piuttosto che verso le nuove leve.'),
+      paragraph('b7', 'Camara avrà a disposizione le prossime settimane per iniziare il lavoro di preparazione fisica e tecnica insieme al team, in vista dei primi test collettivi in programma alla fine della stagione corrente.'),
     ],
   },
   {
