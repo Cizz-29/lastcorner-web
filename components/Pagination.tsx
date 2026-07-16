@@ -15,7 +15,7 @@ export default function Pagination({ currentPage, totalPages, basePath }: Pagina
   const pillBase = 'font-akira text-[11px] flex items-center justify-center rounded-full border transition-colors duration-200'
 
   return (
-    <nav aria-label="Paginazione" className="flex items-center justify-center gap-2 mt-10">
+    <nav aria-label="Paginazione" className="flex flex-wrap items-center justify-center gap-2 mt-10">
       <Link
         href={`${basePath}${currentPage > 1 ? `?page=${currentPage - 1}` : ''}`}
         aria-disabled={currentPage === 1}
