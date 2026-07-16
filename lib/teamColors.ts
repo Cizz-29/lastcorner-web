@@ -19,6 +19,20 @@ export const TEAM_COLORS: Record<string, string> = {
   'Haas F1 Team': '#B6BABD',
   'Audi': '#BB0A30',
   'Cadillac F1 Team': '#C9A96E',
+
+  // Formula 2 / Formula 3 2026 — colori delle livree/box dei team, presi
+  // dai colori ufficiali usati nei numeri di gara.
+  'Invicta Racing': '#F7D417',
+  'Hitech': '#DADADA',
+  'Campos Racing': '#B8B8B8',
+  'DAMS Lucas Oil': '#3FC1E9',
+  'MP Motorsport': '#FF6A00',
+  'PREMA Racing': '#ED1C24',
+  'Rodin Motorsport': '#1C1C1C',
+  'ART Grand Prix': '#FFFFFF',
+  'AIX Racing': '#1FCB4F',
+  'Van Amersfoort Racing': '#FF9500',
+  'Trident': '#7A1FA2',
 }
 
 export function getTeamColor(teamName: string): string {

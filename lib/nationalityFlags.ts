@@ -32,6 +32,13 @@ const NATIONALITY_TO_COUNTRY: Record<string, string> = {
   Swedish: 'se',
   Portuguese: 'pt',
   Irish: 'ie',
+  Paraguayan: 'py',
+  Bulgarian: 'bg',
+  Colombian: 'co',
+  Norwegian: 'no',
+  Singaporean: 'sg',
+  'South Korean': 'kr',
+  Emirati: 'ae',
 }
 
 export function getFlagUrl(nationality: string, size: 'w40' | 'w80' = 'w40'): string | null {
