@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { ArticleCardGrid } from '@/components/ArticleCard'
-import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
+import { getAllArticles } from '@/lib/sanity/articles'
 
 interface SearchPageProps {
   searchParams: { q?: string }
@@ -13,11 +13,11 @@ export function generateMetadata({ searchParams }: SearchPageProps): Metadata {
   return { title: q ? `Risultati per "${q}"` : 'Cerca' }
 }
 
-// Ricerca lato server sui titoli degli articoli (mock — in futuro sarà
-// una query full-text su Sanity). Nessuna chiamata client necessaria.
-export default function SearchPage({ searchParams }: SearchPageProps) {
+// Ricerca lato server sui titoli degli articoli (Sanity + mock). Nessuna
+// chiamata client necessaria.
+export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = (searchParams.q ?? '').trim()
-  const allArticles = [...MOCK_ARTICLES, ...MOCK_OTHER_ARTICLES]
+  const allArticles = await getAllArticles()
   const results = query
     ? allArticles.filter((a) => a.title.toLowerCase().includes(query.toLowerCase()))
     : []
