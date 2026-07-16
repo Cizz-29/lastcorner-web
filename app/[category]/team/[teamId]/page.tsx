@@ -83,8 +83,10 @@ export default async function TeamPage({ params }: TeamPageProps) {
   const color = getTeamColor(team.name)
   const flagUrl = team.nationality ? getFlagUrl(team.nationality) : null
 
-  const relatedNews = ALL_ARTICLES.filter((a) => a.tags?.includes(params.teamId)).slice(0, 6)
-
+    const relatedNews = ALL_ARTICLES.filter((a) =>
+          a.tags?.some((t) => t.toLowerCase() === params.teamId.toLowerCase())
+        ).slice(0, 6)
+  
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
