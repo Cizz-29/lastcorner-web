@@ -63,7 +63,7 @@ const F3_TEAMS: RosterTeamEntry[] = [
   { id: 'campos-racing', name: 'Campos Racing', drivers: [
     { number: '1', givenName: 'Théophile', familyName: 'Naël', nationality: 'French' },
     { number: '2', givenName: 'Ugo', familyName: 'Ugochukwu', nationality: 'American' },
-    { number: '3', givenName: 'Patrick', familyName: 'Heuzenroeder', nationality: 'Australian' },
+    { number: '3', givenName: 'Ernesto', familyName: 'Rivera', nationality: 'Mexican' },
   ]},
   { id: 'trident', name: 'Trident', drivers: [
     { number: '4', givenName: 'Noah', familyName: 'Strømsted', nationality: 'Danish' },
