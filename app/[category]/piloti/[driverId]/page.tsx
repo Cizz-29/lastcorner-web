@@ -74,10 +74,9 @@ export default async function DriverPage({ params }: DriverPageProps) {
   const flagUrl = driver.nationality ? getFlagUrl(driver.nationality) : null
   const fullName = `${driver.givenName} ${driver.familyName}`
 
-  const relatedNews = ALL_ARTICLES.filter(
-    (a) => a.tags?.includes(driver.driverId) || a.tags?.includes(driver.teamId)
-  ).slice(0, 6)
-
+  const relatedNews = ALL_ARTICLES.filter((a) =>
+        a.tags?.some((t) => t.toLowerCase() === driver.driverId.toLowerCase() || t.toLowerCase() === driver.teamId.toLowerCase())
+      ).slice(0, 6)
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
