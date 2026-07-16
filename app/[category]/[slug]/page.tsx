@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Suspense, type ReactNode } from 'react'
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -9,14 +9,11 @@ import StandingsWidget from '@/components/StandingsWidget'
 import SocialCard from '@/components/SocialCard'
 import { StandingsWidgetSkeleton } from '@/components/Skeletons'
 import AdSlot from '@/components/AdSlot'
+import ArticleBody from '@/components/ArticleBody'
 import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
-import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
+import { getAllArticles } from '@/lib/sanity/articles'
 import { getCategoryConfig } from '@/lib/categories'
 
-const ALL_ARTICLES: Article[] = [...MOCK_ARTICLES, ...MOCK_OTHER_ARTICLES]
-
-// Ogni quanti paragrafi consecutivi inserire uno slot pubblicitario nel corpo
-const AD_EVERY_N_PARAGRAPHS = 3
 // Quanti articoli mostrare nella sidebar (ridotti rispetto alla vecchia lista)
 const OTHER_ARTICLES_COUNT = 5
 
@@ -24,20 +21,22 @@ interface ArticlePageProps {
   params: { category: string; slug: string }
 }
 
-function findArticle(category: string, slug: string): Article | undefined {
-  return ALL_ARTICLES.find((a) => a.slug === `${category}/${slug}`)
+async function findArticle(category: string, slug: string): Promise<Article | undefined> {
+  const articles = await getAllArticles()
+  return articles.find((a) => a.slug === `${category}/${slug}`)
 }
 
-// Pre-genera le pagine per tutti gli articoli mock in fase di build
-export function generateStaticParams() {
-  return ALL_ARTICLES.map((a) => {
+// Pre-genera le pagine per tutti gli articoli (Sanity + mock) in fase di build
+export async function generateStaticParams() {
+  const articles = await getAllArticles()
+  return articles.map((a) => {
     const [category, slug] = a.slug.split('/')
     return { category, slug }
   })
 }
 
-export function generateMetadata({ params }: ArticlePageProps): Metadata {
-  const article = findArticle(params.category, params.slug)
+export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
+  const article = await findArticle(params.category, params.slug)
   if (!article) return { title: 'Articolo non trovato' }
 
   const description = article.excerpt ?? `${article.title} — Lastcorner.net`
@@ -53,55 +52,16 @@ export function generateMetadata({ params }: ArticlePageProps): Metadata {
   }
 }
 
-// Trasforma i blocchi di contenuto in JSX, inserendo un AdSlot ogni
-// AD_EVERY_N_PARAGRAPHS paragrafi (le immagini non contano ai fini del conteggio).
-function renderContent(article: Article): ReactNode[] {
-  const blocks = article.content ?? []
-  let paragraphCount = 0
-  const nodes: ReactNode[] = []
-
-  blocks.forEach((block, i) => {
-    if (block.type === 'paragraph') {
-      paragraphCount++
-      nodes.push(
-        <p key={i} className="font-montserrat text-[15px] text-white/90 leading-relaxed mb-5">
-          {block.text}
-        </p>
-      )
-      const isLastBlock = i === blocks.length - 1
-      if (paragraphCount % AD_EVERY_N_PARAGRAPHS === 0 && !isLastBlock) {
-        nodes.push(<AdSlot key={`ad-${i}`} height={120} label="Google AdSense" className="mb-6" />)
-      }
-    } else {
-      nodes.push(
-        <figure key={i} className="mb-6">
-          <div className="relative w-full h-[280px] lg:h-[360px] rounded-card overflow-hidden">
-            <Image src={block.src} alt={block.caption ?? article.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 800px" />
-          </div>
-          {block.caption && (
-            <figcaption className="font-montserrat italic text-[12px] text-lc-subtle mt-2">
-              {block.caption}
-            </figcaption>
-          )}
-        </figure>
-      )
-    }
-  })
-
-  return nodes
-}
-
-export default function ArticlePage({ params }: ArticlePageProps) {
-  const article = findArticle(params.category, params.slug)
+export default async function ArticlePage({ params }: ArticlePageProps) {
+  const article = await findArticle(params.category, params.slug)
   if (!article) notFound()
 
   const hasStandings = getCategoryConfig(params.category)?.hasStandings ?? false
 
-  const otherArticles = ALL_ARTICLES
+  const allArticles = await getAllArticles()
+  const otherArticles = allArticles
     .filter((a) => a.id !== article.id)
     .slice(0, OTHER_ARTICLES_COUNT)
-
-  const contentNodes = renderContent(article)
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -155,7 +115,9 @@ export default function ArticlePage({ params }: ArticlePageProps) {
               />
             </div>
 
-            {contentNodes.length > 0 ? contentNodes : (
+            {article.content && article.content.length > 0 ? (
+              <ArticleBody blocks={article.content} />
+            ) : (
               <p className="font-montserrat text-[14px] text-lc-subtle italic">
                 Contenuto in arrivo.
               </p>
