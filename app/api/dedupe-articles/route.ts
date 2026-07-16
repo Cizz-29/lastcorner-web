@@ -46,7 +46,8 @@ export async function GET(req: NextRequest) {
     duplicateGroups.push({ slug, keep: keep._id, remove: rest.map((r) => r._id) })
   }
 
-  const totalToRemove = duplicateGroups.reduce((n, g) => n + g.remove.length, 0)
+  const allIdsToRemove = duplicateGroups.flatMap((g) => g.remove)
+  const totalToRemove = allIdsToRemove.length
 
   if (!confirm) {
     return NextResponse.json({
@@ -58,24 +59,30 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  // Cancellazione a batch per restare sotto i limiti di durata delle
+  // funzioni serverless: va richiamata ripetutamente (stesso URL con
+  // confirm=true) finche' remainingAfterThisBatch non e' 0.
+  const limit = Math.min(30, Math.max(1, Number(searchParams.get('limit') ?? '20') || 20))
+  const batch = allIdsToRemove.slice(0, limit)
+
   const deleted: string[] = []
   const errors: { id: string; message: string }[] = []
-  for (const group of duplicateGroups) {
-    for (const id of group.remove) {
-      try {
-        await sanityWriteClient.delete(id)
-        deleted.push(id)
-      } catch (err: any) {
-        errors.push({ id, message: err?.message ?? String(err) })
-      }
+  for (const id of batch) {
+    try {
+      await sanityWriteClient.delete(id)
+      deleted.push(id)
+    } catch (err: any) {
+      errors.push({ id, message: err?.message ?? String(err) })
     }
   }
 
   return NextResponse.json({
     dryRun: false,
-    totalArticles: rows.length,
-    duplicateSlugs: duplicateGroups.length,
-    deletedCount: deleted.length,
+    totalArticlesBefore: rows.length,
+    duplicateSlugsBefore: duplicateGroups.length,
+    totalToRemoveBefore: totalToRemove,
+    deletedThisBatch: deleted.length,
+    remainingAfterThisBatch: totalToRemove - deleted.length,
     errors,
   })
 }
