@@ -86,6 +86,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
     const relatedNews = ALL_ARTICLES.filter((a) =>
           a.tags?.some((t) => t.toLowerCase() === params.teamId.toLowerCase())
         ).slice(0, 6)
+  const bio = await getTeamBio(team.constructorId)
   
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -153,7 +154,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
               Il team
             </h2>
             <p className="font-montserrat text-[14px] text-white/85 leading-relaxed mb-10">
-              {getTeamBio(team.constructorId)}
+              {bio}
             </p>
 
             <AdSlot height={120} label="Google AdSense" className="mb-10" />
