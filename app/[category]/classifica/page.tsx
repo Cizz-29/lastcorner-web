@@ -155,7 +155,7 @@ export default async function ClassificaPage({ params }: PageProps) {
   // pagina mostra invece gli articoli di recap scritti dopo ogni weekend
   // (categoria = etichetta categoria, sottocategoria = "classifiche").
   const articles = ALL_ARTICLES.filter(
-    (a) => a.category === config.label && a.subcategory === 'classifiche'
+        (a) => a.category === config.label && a.subcategory?.toLowerCase() === 'classifiche'
   )
   const gridArticles = articles.slice(0, 4)
   const smallArticles = articles.slice(4)
