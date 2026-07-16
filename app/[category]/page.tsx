@@ -66,7 +66,11 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
           {/* Colonna principale */}
-          <div>
+          {/* min-w-0: senza, una colonna grid non si restringe mai sotto la
+              larghezza minima del proprio contenuto (es. la paginazione con
+              tante pagine, come su F1); questo forzava tutta la griglia a
+              sforare la larghezza della pagina, tagliando la sidebar. */}
+          <div className="min-w-0">
             {pageArticles.length === 0 ? (
               <p className="font-montserrat text-[14px] text-lc-subtle pb-20">
                 Nessun articolo disponibile in questa categoria per ora.
