@@ -6,38 +6,17 @@ interface PaginationProps {
   basePath: string
 }
 
-const DOTS = '…'
-const SIBLING_COUNT = 2 // pagine vicine a quella corrente mostrate su ogni lato
-const MAX_SLOTS = SIBLING_COUNT * 2 + 5 // prima + puntini + (siblings*2+1) + puntini + ultima
+const MAX_VISIBLE_PAGES = 9
 
 function range(start: number, end: number): number[] {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 }
 
-// Limita i numeri di pagina mostrati a un massimo di 9 "caselle" (numeri +
-// eventuali puntini "…") invece di elencare sempre tutte le pagine — con
-// categorie come F1 che superano le 20 pagine la lista intera non ci stava
-// in una riga e sforava la larghezza della pagina.
-function getPaginationItems(currentPage: number, totalPages: number): (number | typeof DOTS)[] {
-  if (totalPages <= MAX_SLOTS) return range(1, totalPages)
-
-  const leftSibling = Math.max(currentPage - SIBLING_COUNT, 1)
-  const rightSibling = Math.min(currentPage + SIBLING_COUNT, totalPages)
-
-  const showLeftDots = leftSibling > 2
-  const showRightDots = rightSibling < totalPages - 2
-
-  if (!showLeftDots && showRightDots) {
-    const leftRange = range(1, 3 + 2 * SIBLING_COUNT)
-    return [...leftRange, DOTS, totalPages]
-  }
-
-  if (showLeftDots && !showRightDots) {
-    const rightRange = range(totalPages - (3 + 2 * SIBLING_COUNT) + 1, totalPages)
-    return [1, DOTS, ...rightRange]
-  }
-
-  return [1, DOTS, ...range(leftSibling, rightSibling), DOTS, totalPages]
+// Mostra sempre e solo le prime 9 pagine (1,2,3...9) — sono le più recenti,
+// quelle a cui conta arrivare in un clic. Le frecce ‹ › restano comunque
+// utilizzabili per scorrere oltre, se serve andare più indietro nel tempo.
+function getPaginationItems(totalPages: number): number[] {
+  return range(1, Math.min(totalPages, MAX_VISIBLE_PAGES))
 }
 
 // Paginazione semplice via query string (?page=n) — nessun JS lato client,
@@ -45,7 +24,7 @@ function getPaginationItems(currentPage: number, totalPages: number): (number | 
 export default function Pagination({ currentPage, totalPages, basePath }: PaginationProps) {
   if (totalPages <= 1) return null
 
-  const items = getPaginationItems(currentPage, totalPages)
+  const items = getPaginationItems(totalPages)
   const pillBase = 'font-akira text-[11px] flex items-center justify-center rounded-full border transition-colors duration-200'
 
   return (
@@ -63,29 +42,20 @@ export default function Pagination({ currentPage, totalPages, basePath }: Pagina
         ‹
       </Link>
 
-      {items.map((item, i) =>
-        item === DOTS ? (
-          <span
-            key={`dots-${i}`}
-            className="font-akira text-[11px] text-lc-subtle w-9 h-9 flex items-center justify-center select-none"
-          >
-            {DOTS}
-          </span>
-        ) : (
-          <Link
-            key={item}
-            href={item === 1 ? basePath : `${basePath}?page=${item}`}
-            aria-current={item === currentPage ? 'page' : undefined}
-            className={`${pillBase} w-9 h-9 ${
-              item === currentPage
-                ? 'bg-lc-red border-lc-red text-white'
-                : 'border-white/15 text-lc-subtle hover:border-lc-red/50 hover:text-white'
-            }`}
-          >
-            {item}
-          </Link>
-        )
-      )}
+      {items.map((item) => (
+        <Link
+          key={item}
+          href={item === 1 ? basePath : `${basePath}?page=${item}`}
+          aria-current={item === currentPage ? 'page' : undefined}
+          className={`${pillBase} w-9 h-9 ${
+            item === currentPage
+              ? 'bg-lc-red border-lc-red text-white'
+              : 'border-white/15 text-lc-subtle hover:border-lc-red/50 hover:text-white'
+          }`}
+        >
+          {item}
+        </Link>
+      ))}
 
       <Link
         href={`${basePath}?page=${currentPage < totalPages ? currentPage + 1 : totalPages}`}
