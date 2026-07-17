@@ -20,6 +20,7 @@ export const revalidate = 60
 const ARTICLES_PER_PAGE = 14
 const GRID_COUNT = 4              // le più recenti, stile card "Le ultime news"
 const AD_EVERY_N_SMALL_CARDS = 5  // cadenza annunci tra le card piccole
+const MAX_PAGES = 9               // solo le 9 pagine più recenti sono navigabili
 
 interface CategoryPageProps {
   params: { category: string }
@@ -43,7 +44,11 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const allArticles = await getAllArticles()
   const categoryArticles = allArticles.filter((a) => a.category === config.label)
 
-  const totalPages = Math.max(1, Math.ceil(categoryArticles.length / ARTICLES_PER_PAGE))
+  // totalPages è già limitato a MAX_PAGES: le pagine oltre la 9ª (le più
+  // vecchie) restano fuori dalla navigazione — gli articoli restano
+  // raggiungibili via ricerca/link diretto, semplicemente non si sfoglia
+  // più indietro di così.
+  const totalPages = Math.min(Math.max(1, Math.ceil(categoryArticles.length / ARTICLES_PER_PAGE)), MAX_PAGES)
   const requestedPage = Number(searchParams.page) || 1
   const currentPage = Math.min(Math.max(1, requestedPage), totalPages)
 
