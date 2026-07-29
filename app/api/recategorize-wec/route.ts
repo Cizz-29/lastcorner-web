@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server'
 import { sanityClient } from '@/lib/sanity/client'
 import { sanityWriteClient } from '@/lib/sanity/writeClient'
 
+// Senza questo, Next.js tratta una GET route handler senza funzioni dinamiche
+// come statica e ne mette in cache il risultato al build: la seconda chiamata
+// restituirebbe sempre la stessa risposta cristallizzata invece di rieseguire
+// la query su Sanity.
+export const dynamic = 'force-dynamic'
+
 // Route temporanea: la categoria "WEC" è stata rimossa (sostituita da
 // "F1 Academy"). Questo endpoint sposta i vecchi articoli ancora taggati
 // "WEC" sotto "Altro", così restano visibili e coerenti nello Studio invece
