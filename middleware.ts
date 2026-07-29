@@ -16,12 +16,14 @@ const KNOWN_TOP_LEVEL = new Set([
   'studio', 'api', 'images', 'sitemap.xml', 'robots.txt', '_next', 'favicon.ico',
 ])
 
-// Vecchie sotto-categorie WordPress (esistevano per formula-1/2/3, f1-academy,
-// wrc): sul nuovo sito non hanno una pagina dedicata, si rimanda alla
-// categoria principale.
-const OLD_SUBCATEGORY_SLUGS = new Set([
-  'news', 'editoriali', 'analisi-tecnica', 'guide-approfondimenti', 'rubriche',
-])
+// Vecchia sotto-categoria "news" del vecchio sito: sul nuovo sito non ha una
+// pagina dedicata (la pagina categoria principale già mostra tutte le news),
+// quindi si rimanda lì. Le altre sotto-categorie (editoriali, analisi-tecnica,
+// guide-approfondimenti, rubriche) hanno invece ORA una pagina dedicata vera
+// e propria (vedi app/[category]/{slug}/page.tsx + lib/subcategories.ts),
+// quindi NON vanno più intercettate qui: si lascia che Next.js le risolva
+// normalmente.
+const OLD_SUBCATEGORY_SLUGS = new Set(['news'])
 
 // "Formula E" esisteva sul vecchio sito ma non è stata portata sul nuovo
 // (decisione esplicita): chi arriva da un vecchio link va in "Altro"
