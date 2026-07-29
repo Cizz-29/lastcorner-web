@@ -103,13 +103,50 @@ export default defineType({
       type: 'array',
       of: [{ type: 'string' }],
       description: 'driverId / constructorId collegati (es. "leclerc", "ferrari"), per la sezione "news relative a". Maiuscole/minuscole non contano.',
+      validation: (Rule) =>
+        Rule.custom((tags) =>
+          tags && (tags as string[]).length > 0
+            ? true
+            : 'Nessun tag pilota/team: valuta se aggiungerne uno per far comparire l\'articolo nella sezione "news correlate"'
+        ).warning(),
     }),
     defineField({
       name: 'body',
       title: 'Corpo articolo',
       type: 'array',
+      validation: (Rule) =>
+        Rule.custom((blocks) => {
+          const body = (blocks as { _type?: string; markDefs?: { _type?: string }[] }[] | undefined) ?? []
+          const hasLink = body.some(
+            (b) => b._type === 'embed' || (b.markDefs ?? []).some((m) => m._type === 'link')
+          )
+          return hasLink
+            ? true
+            : 'Nessun link (interno/esterno) o embed trovato nel testo: valuta se aggiungerne uno'
+        }).warning(),
       of: [
-        { type: 'block' },
+        {
+          type: 'block',
+          marks: {
+            annotations: [
+              {
+                name: 'link',
+                type: 'object',
+                title: 'Link',
+                fields: [
+                  {
+                    name: 'href',
+                    type: 'string',
+                    title: 'URL',
+                    description: 'Link interno (es. /formula-1/piloti/leclerc) o esterno (con https://).',
+                    validation: (Rule) =>
+                      Rule.required().uri({ allowRelative: true, scheme: ['http', 'https'] }),
+                  },
+                ],
+              },
+            ],
+          },
+        },
         {
           type: 'image',
           title: 'Immagine nel testo',
