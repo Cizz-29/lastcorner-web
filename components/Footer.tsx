@@ -6,7 +6,7 @@ const CATEGORY_LINKS = [
   { label: 'Formula 1', href: '/formula-1' },
   { label: 'Formula 2', href: '/formula-2' },
   { label: 'Formula 3', href: '/formula-3' },
-  { label: 'WEC', href: '/wec' },
+  { label: 'F1 Academy', href: '/f1-academy' },
   { label: 'WRC', href: '/wrc' },
   { label: 'Altro', href: '/altro' },
 ]
