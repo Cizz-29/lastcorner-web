@@ -4,6 +4,21 @@ import { defineField, defineType } from 'sanity'
 // non collega direttamente lo schema a quella lista in fase di integrazione.
 const CATEGORY_OPTIONS = ['Formula 1', 'Formula 2', 'Formula 3', 'F1 Academy', 'WRC', 'Altro']
 
+// Sotto-categorie: F1 e WRC hanno il set completo (come sul vecchio sito),
+// tutte le altre categorie solo News e Rubriche. Il menu a tendina mostra
+// sempre tutte le opzioni (Sanity non supporta liste condizionali native),
+// ma la validazione sotto blocca la scelta sbagliata per la categoria.
+const SUBCATEGORY_OPTIONS = [
+  { title: 'News', value: 'news' },
+  { title: 'Editoriali', value: 'editoriali' },
+  { title: 'Analisi Tecnica', value: 'analisi-tecnica' },
+  { title: 'Guide e Approfondimenti', value: 'guide-approfondimenti' },
+  { title: 'Rubriche', value: 'rubriche' },
+  { title: 'Classifiche', value: 'classifiche' },
+]
+const CATEGORIES_WITH_FULL_SUBCATEGORIES = ['Formula 1', 'WRC']
+const LIMITED_SUBCATEGORY_VALUES = ['news', 'rubriche']
+
 export default defineType({
   name: 'article',
   title: 'Articolo',
@@ -34,8 +49,18 @@ export default defineType({
       name: 'subcategory',
       title: 'Sotto-categoria',
       type: 'string',
-      description: 'Opzionale. "classifiche" fa comparire l\'articolo nella pagina Classifica come recap di fine weekend.',
-      options: { list: ['classifiche'] },
+      description:
+        'Opzionale. "Classifiche" fa comparire l\'articolo nella pagina Classifica come recap di fine weekend. ' +
+        'Per Formula 1 e WRC sono disponibili tutte le sotto-categorie; per le altre categorie solo News e Rubriche.',
+      options: { list: SUBCATEGORY_OPTIONS },
+      validation: (Rule) =>
+        Rule.custom((value, context) => {
+          if (!value) return true
+          const category = (context.document as { category?: string } | undefined)?.category
+          if (category && CATEGORIES_WITH_FULL_SUBCATEGORIES.includes(category)) return true
+          if (LIMITED_SUBCATEGORY_VALUES.includes(value as string)) return true
+          return `Per "${category ?? 'questa categoria'}" la sotto-categoria può essere solo News o Rubriche`
+        }),
     }),
     defineField({
       name: 'author',
