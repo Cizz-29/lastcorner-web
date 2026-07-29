@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import { Montserrat } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import CookieConsent from '@/components/CookieConsent'
+import AdsenseScript from '@/components/AdsenseScript'
 import './globals.css'
 
 const montserrat = Montserrat({
@@ -92,10 +95,17 @@ export default function RootLayout({
         </a>
         {children}
         <CookieConsent />
+        <AdsenseScript />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {/* Vercel Web Analytics + Speed Insights: nessun cookie, nessun
+            banner di consenso necessario (dati aggregati, non tracciano
+            il singolo utente). Servono per capire quante visite arrivano
+            una volta online sui domini veri. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
