@@ -11,6 +11,10 @@ export interface CookieConsent {
 
 const STORAGE_KEY = 'lc-cookie-consent'
 export const REOPEN_EVENT = 'lc-open-cookie-prefs'
+// Emesso ogni volta che il consenso viene salvato (sia alla prima scelta
+// che modificandolo dopo): permette a script di terze parti già montati
+// (es. AdSense) di reagire subito, senza bisogno di un reload di pagina.
+export const CONSENT_CHANGED_EVENT = 'lc-cookie-consent-changed'
 
 export function getStoredConsent(): CookieConsent | null {
   if (typeof window === 'undefined') return null
@@ -30,6 +34,7 @@ export function saveConsent(consent: Omit<CookieConsent, 'necessary' | 'updatedA
     updatedAt: new Date().toISOString(),
   }
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
+  window.dispatchEvent(new CustomEvent(CONSENT_CHANGED_EVENT, { detail: value }))
   return value
 }
 

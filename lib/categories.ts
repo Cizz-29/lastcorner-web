@@ -14,7 +14,7 @@ export const CATEGORIES: CategoryConfig[] = [
   { slug: 'formula-1', label: 'Formula 1', hasStandings: true },
   { slug: 'formula-2', label: 'Formula 2', hasStandings: false },
   { slug: 'formula-3', label: 'Formula 3', hasStandings: false },
-  { slug: 'wec', label: 'WEC', hasStandings: false },
+  { slug: 'f1-academy', label: 'F1 Academy', hasStandings: false },
   { slug: 'wrc', label: 'WRC', hasStandings: false },
   { slug: 'altro', label: 'Altro', hasStandings: false },
 ]
