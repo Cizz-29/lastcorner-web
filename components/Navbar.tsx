@@ -5,26 +5,31 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import SearchBar from './SearchBar'
 import { CATEGORIES } from '@/lib/categories'
+import { getSubcategoryPagesForCategory } from '@/lib/subcategories'
 
 // Derivate da lib/categories.ts, così le voci del menu restano in sync
 // con l'elenco categorie usato dal resto del sito.
 const NAV_LINKS = CATEGORIES.map((c) => ({ label: c.label.toUpperCase(), href: `/${c.slug}`, slug: c.slug }))
 
-// Voci del sottomenu, nell'ordine richiesto. "Calendario" esiste solo per
-// la F1 (le altre categorie non hanno una fonte dati per mantenerlo), e
-// "Altro" non ha alcun sottomenu: la sua pagina mostra già tutte le news.
-const SUBMENU_ITEMS = [
-  { label: 'News',        slug: '' },
+// Voci fisse del sottomenu. "Calendario" esiste solo per la F1 (le altre
+// categorie non hanno una fonte dati per mantenerlo), e "Altro" non ha
+// alcun sottomenu: la sua pagina mostra già tutte le news.
+const ROSTER_ITEMS = [
   { label: 'Piloti',      slug: 'piloti' },
   { label: 'Team',        slug: 'team' },
   { label: 'Classifica',  slug: 'classifica' },
   { label: 'Calendario',  slug: 'calendario' },
 ]
 
+// Sottomenu completo: News (pagina categoria), le sotto-categorie editoriali
+// (Editoriali/Analisi Tecnica/Guide e Approfondimenti/Rubriche per F1 e WRC,
+// solo Rubriche per le altre — vedi lib/subcategories.ts), poi Piloti/Team/
+// Classifica/Calendario.
 function getSubmenuItems(categorySlug: string) {
   if (categorySlug === 'altro') return []
-  if (categorySlug === 'formula-1') return SUBMENU_ITEMS
-  return SUBMENU_ITEMS.filter((item) => item.slug !== 'calendario')
+  const subcategoryItems = getSubcategoryPagesForCategory(categorySlug).map((s) => ({ label: s.label, slug: s.slug }))
+  const rosterItems = categorySlug === 'formula-1' ? ROSTER_ITEMS : ROSTER_ITEMS.filter((item) => item.slug !== 'calendario')
+  return [{ label: 'News', slug: '' }, ...subcategoryItems, ...rosterItems]
 }
 
 const SOCIAL_LINKS = [
