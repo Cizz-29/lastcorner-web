@@ -57,11 +57,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     if (cat.slug === 'altro') continue
 
-    entries.push({
-      url: `${SITE_URL}/${cat.slug}/piloti`,
-      changeFrequency: 'weekly',
-      priority: 0.6,
-    })
+    if (cat.hasPiloti ?? true) {
+      entries.push({
+        url: `${SITE_URL}/${cat.slug}/piloti`,
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      })
+    }
     entries.push({
       url: `${SITE_URL}/${cat.slug}/team`,
       changeFrequency: 'weekly',
