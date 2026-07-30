@@ -27,7 +27,7 @@ export default function NewsTicker({ articles }: NewsTickerProps) {
         </span>
       </div>
       <div className="relative flex-1 overflow-hidden">
-        <div className="flex items-center gap-10 py-2 px-4 whitespace-nowrap animate-marquee motion-reduce:animate-none hover:[animation-play-state:paused]">
+        <div className="flex items-center gap-10 py-2 px-4 whitespace-nowrap animate-marquee-mobile sm:animate-marquee motion-reduce:animate-none hover:[animation-play-state:paused]">
           {loop.map((article, i) => (
             <Link
               key={`${article.id}-${i}`}
