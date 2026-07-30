@@ -28,7 +28,7 @@ export const TEAM_COLORS: Record<string, string> = {
   'DAMS Lucas Oil': '#3FC1E9',
   'MP Motorsport': '#FF6A00',
   'PREMA Racing': '#ED1C24',
-  'Rodin Motorsport': '#1C1C1C',
+  'Rodin Motorsport': '#C9A96E',
   'ART Grand Prix': '#FFFFFF',
   'AIX Racing': '#1FCB4F',
   'Van Amersfoort Racing': '#FF9500',
