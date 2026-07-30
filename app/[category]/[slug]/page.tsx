@@ -13,6 +13,7 @@ import ArticleBody from '@/components/ArticleBody'
 import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
 import { getAllArticles } from '@/lib/sanity/articles'
 import { getCategoryConfig } from '@/lib/categories'
+import { authorSlug } from '@/lib/authors'
 
 // Quanti articoli mostrare nella sidebar (ridotti rispetto alla vecchia lista)
 const OTHER_ARTICLES_COUNT = 5
@@ -108,7 +109,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             <div className="flex items-center gap-3 text-[12px] font-montserrat text-lc-subtle mb-6">
               <span>{article.date}</span>
               <span className="opacity-60">|</span>
-              <span>{article.author}</span>
+              <Link
+                href={`/autori/${authorSlug(article.author)}`}
+                className="hover:text-lc-red transition-colors duration-200"
+              >
+                {article.author}
+              </Link>
             </div>
 
             <div className="relative w-full h-[300px] lg:h-[440px] rounded-card overflow-hidden mb-8 border-b-2 border-lc-red">
