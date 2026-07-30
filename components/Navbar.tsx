@@ -94,7 +94,7 @@ export default function Navbar() {
       {/* Striscia decorativa rossa in cima */}
       <div className="h-[3px] bg-lc-red w-full" />
 
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-20 flex items-center justify-between h-[72px]">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-20 flex items-center justify-between gap-6 h-[72px]">
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0 focus-visible:outline-2 focus-visible:outline-lc-red focus-visible:outline-offset-4 rounded">
             <Image
