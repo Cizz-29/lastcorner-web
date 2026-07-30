@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import SearchBar from './SearchBar'
-import { CATEGORIES } from '@/lib/categories'
+import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import { getSubcategoryPagesForCategory } from '@/lib/subcategories'
 
 // Derivate da lib/categories.ts, così le voci del menu restano in sync
@@ -28,7 +28,9 @@ const ROSTER_ITEMS = [
 function getSubmenuItems(categorySlug: string) {
   if (categorySlug === 'altro') return []
   const subcategoryItems = getSubcategoryPagesForCategory(categorySlug).map((s) => ({ label: s.label, slug: s.slug }))
-  const rosterItems = categorySlug === 'formula-1' ? ROSTER_ITEMS : ROSTER_ITEMS.filter((item) => item.slug !== 'calendario')
+  const hasPiloti = getCategoryConfig(categorySlug)?.hasPiloti ?? true
+  let rosterItems = categorySlug === 'formula-1' ? ROSTER_ITEMS : ROSTER_ITEMS.filter((item) => item.slug !== 'calendario')
+  if (!hasPiloti) rosterItems = rosterItems.filter((item) => item.slug !== 'piloti')
   return [{ label: 'News', slug: '' }, ...subcategoryItems, ...rosterItems]
 }
 
