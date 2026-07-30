@@ -19,7 +19,7 @@ interface PageProps {
 }
 
 export function generateStaticParams() {
-  return CATEGORIES.map((c) => ({ category: c.slug }))
+  return CATEGORIES.filter((c) => c.hasPiloti ?? true).map((c) => ({ category: c.slug }))
 }
 
 export function generateMetadata({ params }: PageProps): Metadata {
@@ -41,7 +41,7 @@ async function getDrivers(categorySlug: string): Promise<RosterDriver[]> {
 
 export default async function DriversOverviewPage({ params }: PageProps) {
   const config = getCategoryConfig(params.category)
-  if (!config) notFound()
+  if (!config || config.hasPiloti === false) notFound()
 
   const drivers = await getDrivers(config.slug)
 
