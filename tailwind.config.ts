@@ -41,6 +41,7 @@ const config: Config = {
       },
       animation: {
         marquee: 'marquee 28s linear infinite',
+        'marquee-mobile': 'marquee 12s linear infinite',
       },
     },
   },
