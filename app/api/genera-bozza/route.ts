@@ -60,9 +60,17 @@ export async function POST(req: Request) {
     }
 
     const data = await anthropicRes.json()
-    const rawText: string = data?.content?.[0]?.text ?? ''
+    const contentBlocks: Array<{ type?: string; text?: string }> = Array.isArray(data?.content) ? data.content : []
+    const textBlock = contentBlocks.find((b) => b?.type === 'text' && typeof b.text === 'string' && b.text.length > 0)
+    const rawText: string = textBlock?.text ?? ''
     if (!rawText) {
-      return NextResponse.json({ error: 'Risposta vuota dal modello.' }, { status: 502 })
+      return NextResponse.json(
+        {
+          error: 'Risposta vuota dal modello.',
+          debug: { stop_reason: data?.stop_reason, blockTypes: contentBlocks.map((b) => b?.type) },
+        },
+        { status: 502 }
+      )
     }
 
     const { title, blocks } = parseDraft(rawText)
