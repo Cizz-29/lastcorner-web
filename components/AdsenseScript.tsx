@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react'
 import Script from 'next/script'
 import { hasConsent, CONSENT_CHANGED_EVENT } from '@/lib/cookieConsent'
 
-// ID publisher AdSense di Francesco (pub-5913363906862738). Lo script
-// base serve soprattutto per la verifica del sito in AdSense; gli spazi
-// pubblicitari veri (AdSlot) restano placeholder finché non arrivano gli
-// ID delle singole unità dal pannello AdSense.
+// ID publisher AdSense di Francesco (pub-5913363906862738). Questo script
+// base carica adsbygoogle.js; i singoli annunci (vedi components/AdSlot.tsx)
+// usano le 3 unità responsive create nel pannello AdSense.
 const ADSENSE_CLIENT_ID = 'ca-pub-5913363906862738'
 
 // Si carica solo se l'utente ha dato consenso marketing (coerente con
