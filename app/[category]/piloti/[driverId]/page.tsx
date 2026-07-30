@@ -7,6 +7,7 @@ import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
 import AdSlot from '@/components/AdSlot'
 import { ArticleCardSmall } from '@/components/ArticleCard'
+import BioBody from '@/components/BioBody'
 import { getDriverStandings, getDriverPodiums, toRosterDriver } from '@/lib/f1api'
 import { getRosterDrivers, getRosterDriver, hasStaticRoster } from '@/lib/rosterData'
 import { getTeamColor } from '@/lib/teamColors'
@@ -150,9 +151,9 @@ export default async function DriverPage({ params }: DriverPageProps) {
             <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">
               Carriera
             </h2>
-            <p className="font-montserrat text-[14px] text-white/85 leading-relaxed mb-10">
-              {bio}
-            </p>
+            <div className="mb-10">
+              <BioBody blocks={bio} />
+            </div>
 
             <AdSlot height={120} label="Google AdSense" className="mb-10" />
 
