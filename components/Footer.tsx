@@ -45,7 +45,7 @@ export default function Footer() {
             LASTCORNER.NET
           </p>
           <p className="font-montserrat text-[12px] text-lc-subtle leading-relaxed">
-            News, analisi e approfondimenti su Formula 1 e tutto il motorsport.
+            Next Gen Motorsport Coverage
           </p>
         </div>
 
