@@ -52,12 +52,35 @@ def lap_time_seconds(value) -> float | None:
     return round(value.total_seconds(), 3)
 
 
-def process_qualifying(year: int, rnd: int) -> dict | None:
+def load_session(year: int, rnd: int, code: str):
+    """Carica una sessione e verifica che i dati siano davvero arrivati.
+
+    FastF1 non solleva un'eccezione se l'API di live timing risponde a vuoto:
+    logga dei warning e prosegue, e l'errore esplode solo dopo, al primo
+    accesso a `session.laps`. Qui si controlla subito, così una sessione non
+    ancora pubblicata viene semplicemente saltata invece di far fallire tutto.
+    """
     try:
-        session = fastf1.get_session(year, rnd, "Q")
-        session.load(telemetry=True, laps=True, weather=False, messages=False)
-    except Exception as exc:  # sessione non ancora disponibile
-        print(f"  qualifica non disponibile: {exc}")
+        session = fastf1.get_session(year, rnd, code)
+        session.load(telemetry=(code == "Q"), laps=True, weather=False, messages=False)
+    except Exception as exc:
+        print(f"  [{code}] non disponibile: {exc}")
+        return None
+
+    try:
+        if session.laps is None or len(session.laps) == 0:
+            print(f"  [{code}] nessun giro disponibile (dati non ancora pubblicati)")
+            return None
+    except Exception as exc:
+        print(f"  [{code}] dati non caricati: {exc}")
+        return None
+
+    return session
+
+
+def process_qualifying(year: int, rnd: int) -> dict | None:
+    session = load_session(year, rnd, "Q")
+    if session is None:
         return None
 
     drivers = []
@@ -98,17 +121,17 @@ def process_qualifying(year: int, rnd: int) -> dict | None:
 
 
 def process_race(year: int, rnd: int) -> dict | None:
-    try:
-        session = fastf1.get_session(year, rnd, "R")
-        session.load(telemetry=False, laps=True, weather=False, messages=False)
-    except Exception as exc:
-        print(f"  gara non disponibile: {exc}")
+    session = load_session(year, rnd, "R")
+    if session is None:
         return None
 
     drivers = []
     for _, row in session.results.iterrows():
         abbr = row["Abbreviation"]
-        laps = session.laps.pick_drivers(abbr)
+        try:
+            laps = session.laps.pick_drivers(abbr)
+        except Exception:
+            continue
         if len(laps) == 0:
             continue
         drivers.append(
