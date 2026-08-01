@@ -12,9 +12,38 @@ import { NextRequest, NextResponse } from 'next/server'
 // altrimenti si lascia proseguire (finirà nel normale 404).
 const KNOWN_TOP_LEVEL = new Set([
   'formula-1', 'formula-2', 'formula-3', 'f1-academy', 'wrc', 'altro',
-  'chi-siamo', 'contatti', 'privacy', 'cookie', 'note-legali',
+  'chi-siamo', 'contatti', 'privacy', 'cookie', 'note-legali', 'autori',
+  'cerca', 'telemetria', 'telemetria-data',
   'studio', 'api', 'images', 'sitemap.xml', 'robots.txt', '_next', 'favicon.ico',
 ])
+
+// --- Sezione Telemetria (riservata allo staff) -----------------------------
+// Protetta da password condivisa (env TELEMETRIA_PASSWORD su Vercel). Il
+// login (app/api/telemetria-login) salva in un cookie httpOnly lo SHA-256
+// della password: qui si ricalcola l'hash dell'env e si confronta. Niente
+// database né account: per un'area interna a pochi editor è sufficiente.
+async function sha256Hex(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value)
+  const digest = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+async function telemetriaGate(req: NextRequest, pathname: string): Promise<NextResponse | null> {
+  const isProtected =
+    (pathname.startsWith('/telemetria') && !pathname.startsWith('/telemetria/login')) ||
+    pathname.startsWith('/telemetria-data')
+  if (!isProtected) return null
+
+  const password = process.env.TELEMETRIA_PASSWORD
+  if (!password) return null // env non configurata: sezione aperta (solo in sviluppo)
+
+  const cookie = req.cookies.get('lc-telemetria-auth')?.value
+  if (cookie && cookie === (await sha256Hex(password))) return null
+
+  return NextResponse.redirect(new URL('/telemetria/login', req.url))
+}
 
 // Vecchia sotto-categoria "news" del vecchio sito: sul nuovo sito non ha una
 // pagina dedicata (la pagina categoria principale già mostra tutte le news),
@@ -68,6 +97,9 @@ async function findArticleCategorySlug(slug: string): Promise<string | null> {
 
 export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl
+
+  const gate = await telemetriaGate(req, pathname)
+  if (gate) return gate
 
   // Vecchie pagine con query string (?page_id=...)
   const pageId = searchParams.get('page_id')
