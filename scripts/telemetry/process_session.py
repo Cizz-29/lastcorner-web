@@ -192,18 +192,22 @@ def auto() -> None:
     index = load_index()
 
     done_full = {(e["year"], e["round"]) for e in index if "R" in e.get("sessions", [])}
+    # Margine dopo la gara prima di considerare i dati pubblicabili.
+    cutoff = now - timedelta(hours=3)
 
     candidates = []
     for _, ev in schedule.iterrows():
         ev_date = ev["EventDate"]
         if pd.isna(ev_date):
             continue
-        # L'evento è "concluso o in corso avanzato" se la domenica è passata
-        # da almeno 3 ore (margine per la pubblicazione dei dati FastF1).
-        if ev_date.tz_localize("UTC") if ev_date.tzinfo is None else ev_date <= now - timedelta(hours=3):
-            rnd = int(ev["RoundNumber"])
-            if (year, rnd) not in done_full:
-                candidates.append(rnd)
+        # EventDate può arrivare "naive" (senza fuso): lo si porta a UTC per
+        # poterlo confrontare con `now`.
+        ev_utc = ev_date.tz_localize("UTC") if ev_date.tzinfo is None else ev_date.tz_convert("UTC")
+        if ev_utc > cutoff:
+            continue
+        rnd = int(ev["RoundNumber"])
+        if (year, rnd) not in done_full:
+            candidates.append(rnd)
 
     if not candidates:
         print("Nessun weekend nuovo da elaborare.")
@@ -213,13 +217,54 @@ def auto() -> None:
     process_round(year, candidates[-1])
 
 
+def resolve_round(year: int, value: str) -> int | None:
+    """Accetta un numero di round oppure un nome (GP, paese, città).
+
+    Il workflow passa già il numero, ma lanciando lo script a mano è comodo
+    poter scrivere "Ungheria", "Budapest" o "Hungarian".
+    """
+    value = value.strip()
+    if value.isdigit():
+        return int(value)
+
+    # Nomi italiani più comuni -> termine presente nel calendario FastF1.
+    ALIASES = {
+        "australia": "australian", "cina": "chinese", "giappone": "japanese",
+        "canada": "canadian", "monaco": "monaco", "barcellona": "barcelona",
+        "austria": "austrian", "gran bretagna": "british", "inghilterra": "british",
+        "belgio": "belgian", "ungheria": "hungarian", "olanda": "dutch",
+        "paesi bassi": "dutch", "italia": "italian", "spagna": "spanish",
+        "azerbaijan": "azerbaijan", "bahrain": "bahrain", "singapore": "singapore",
+        "stati uniti": "united states", "messico": "mexico", "brasile": "brazilian",
+        "qatar": "qatar", "abu dhabi": "abu dhabi", "las vegas": "las vegas",
+        "miami": "miami",
+    }
+    needle = ALIASES.get(value.lower(), value.lower())
+
+    schedule = fastf1.get_event_schedule(year, include_testing=False)
+    for _, ev in schedule.iterrows():
+        haystack = " ".join(
+            str(ev.get(k, "")) for k in ("EventName", "Country", "Location", "OfficialEventName")
+        ).lower()
+        if needle in haystack:
+            return int(ev["RoundNumber"])
+
+    print(f"Non riesco a identificare il GP '{value}' nel calendario {year}.")
+    print("Usa il numero di round, oppure il nome del paese/città (es. 11, Ungheria, Budapest).")
+    return None
+
+
 def main() -> None:
     setup_cache()
     args = sys.argv[1:]
     if args and args[0] == "--auto":
         auto()
     elif len(args) == 2:
-        process_round(int(args[0]), int(args[1]))
+        year = int(args[0])
+        rnd = resolve_round(year, args[1])
+        if rnd is None:
+            sys.exit(1)
+        process_round(year, rnd)
     else:
         print(__doc__)
         sys.exit(1)
