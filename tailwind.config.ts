@@ -41,7 +41,11 @@ const config: Config = {
       },
       animation: {
         marquee: 'marquee 28s linear infinite',
-        'marquee-mobile': 'marquee 12s linear infinite',
+        // Su mobile il contenitore è stretto ma il contenuto (titoli) ha la
+        // stessa larghezza assoluta del desktop: a parità di durata lo
+        // scorrimento appare quindi molto più lento. 8s ≈ 3.5x la velocità
+        // desktop, tarato per essere leggibile ma percettibilmente scorrevole.
+        'marquee-mobile': 'marquee 8s linear infinite',
       },
     },
   },
