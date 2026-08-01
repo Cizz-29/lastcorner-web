@@ -3,7 +3,6 @@ import { sanityClient } from '@/lib/sanity/client'
 import { urlFor } from '@/lib/sanity/image'
 import { CATEGORIES } from '@/lib/categories'
 import { type Article } from '@/components/ArticleCard'
-import { MOCK_ARTICLES, MOCK_OTHER_ARTICLES } from '@/lib/mockData'
 
 // Immagine di riserva se un articolo Sanity fosse senza mainImage
 // (in teoria impossibile: il campo è obbligatorio nello schema).
@@ -60,19 +59,18 @@ function toArticle(doc: SanityArticleDoc): Article {
   }
 }
 
-// Articoli reali da Sanity + mock esistenti, uniti in una sola lista.
-// Se Sanity non risponde (non ancora configurato, rete assente, ecc.) si
-// procede solo con i mock, così il sito non si rompe mai per questo.
+// Articoli reali da Sanity. I mock di sviluppo (lib/mockData.ts) non vengono
+// più inclusi: il catalogo reale migrato da WordPress è completo, quindi i
+// contenuti fittizi online sarebbero solo fuorvianti. Se Sanity non risponde
+// si restituisce una lista vuota invece di rompere il rendering delle pagine.
 // cache() di React deduplica le chiamate all'interno dello stesso render
 // (più pagine/componenti possono richiamarla senza richieste ripetute).
 export const getAllArticles = cache(async (): Promise<Article[]> => {
-  let sanityArticles: Article[] = []
   try {
     const docs = await sanityClient.fetch<SanityArticleDoc[]>(ARTICLE_QUERY)
-    sanityArticles = docs.map(toArticle)
+    return docs.map(toArticle)
   } catch {
-    // Sanity irraggiungibile o non ancora configurato: si passa ai soli mock.
+    // Sanity irraggiungibile: lista vuota, le pagine mostrano gli stati "vuoti".
+    return []
   }
-
-  return [...sanityArticles, ...MOCK_ARTICLES, ...MOCK_OTHER_ARTICLES]
 })
