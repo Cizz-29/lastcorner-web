@@ -69,29 +69,9 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Cache FastF1
-        uses: actions/cache@v4
-        with:
-          path: .fastf1-cache
-          key: fastf1-cache-${{ github.run_id }}
-          restore-keys: fastf1-cache-
-
-      - name: Installa dipendenze
-        run: pip install fastf1 pandas
-
-      # Verifica che l'API di live timing F1 sia raggiungibile dal runner.
-      # Se questa risponde con un errore, il problema non è nel nostro codice
-      # ma nell'accesso alla fonte dati (es. IP dei runner bloccati).
-      - name: Diagnostica accesso API F1
-        continue-on-error: true
-        run: |
-          echo "--- HTTP status endpoint live timing F1 ---"
-          curl -s -o /dev/null -w "livetiming: %{http_code}\n" \
-            "https://livetiming.formula1.com/static/2024/2024-07-21_Hungarian_Grand_Prix/2024-07-20_Qualifying/SessionInfo.json" || true
-          curl -s -o /dev/null -w "ergast/jolpica: %{http_code}\n" \
-            "https://api.jolpi.ca/ergast/f1/2024/11/results.json" || true
-          echo "--- versione fastf1 ---"
-          python -c "import fastf1; print(fastf1.__version__)"
+      # Lo script usa solo la libreria standard di Python: nessuna dipendenza
+      # da installare. I dati arrivano dall'API pubblica OpenF1, che (a
+      # differenza del live timing ufficiale F1) non blocca gli IP dei server.
 
       - name: Elabora dati
         env:
