@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     default: 'Lastcorner | Next Gen Motorsport Coverage',
     template: '%s | Lastcorner',
   },
-  description: 'News, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, WEC, WRC e tutto il motorsport.',
+  description: 'Next Gen Motorsport Coverage — news, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, F1 Academy, WRC e tutto il motorsport.',
   keywords: ['Formula 1', 'F1', 'motorsport', 'WEC', 'WRC', 'Formula 2', 'Formula 3'],
   authors: [{ name: 'Lastcorner' }],
   alternates: {
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Lastcorner | Next Gen Motorsport Coverage',
-    description: 'News, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, WEC, WRC e tutto il motorsport.',
+    description: 'Next Gen Motorsport Coverage — news, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, F1 Academy, WRC e tutto il motorsport.',
     url: SITE_URL,
     siteName: 'Lastcorner',
     locale: 'it_IT',
