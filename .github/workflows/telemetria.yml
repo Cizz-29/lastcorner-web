@@ -5,7 +5,7 @@
 #
 # Gira nei weekend di gara (sab/dom sera UTC, dopo qualifica e gara) più un
 # giro di recupero il lunedì. Si può anche lanciare a mano da GitHub →
-# Actions → "Telemetria" → Run workflow, indicando anno e round.
+# Actions → "Telemetria" → Run workflow, scegliendo il GP da un elenco.
 
 name: Telemetria
 
@@ -16,12 +16,40 @@ on:
     - cron: '30 8 * * 1'          # lunedì mattina: recupero
   workflow_dispatch:
     inputs:
+      gp:
+        description: 'Gran Premio da elaborare'
+        required: true
+        default: 'Automatico (ultimo weekend concluso)'
+        type: choice
+        options:
+          - 'Automatico (ultimo weekend concluso)'
+          - '1 - Australia (Melbourne)'
+          - '2 - Cina (Shanghai)'
+          - '3 - Giappone (Suzuka)'
+          - '4 - Miami'
+          - '5 - Canada (Montreal)'
+          - '6 - Monaco'
+          - '7 - Barcellona'
+          - '8 - Austria (Spielberg)'
+          - '9 - Gran Bretagna (Silverstone)'
+          - '10 - Belgio (Spa)'
+          - '11 - Ungheria (Budapest)'
+          - '12 - Olanda (Zandvoort)'
+          - '13 - Italia (Monza)'
+          - '14 - Spagna (Madrid)'
+          - '15 - Azerbaijan (Baku)'
+          - '16 - Bahrain GP (Sepang)'
+          - '17 - Singapore'
+          - '18 - Stati Uniti (Austin)'
+          - '19 - Messico'
+          - '20 - Brasile (Interlagos)'
+          - '21 - Las Vegas'
+          - '22 - Qatar (Lusail)'
+          - '23 - Abu Dhabi'
       year:
-        description: 'Anno (vuoto = automatico)'
+        description: 'Anno (lascia 2026 salvo stagioni passate)'
         required: false
-      round:
-        description: 'Round (vuoto = automatico)'
-        required: false
+        default: '2026'
 
 permissions:
   contents: write
@@ -52,10 +80,21 @@ jobs:
         run: pip install fastf1 pandas
 
       - name: Elabora dati
+        env:
+          GP_INPUT: ${{ inputs.gp }}
+          YEAR_INPUT: ${{ inputs.year }}
         run: |
-          if [ -n "${{ inputs.year }}" ] && [ -n "${{ inputs.round }}" ]; then
-            python scripts/telemetry/process_session.py "${{ inputs.year }}" "${{ inputs.round }}"
+          set -e
+          # Dal valore scelto nel menu si estrae il numero di round iniziale
+          # (es. "11 - Ungheria (Budapest)" -> 11). Se non c'è un numero
+          # (voce "Automatico") si lascia decidere allo script.
+          ROUND=$(echo "$GP_INPUT" | grep -oE '^[0-9]+' || true)
+          YEAR="${YEAR_INPUT:-2026}"
+          if [ -n "$ROUND" ]; then
+            echo "Elaboro $YEAR round $ROUND"
+            python scripts/telemetry/process_session.py "$YEAR" "$ROUND"
           else
+            echo "Modalità automatica"
             python scripts/telemetry/process_session.py --auto
           fi
 
