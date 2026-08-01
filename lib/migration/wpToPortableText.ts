@@ -77,6 +77,20 @@ function textBlock(style: string, el: HTMLElement, extra: Record<string, any> = 
 
 type ImageUploader = (url: string, filename: string) => Promise<{ _id: string } | null>
 
+const INLINE_TAGS = new Set(['strong', 'b', 'em', 'i', 'a', 'br', 'span'])
+
+// Alcuni contenuti WP (in particolare le "descrizioni tag", usate per le bio
+// pilota/team) non passano da wpautop: i paragrafi non sono avvolti in <p>,
+// restano testo "nudo" — spesso mescolato a tag inline come <strong> — tra
+// un heading e l'altro. Senza questo bufferizzatore quel testo verrebbe
+// scartato in silenzio (i nodi di testo a livello radice non hanno un tag
+// riconosciuto). Bufferizziamo l'HTML dei nodi inline/testo consecutivi e lo
+// trasformiamo in un paragrafo vero non appena incontriamo un tag di blocco
+// (o la fine del documento).
+function stripCaptionShortcodes(html: string): string {
+  return html.replace(/\[\/?caption[^\]]*\]/gi, '')
+}
+
 // Converte l'HTML del corpo articolo (content.rendered di WP) in blocchi
 // Portable Text. uploadImage scarica e carica su Sanity le immagini trovate
 // nel testo, restituendo l'asset creato (o null se il download fallisce).
@@ -85,15 +99,38 @@ export async function htmlToPortableText(
   uploadImage: ImageUploader,
   slugPrefix: string
 ): Promise<any[]> {
-  const root = parse(html || '')
+  const root = parse(stripCaptionShortcodes(html || ''))
   const blocks: any[] = []
   let imgCounter = 0
+  let inlineBuffer = ''
+
+  function flushInlineBuffer() {
+    const raw = inlineBuffer.trim()
+    inlineBuffer = ''
+    if (!raw) return
+    const wrapper = parse(`<p>${raw}</p>`).childNodes[0] as HTMLElement
+    const block = textBlock('normal', wrapper)
+    if (block.children.some((c: any) => c.text?.trim())) blocks.push(block)
+  }
 
   for (const node of root.childNodes) {
+    if (node.nodeType === NodeType.TEXT_NODE) {
+      inlineBuffer += node.rawText ?? ''
+      continue
+    }
     if (node.nodeType !== NodeType.ELEMENT_NODE) continue
     const el = node as HTMLElement
     const classList = el.getAttribute('class') ?? ''
     const tag = el.tagName?.toLowerCase()
+
+    if (tag && INLINE_TAGS.has(tag)) {
+      inlineBuffer += el.toString()
+      continue
+    }
+
+    // Tag di blocco: prima di gestirlo, si chiude l'eventuale paragrafo
+    // "nudo" accumulato finora.
+    flushInlineBuffer()
 
     if (tag === 'p') {
       const block = textBlock('normal', el)
@@ -165,6 +202,8 @@ export async function htmlToPortableText(
       }
     }
   }
+
+  flushInlineBuffer()
 
   return blocks
 }
