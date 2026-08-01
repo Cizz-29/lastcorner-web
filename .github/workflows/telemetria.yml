@@ -1,0 +1,73 @@
+# Pipeline Telemetria — elabora automaticamente i dati dei weekend F1
+# conclusi (via FastF1) e li committa come JSON statici in
+# public/telemetria-data/. Il commit fa ripartire il deploy Vercel, che
+# serve i file senza alcun backend.
+#
+# Gira nei weekend di gara (sab/dom sera UTC, dopo qualifica e gara) più un
+# giro di recupero il lunedì. Si può anche lanciare a mano da GitHub →
+# Actions → "Telemetria" → Run workflow, indicando anno e round.
+
+name: Telemetria
+
+on:
+  schedule:
+    - cron: '30 16,19,22 * * 6'   # sabato: dopo le qualifiche
+    - cron: '30 16,19,22 * * 0'   # domenica: dopo la gara
+    - cron: '30 8 * * 1'          # lunedì mattina: recupero
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Anno (vuoto = automatico)'
+        required: false
+      round:
+        description: 'Round (vuoto = automatico)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telemetria
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache FastF1
+        uses: actions/cache@v4
+        with:
+          path: .fastf1-cache
+          key: fastf1-cache-${{ github.run_id }}
+          restore-keys: fastf1-cache-
+
+      - name: Installa dipendenze
+        run: pip install fastf1 pandas
+
+      - name: Elabora dati
+        run: |
+          if [ -n "${{ inputs.year }}" ] && [ -n "${{ inputs.round }}" ]; then
+            python scripts/telemetry/process_session.py "${{ inputs.year }}" "${{ inputs.round }}"
+          else
+            python scripts/telemetry/process_session.py --auto
+          fi
+
+      - name: Commit dati aggiornati
+        run: |
+          git config user.name "telemetria-bot"
+          git config user.email "actions@github.com"
+          git add public/telemetria-data
+          if git diff --cached --quiet; then
+            echo "Nessun dato nuovo."
+          else
+            git commit -m "Telemetria: dati aggiornati [skip ci]"
+            git pull --rebase origin main
+            git push
+          fi
