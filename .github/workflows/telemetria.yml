@@ -79,6 +79,20 @@ jobs:
       - name: Installa dipendenze
         run: pip install fastf1 pandas
 
+      # Verifica che l'API di live timing F1 sia raggiungibile dal runner.
+      # Se questa risponde con un errore, il problema non è nel nostro codice
+      # ma nell'accesso alla fonte dati (es. IP dei runner bloccati).
+      - name: Diagnostica accesso API F1
+        continue-on-error: true
+        run: |
+          echo "--- HTTP status endpoint live timing F1 ---"
+          curl -s -o /dev/null -w "livetiming: %{http_code}\n" \
+            "https://livetiming.formula1.com/static/2024/2024-07-21_Hungarian_Grand_Prix/2024-07-20_Qualifying/SessionInfo.json" || true
+          curl -s -o /dev/null -w "ergast/jolpica: %{http_code}\n" \
+            "https://api.jolpi.ca/ergast/f1/2024/11/results.json" || true
+          echo "--- versione fastf1 ---"
+          python -c "import fastf1; print(fastf1.__version__)"
+
       - name: Elabora dati
         env:
           GP_INPUT: ${{ inputs.gp }}
@@ -100,6 +114,12 @@ jobs:
 
       - name: Commit dati aggiornati
         run: |
+          # La cartella può non esistere se nessuna sessione ha prodotto dati:
+          # senza questo controllo `git add` fallirebbe con exit 128.
+          if [ ! -d public/telemetria-data ]; then
+            echo "Nessun dato prodotto in questa esecuzione."
+            exit 0
+          fi
           git config user.name "telemetria-bot"
           git config user.email "actions@github.com"
           git add public/telemetria-data
