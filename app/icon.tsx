@@ -1,28 +1,19 @@
-import { ImageResponse } from 'next/og'
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
 
-export const size = { width: 32, height: 32 }
-export const contentType = 'image/png'
+// Favicon del sito: serve lo stesso logo SVG usato nell'header
+// (public/images/logo.svg), così l'icona nella tab del browser è identica
+// al brand del sito senza duplicare il file. I browser moderni supportano
+// le favicon SVG; su quelli molto vecchi resta l'assenza di icona, non un
+// errore.
+export const contentType = 'image/svg+xml'
 
-export default function Icon() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#09090c',
-          borderRadius: 6,
-          color: '#FF3A3A',
-          fontSize: 18,
-          fontWeight: 800,
-        }}
-      >
-        L
-      </div>
-    ),
-    { ...size }
-  )
+export default async function Icon() {
+  const svg = await fs.readFile(path.join(process.cwd(), 'public', 'images', 'logo.svg'))
+  return new Response(svg, {
+    headers: {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'public, max-age=86400, immutable',
+    },
+  })
 }
