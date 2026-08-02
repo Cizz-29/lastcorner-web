@@ -114,7 +114,11 @@ jobs:
           if git diff --cached --quiet; then
             echo "Nessun dato nuovo."
           else
-            git commit -m "Telemetria: dati aggiornati [skip ci]"
+            # NIENTE "[skip ci]" nel messaggio: Vercel lo interpreta come
+            # "non ricostruire", e i dati resterebbero su GitHub senza mai
+            # comparire sul sito. Qui non c'è rischio di cicli, perché il
+            # workflow parte solo da cron o da avvio manuale, mai da un push.
+            git commit -m "Telemetria: dati aggiornati"
             git pull --rebase origin main
             git push
           fi
