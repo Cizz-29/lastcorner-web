@@ -40,6 +40,9 @@ export interface Telemetry {
 
 const W = 1000
 const AXIS_W = 52 // colonna etichette, in HTML fuori dall'SVG
+// Margine verticale interno: senza, i picchi delle tracce toccano
+// esattamente il bordo del riquadro e sembrano tagliati.
+const PAD_V = 12
 
 function formatLapTime(s: number | null): string {
   if (s == null) return '—'
@@ -63,13 +66,12 @@ function shade(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
 }
 
-const DASHES = ['', '7 4', '2 3', '10 3 2 3']
-
 interface Style {
   color: string
-  dash: string
 }
 
+// Le linee restano tutte continue: a distinguere i compagni di squadra è
+// solo la tonalità, progressivamente più chiara a parità di colore team.
 function buildStyles(drivers: QualiDriver[]): Record<number, Style> {
   const seen: Record<string, number> = {}
   const styles: Record<number, Style> = {}
@@ -78,8 +80,7 @@ function buildStyles(drivers: QualiDriver[]): Record<number, Style> {
     const n = seen[key] ?? 0
     seen[key] = n + 1
     styles[d.number] = {
-      color: n === 0 ? d.color : shade(d.color, Math.min(0.35 * n, 0.7)),
-      dash: DASHES[n] ?? '',
+      color: n === 0 ? d.color : shade(d.color, Math.min(0.3 + 0.25 * (n - 1), 0.75)),
     }
   }
   return styles
@@ -87,13 +88,20 @@ function buildStyles(drivers: QualiDriver[]): Record<number, Style> {
 
 // --- Grafico ----------------------------------------------------------------
 
+// Converte un valore nella coordinata verticale, lasciando PAD_V di respiro
+// sopra e sotto l'area disegnabile.
+function yOf(value: number, h: number, yMin: number, yMax: number): number {
+  const span = yMax - yMin || 1
+  const usable = h - PAD_V * 2
+  return PAD_V + (1 - (value - yMin) / span) * usable
+}
+
 function buildPath(xs: number[], ys: number[], h: number, yMin: number, yMax: number): string {
   const xMax = xs[xs.length - 1] || 1
-  const span = yMax - yMin || 1
   let d = ''
   for (let i = 0; i < xs.length; i++) {
     const x = (xs[i] / xMax) * W
-    const y = h - ((ys[i] - yMin) / span) * h
+    const y = yOf(ys[i], h, yMin, yMax)
     d += `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
   }
   return d
@@ -152,10 +160,7 @@ function Chart({
             <span
               key={i}
               className="absolute right-2 font-montserrat text-[9px] text-lc-subtle leading-none"
-              style={{
-                bottom: `${((v - lo) / (hi - lo || 1)) * 100}%`,
-                transform: 'translateY(50%)',
-              }}
+              style={{ top: yOf(v, height, lo, hi), transform: 'translateY(-50%)' }}
             >
               {format(v)}
             </span>
@@ -170,8 +175,7 @@ function Chart({
             style={{ height }}
           >
             {values.map((v, i) => {
-              const y = height - ((v - lo) / (hi - lo || 1)) * height
-              const isZero = zeroLine && Math.abs(v) < 1e-9
+              const y = yOf(v, height, lo, hi)
               return (
                 <line
                   key={i}
@@ -179,7 +183,7 @@ function Chart({
                   y1={y}
                   x2={W}
                   y2={y}
-                  stroke={isZero ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)'}
+                  stroke="rgba(255,255,255,0.08)"
                   strokeWidth={1}
                   vectorEffect="non-scaling-stroke"
                 />
@@ -188,9 +192,9 @@ function Chart({
             {zeroLine && lo < 0 && hi > 0 && (
               <line
                 x1={0}
-                y1={height - ((0 - lo) / (hi - lo || 1)) * height}
+                y1={yOf(0, height, lo, hi)}
                 x2={W}
-                y2={height - ((0 - lo) / (hi - lo || 1)) * height}
+                y2={yOf(0, height, lo, hi)}
                 stroke="rgba(255,255,255,0.3)"
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
@@ -203,7 +207,6 @@ function Chart({
                 fill="none"
                 stroke={s.style.color}
                 strokeWidth={1.7}
-                strokeDasharray={s.style.dash || undefined}
                 vectorEffect="non-scaling-stroke"
               />
             ))}
@@ -371,12 +374,7 @@ export default function QualiCompare({
                   <div className="flex items-baseline justify-between mb-1">
                     <p className="font-akira text-[13px] text-white">{d.abbr}</p>
                     <svg width="26" height="6" aria-hidden>
-                      <line
-                        x1="0" y1="3" x2="26" y2="3"
-                        stroke={st?.color}
-                        strokeWidth="2"
-                        strokeDasharray={st?.dash || undefined}
-                      />
+                      <line x1="0" y1="3" x2="26" y2="3" stroke={st?.color} strokeWidth="2" />
                     </svg>
                   </div>
                   <p className="font-montserrat text-[11px] text-lc-subtle mb-3 truncate">{d.team}</p>
@@ -436,7 +434,7 @@ export default function QualiCompare({
 
               <p className="font-montserrat text-[11px] text-lc-subtle ml-[52px]">
                 Asse orizzontale: distanza percorsa sul giro, dalla linea del traguardo.
-                Le linee tratteggiate distinguono i compagni di squadra.
+                I compagni di squadra si distinguono per tonalità del colore.
               </p>
             </>
           )}
