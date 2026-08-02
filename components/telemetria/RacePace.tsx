@@ -26,7 +26,9 @@ export interface RaceDriver {
 
 const W = 1000
 const H = 380
-const PAD_L = 52
+// Spazio a sinistra per le etichette dei tempi ("1:20.123"): con meno
+// margine il testo veniva tagliato al bordo del grafico.
+const PAD_L = 68
 const PAD_R = 12
 const PAD_T = 10
 const PAD_B = 24
@@ -35,6 +37,36 @@ function formatLapTime(s: number): string {
   const m = Math.floor(s / 60)
   const rest = s - m * 60
   return `${m}:${rest.toFixed(3).padStart(6, '0')}`
+}
+
+// I compagni di squadra hanno lo stesso colore ufficiale: si schiarisce il
+// secondo (e si tratteggia la linea) per poterli distinguere a colpo d'occhio.
+function shade(hex: string, amount: number): string {
+  const clean = hex.replace('#', '')
+  const num = parseInt(clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean, 16)
+  if (Number.isNaN(num)) return hex
+  const adjust = (v: number) => Math.max(0, Math.min(255, Math.round(v + (255 - v) * amount)))
+  const r = adjust((num >> 16) & 0xff)
+  const g = adjust((num >> 8) & 0xff)
+  const b = adjust(num & 0xff)
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
+}
+
+const DASHES = ['', '7 4', '2 3', '10 3 2 3', '4 2', '1 3']
+
+function buildStyles(drivers: RaceDriver[]): Record<string, { color: string; dash: string }> {
+  const seen: Record<string, number> = {}
+  const out: Record<string, { color: string; dash: string }> = {}
+  for (const d of drivers) {
+    const key = d.color.toLowerCase()
+    const n = seen[key] ?? 0
+    seen[key] = n + 1
+    out[d.abbr] = {
+      color: n === 0 ? d.color : shade(d.color, Math.min(0.35 * n, 0.7)),
+      dash: DASHES[n] ?? '',
+    }
+  }
+  return out
 }
 
 export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
@@ -49,6 +81,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
   const [filtra, setFiltra] = useState(true)
 
   const picked = sorted.filter((d) => selected.includes(d.abbr))
+  const styles = useMemo(() => buildStyles(picked), [picked])
 
   function toggle(abbr: string) {
     setSelected((prev) =>
@@ -84,6 +117,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
       <div className="flex flex-wrap gap-2 mb-4">
         {sorted.map((d) => {
           const on = selected.includes(d.abbr)
+          const st = styles[d.abbr]
           return (
             <button
               key={d.abbr}
@@ -91,7 +125,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
               className={`font-montserrat text-[12px] rounded-full px-3 py-1.5 border transition-colors ${
                 on ? 'text-white' : 'text-lc-subtle border-white/15 hover:border-white/40'
               }`}
-              style={on ? { borderColor: d.color, backgroundColor: `${d.color}22` } : undefined}
+              style={on && st ? { borderColor: st.color, backgroundColor: `${st.color}22` } : undefined}
             >
               <span className="font-semibold">{d.abbr}</span>
               {d.position != null && <span className="opacity-70 ml-2">P{d.position}</span>}
@@ -159,6 +193,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
                 }
                 if (current.length) segments.push(current)
 
+                const st = styles[d.abbr]
                 return (
                   <g key={d.abbr}>
                     {segments.map((seg, i) => (
@@ -166,8 +201,9 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
                         key={i}
                         points={seg.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
                         fill="none"
-                        stroke={d.color}
+                        stroke={st?.color ?? d.color}
                         strokeWidth={1.6}
+                        strokeDasharray={st?.dash || undefined}
                         strokeLinejoin="round"
                       />
                     ))}
@@ -175,7 +211,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
                       .filter((l) => l.pit && l.t != null && l.t <= chart.cutoff)
                       .map((l) => {
                         const p = pos(l.n, l.t as number)
-                        return <circle key={l.n} cx={p.x} cy={p.y} r={2.6} fill={d.color} stroke="#131318" strokeWidth={1} />
+                        return <circle key={l.n} cx={p.x} cy={p.y} r={2.6} fill={st?.color ?? d.color} stroke="#131318" strokeWidth={1} />
                       })}
                   </g>
                 )
@@ -209,7 +245,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
                         title={`${s.compound ?? '—'} · giri ${s.from}-${s.to}`}
                         style={{
                           width: `${((s.to - s.from + 1) / total) * 100}%`,
-                          backgroundColor: d.color,
+                          backgroundColor: styles[d.abbr]?.color ?? d.color,
                           opacity: 0.35 + (i % 3) * 0.25,
                         }}
                         className="flex items-center justify-center"
