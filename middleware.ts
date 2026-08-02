@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { tagRedirectFor } from '@/lib/tagRedirects'
 
 // Redirect 301 dal vecchio sito WordPress (URL piatti, senza categoria)
 // alla nuova struttura /{categoria}/{slug}. Copre anche i vecchi URL di
@@ -15,6 +16,7 @@ const KNOWN_TOP_LEVEL = new Set([
   'chi-siamo', 'contatti', 'privacy', 'cookie', 'note-legali', 'autori',
   'cerca', 'telemetria', 'telemetria-data',
   'studio', 'api', 'images', 'sitemap.xml', 'robots.txt', '_next', 'favicon.ico',
+  'ads.txt', 'fonts',
 ])
 
 // --- Sezione Telemetria (riservata allo staff) -----------------------------
@@ -123,6 +125,22 @@ export async function middleware(req: NextRequest) {
   if (segments.length === 0) return NextResponse.next()
 
   const [first, second] = segments
+
+  // Vecchie pagine tag di WordPress (/tag/lewis-hamilton): ospitavano le
+  // biografie ed erano indicizzate. Si mandano alla scheda corrispondente
+  // sul nuovo sito; se il tag non è mappato si ripiega sulla ricerca
+  // interna, che resta un approdo sensato invece di un 404.
+  if (first === 'tag' && second) {
+    const destinazione = tagRedirectFor(second)
+    if (destinazione) {
+      return NextResponse.redirect(new URL(destinazione, req.url), 301)
+    }
+    const termine = decodeURIComponent(second).replace(/-/g, ' ')
+    return NextResponse.redirect(
+      new URL(`/cerca?q=${encodeURIComponent(termine)}`, req.url),
+      302
+    )
+  }
 
   // Vecchia categoria non più esistente (formula-e) -> mappata alla nuova
   if (OLD_CATEGORY_TO_NEW[first]) {
