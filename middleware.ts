@@ -33,7 +33,8 @@ async function sha256Hex(value: string): Promise<string> {
 async function telemetriaGate(req: NextRequest, pathname: string): Promise<NextResponse | null> {
   const isProtected =
     (pathname.startsWith('/telemetria') && !pathname.startsWith('/telemetria/login')) ||
-    pathname.startsWith('/telemetria-data')
+    pathname.startsWith('/telemetria-data') ||
+    pathname.startsWith('/api/telemetria-run')
   if (!isProtected) return null
 
   const password = process.env.TELEMETRIA_PASSWORD
@@ -42,6 +43,11 @@ async function telemetriaGate(req: NextRequest, pathname: string): Promise<NextR
   const cookie = req.cookies.get('lc-telemetria-auth')?.value
   if (cookie && cookie === (await sha256Hex(password))) return null
 
+  // Sulle route API si risponde 401 invece di reindirizzare: una fetch che
+  // segue il redirect riceverebbe l'HTML del login e fallirebbe il parsing.
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Non autorizzato.' }, { status: 401 })
+  }
   return NextResponse.redirect(new URL('/telemetria/login', req.url))
 }
 
