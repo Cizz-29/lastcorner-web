@@ -44,8 +44,10 @@ async function readIndex(): Promise<IndexEntry[]> {
 async function readCalendar(done: Set<number>): Promise<Meeting[]> {
   try {
     const year = new Date().getFullYear()
+    // revalidate breve: se OpenF1 non risponde durante un build, il menu
+    // resterebbe vuoto per tutto il periodo di cache.
     const res = await fetch(`https://api.openf1.org/v1/meetings?year=${year}`, {
-      next: { revalidate: 86400 },
+      next: { revalidate: 3600 },
     })
     if (!res.ok) return []
     const raw = (await res.json()) as any[]
