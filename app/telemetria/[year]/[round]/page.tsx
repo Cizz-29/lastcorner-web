@@ -84,7 +84,27 @@ export default async function TelemetriaEventPage({ params }: PageProps) {
         <SessionTabs
           hasQuali={!!quali}
           hasRace={!!race}
-          quali={quali ? <QualiCompare drivers={quali.drivers} /> : null}
+          quali={
+            quali ? (
+              // I dati generati prima dell'introduzione della scelta del giro
+              // non hanno l'elenco "laps": invece di rompersi, la pagina
+              // invita a rigenerarli dal pannello in /telemetria.
+              Array.isArray(quali.drivers?.[0]?.laps) ? (
+                <QualiCompare
+                  drivers={quali.drivers}
+                  dataPath={`/telemetria-data/${params.year}/${params.round}`}
+                />
+              ) : (
+                <div className="bg-lc-card border border-white/10 rounded-card p-6 max-w-xl">
+                  <p className="font-montserrat text-[14px] text-lc-subtle leading-relaxed">
+                    Questi dati sono in un formato precedente e non permettono di scegliere il
+                    giro. Rigenerali dal pannello &quot;Genera dati&quot; nella pagina Telemetria
+                    per abilitare il confronto completo.
+                  </p>
+                </div>
+              )
+            ) : null
+          }
           race={race ? <RacePace drivers={race.drivers} /> : null}
         />
 
