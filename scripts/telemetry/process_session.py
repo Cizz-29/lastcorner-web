@@ -33,9 +33,12 @@ OUT = ROOT / "public" / "telemetria-data"
 
 # Punti telemetria per giro dopo il ricampionamento: abbastanza fitti per
 # grafici fluidi, abbastanza pochi da tenere i JSON leggeri.
-TELEMETRY_POINTS = 400
+TELEMETRY_POINTS = 350
+# Quanti giri cronometrati salvare per pilota (i più veloci). Serve per
+# poter confrontare non solo il giro migliore ma anche gli altri tentativi.
+MAX_LAPS_PER_DRIVER = 5
 # Pausa tra le chiamate: OpenF1 è gratuita, evitiamo di stressarla.
-THROTTLE_S = 0.35
+THROTTLE_S = 0.25
 DEFAULT_COLOR = "FF3A3A"
 
 
@@ -185,7 +188,15 @@ def build_telemetry(session_key: int, driver_number: int, lap: dict) -> dict | N
     }
 
 
-def process_qualifying(meeting_key: int) -> dict | None:
+def process_qualifying(meeting_key: int, base: Path) -> dict | None:
+    """Qualifica: per ogni pilota salva i giri cronometrati più veloci.
+
+    L'indice (qualifying.json) resta leggero perché contiene solo l'elenco
+    dei giri con i tempi; la telemetria vera finisce in un file per pilota
+    (qualifying/<numero>.json), che la pagina carica solo quando quel pilota
+    viene selezionato. Così si possono confrontare anche i tentativi diversi
+    dal giro migliore senza appesantire il caricamento iniziale.
+    """
     session = find_session(meeting_key, "Qualifying")
     if not session:
         print("  [Q] sessione non trovata")
@@ -200,40 +211,70 @@ def process_qualifying(meeting_key: int) -> dict | None:
     drivers_info = get_drivers(session_key)
     stints = stint_lookup(session_key)
 
-    # Giro più veloce per pilota (esclusi i giri senza tempo valido).
-    best: dict = {}
+    # Giri cronometrati validi, raggruppati per pilota.
+    per_driver: dict = {}
     for lap in laps:
         num = lap.get("driver_number")
         dur = lap.get("lap_duration")
         if num is None or not dur or lap.get("is_pit_out_lap"):
             continue
-        if num not in best or dur < best[num]["lap_duration"]:
-            best[num] = lap
+        per_driver.setdefault(num, []).append(lap)
 
-    if not best:
+    if not per_driver:
         print("  [Q] nessun giro cronometrato valido")
         return None
 
-    ranked = sorted(best.items(), key=lambda kv: kv[1]["lap_duration"])
+    # Ordine di classifica: per giro più veloce assoluto di ciascun pilota.
+    ranked = sorted(
+        per_driver.items(), key=lambda kv: min(l["lap_duration"] for l in kv[1])
+    )
+
     drivers = []
-    for position, (num, lap) in enumerate(ranked, start=1):
-        info = drivers_info.get(num, {"abbr": str(num), "name": str(num), "team": "", "color": f"#{DEFAULT_COLOR}"})
-        telemetry = build_telemetry(session_key, num, lap)
-        time.sleep(THROTTLE_S)
-        if telemetry is None:
+    for position, (num, driver_laps) in enumerate(ranked, start=1):
+        info = drivers_info.get(
+            num, {"abbr": str(num), "name": str(num), "team": "", "color": f"#{DEFAULT_COLOR}"}
+        )
+        # Solo i più veloci: gli altri sono quasi sempre giri di
+        # raffreddamento o rientri, poco interessanti da confrontare.
+        driver_laps.sort(key=lambda l: l["lap_duration"])
+        selected = driver_laps[:MAX_LAPS_PER_DRIVER]
+
+        lap_meta = []
+        telemetry_by_lap = {}
+        for lap in selected:
+            n = lap.get("lap_number")
+            telemetry = build_telemetry(session_key, num, lap)
+            time.sleep(THROTTLE_S)
+            if telemetry is None:
+                continue
+            compound, _ = stints.get((num, n), (None, None))
+            telemetry_by_lap[str(n)] = telemetry
+            lap_meta.append(
+                {
+                    "lap": int(n) if n is not None else 0,
+                    "time": round(float(lap["lap_duration"]), 3),
+                    "compound": compound,
+                }
+            )
+
+        if not lap_meta:
             print(f"    - {info['abbr']}: telemetria non disponibile, salto")
             continue
-        compound, _ = stints.get((num, lap.get("lap_number")), (None, None))
+
+        lap_meta.sort(key=lambda l: l["time"])
+        save_json(base / "qualifying" / f"{num}.json", telemetry_by_lap)
         drivers.append(
             {
                 **info,
+                "number": num,
                 "position": position,
-                "lapTime": round(float(lap["lap_duration"]), 3),
-                "compound": compound,
-                "telemetry": telemetry,
+                "lapTime": lap_meta[0]["time"],
+                "compound": lap_meta[0]["compound"],
+                "bestLap": lap_meta[0]["lap"],
+                "laps": lap_meta,
             }
         )
-        print(f"    + {info['abbr']} {lap['lap_duration']:.3f}s")
+        print(f"    + {info['abbr']} {lap_meta[0]['time']:.3f}s ({len(lap_meta)} giri)")
 
     if not drivers:
         return None
@@ -336,13 +377,13 @@ def process_round(year: int, rnd: int) -> bool:
     name = meeting.get("meeting_name") or f"Round {rnd}"
     print(f"Elaboro {year} round {rnd}: {name}")
 
-    quali = process_qualifying(meeting["meeting_key"])
+    base = OUT / str(year) / str(rnd)
+    quali = process_qualifying(meeting["meeting_key"], base)
     race = process_race(meeting["meeting_key"])
     if quali is None and race is None:
         print("  nessun dato disponibile, salto")
         return False
 
-    base = OUT / str(year) / str(rnd)
     sessions = []
     if quali:
         save_json(base / "qualifying.json", quali)
