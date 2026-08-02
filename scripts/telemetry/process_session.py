@@ -68,9 +68,20 @@ def parse_dt(value: str) -> datetime | None:
 # --- Anagrafiche -----------------------------------------------------------
 
 def get_meetings(year: int) -> list:
-    """Gran Premi dell'anno, ordinati per data (l'indice+1 è il 'round')."""
+    """Gran Premi dell'anno, ordinati per data (l'indice+1 è il 'round').
+
+    Vanno esclusi i test pre-stagionali e i GP cancellati: OpenF1 li elenca
+    insieme agli altri, ma non contano nella numerazione ufficiale dei round.
+    Senza questo filtro l'Ungheria 2026 risulterebbe round 15 invece di 11.
+    """
     meetings = get("meetings", year=year)
-    meetings = [m for m in meetings if m.get("date_start")]
+    meetings = [
+        m
+        for m in meetings
+        if m.get("date_start")
+        and not m.get("is_cancelled")
+        and "testing" not in (m.get("meeting_name") or "").lower()
+    ]
     meetings.sort(key=lambda m: m["date_start"])
     return meetings
 
