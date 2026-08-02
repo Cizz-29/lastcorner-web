@@ -113,6 +113,21 @@ const F3_TEAMS: RosterTeamEntry[] = [
   ]},
 ]
 
+// F1 Academy 2026: sei team, tre vetture ciascuno. Sono le stesse strutture
+// che corrono in F2/F3, quindi gli id coincidono di proposito — così la bio
+// scritta una volta sola su Sanity (documento teamBio con quel
+// constructorId) compare automaticamente in tutte e tre le categorie.
+// I piloti non sono elencati: la sezione "Piloti" per questa categoria è
+// disattivata (vedi hasPiloti in lib/categories.ts).
+const F1_ACADEMY_TEAMS: RosterTeamEntry[] = [
+  { id: 'art-grand-prix', name: 'ART Grand Prix', nationality: 'French', drivers: [] },
+  { id: 'campos-racing', name: 'Campos Racing', nationality: 'Spanish', drivers: [] },
+  { id: 'hitech', name: 'Hitech', nationality: 'British', drivers: [] },
+  { id: 'mp-motorsport', name: 'MP Motorsport', nationality: 'Dutch', drivers: [] },
+  { id: 'prema-racing', name: 'PREMA Racing', nationality: 'Italian', drivers: [] },
+  { id: 'rodin-motorsport', name: 'Rodin Motorsport', nationality: 'New Zealander', drivers: [] },
+]
+
 function slugify(s: string): string {
   return s
     .replace(/ł/g, 'l').replace(/Ł/g, 'L')
@@ -148,6 +163,7 @@ function buildRoster(teamEntries: RosterTeamEntry[]): { drivers: RosterDriver[];
 const ROSTERS: Record<string, { drivers: RosterDriver[]; teams: RosterTeam[] }> = {
   'formula-2': buildRoster(F2_TEAMS),
   'formula-3': buildRoster(F3_TEAMS),
+  'f1-academy': buildRoster(F1_ACADEMY_TEAMS),
 }
 
 export function getRosterDrivers(categorySlug: string): RosterDriver[] {
