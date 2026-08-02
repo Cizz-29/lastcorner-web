@@ -96,24 +96,24 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as {
+  const opzioni = (await req.json().catch(() => ({}))) as {
     wpBase?: string
     after?: string
     batchSize?: number
   }
 
-  const wpBase = (body.wpBase ?? '').replace(/\/+$/, '')
+  const wpBase = (opzioni.wpBase ?? '').replace(/\/+$/, '')
   if (!wpBase) {
     return NextResponse.json(
       { error: 'Manca "wpBase": indirizzo del vecchio sito WordPress.' },
       { status: 400 }
     )
   }
-  const batchSize = Math.min(body.batchSize ?? DEFAULT_BATCH, 10)
+  const batchSize = Math.min(opzioni.batchSize ?? DEFAULT_BATCH, 10)
 
   // Da dove riprendere: l'articolo più recente già presente in Sanity.
   const after =
-    body.after ??
+    opzioni.after ??
     (await sanityClient.fetch<string | null>(
       `*[_type == "article"]|order(publishedAt desc)[0].publishedAt`
     )) ??
@@ -185,7 +185,7 @@ export async function POST(req: Request) {
         continue
       }
 
-      const body = await htmlToPortableText(
+      const corpo = await htmlToPortableText(
         post.content?.rendered ?? '',
         uploadImage,
         slug
@@ -202,7 +202,7 @@ export async function POST(req: Request) {
         excerpt: stripTags(post.excerpt?.rendered ?? '').slice(0, 300) || undefined,
         breaking: false,
         tags: tags.length ? tags : undefined,
-        body,
+        body: corpo,
       })
       risultati.push({ slug, esito: 'importato' })
     } catch (err) {
