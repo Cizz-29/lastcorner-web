@@ -40,18 +40,27 @@ export default function AdSlot({ height, label, className = '' }: AdSlotProps) {
   }, [])
 
   // Registra l'annuncio presso adsbygoogle una sola volta, quando compare
-  // (dopo il consenso). Push nella coda è sicuro anche se lo script base
+  // (dopo il consenso). Il push in coda è sicuro anche se lo script base
   // non ha ancora finito di caricarsi: è lui a processarla appena pronto.
+  //
+  // L'attesa di un frame serve a garantire che il contenitore sia già stato
+  // disposto: le unità responsive calcolano il formato dalla larghezza
+  // disponibile, e se al momento del push valesse ancora zero l'annuncio
+  // non verrebbe riempito.
   useEffect(() => {
     if (!allowed || pushedRef.current) return
-    try {
-      ;(window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle =
-        (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle || []
-      ;(window as unknown as { adsbygoogle: unknown[] }).adsbygoogle.push({})
-      pushedRef.current = true
-    } catch {
-      // Se fallisce (raro), resta il placeholder al prossimo giro di consenso.
-    }
+    const id = requestAnimationFrame(() => {
+      if (pushedRef.current) return
+      try {
+        ;(window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle =
+          (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle || []
+        ;(window as unknown as { adsbygoogle: unknown[] }).adsbygoogle.push({})
+        pushedRef.current = true
+      } catch {
+        // Se fallisce (raro), resta il placeholder al prossimo giro di consenso.
+      }
+    })
+    return () => cancelAnimationFrame(id)
   }, [allowed])
 
   if (!allowed) {
