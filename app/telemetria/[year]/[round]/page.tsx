@@ -5,13 +5,13 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import SessionTabs, { type SessionPanel } from '@/components/telemetria/SessionTabs'
 import QualiCompare, { type QualiDriver } from '@/components/telemetria/QualiCompare'
 import RacePace, { type RaceDriver } from '@/components/telemetria/RacePace'
-import SessionTabs from '@/components/telemetria/SessionTabs'
 
-// Pagina di un singolo weekend: legge i JSON prodotti dalla pipeline
-// (scripts/telemetry) da public/telemetria-data/<anno>/<round>/.
-// Area riservata: il middleware blocca l'accesso senza cookie di sessione.
+// Pagina di un weekend: una scheda per ogni sessione disponibile (libere,
+// qualifiche, sprint, gara). Per ciascuna si mostra il passo e, dove la
+// pipeline l'ha raccolta, il confronto telemetrico dei giri.
 
 export const metadata: Metadata = {
   title: 'Telemetria',
@@ -22,13 +22,20 @@ interface PageProps {
   params: { year: string; round: string }
 }
 
+interface SessionInfo {
+  key: string
+  label: string
+  pace: boolean
+  telemetry: boolean
+}
+
 interface IndexEntry {
   year: number
   round: number
   name: string
   circuit: string
   date: string
-  sessions: string[]
+  sessions: (SessionInfo | string)[]
 }
 
 const DATA_DIR = path.join(process.cwd(), 'public', 'telemetria-data')
@@ -54,10 +61,35 @@ export default async function TelemetriaEventPage({ params }: PageProps) {
   )
   if (!event) notFound()
 
-  const [quali, race] = await Promise.all([
-    readJson<{ drivers: QualiDriver[] }>(params.year, params.round, 'qualifying.json'),
-    readJson<{ drivers: RaceDriver[] }>(params.year, params.round, 'race.json'),
-  ])
+  // I dati generati prima del supporto multi-sessione hanno "sessions" come
+  // elenco di stringhe: in quel caso si invita a rigenerare invece di
+  // mostrare una pagina a metà.
+  const sessionInfos = event.sessions.filter(
+    (s): s is SessionInfo => typeof s === 'object' && s !== null
+  )
+  const formatoVecchio = sessionInfos.length === 0 && event.sessions.length > 0
+
+  const panels: SessionPanel[] = []
+  for (const info of sessionInfos) {
+    const basePath = `/telemetria-data/${params.year}/${params.round}/${info.key}`
+    const [pace, laps] = await Promise.all([
+      info.pace
+        ? readJson<{ drivers: RaceDriver[] }>(params.year, params.round, info.key, 'pace.json')
+        : Promise.resolve(null),
+      info.telemetry
+        ? readJson<{ drivers: QualiDriver[] }>(params.year, params.round, info.key, 'laps.json')
+        : Promise.resolve(null),
+    ])
+
+    panels.push({
+      key: info.key,
+      label: info.label,
+      telemetria: laps ? (
+        <QualiCompare drivers={laps.drivers} dataPath={`${basePath}/tel`} />
+      ) : null,
+      passo: pace ? <RacePace drivers={pace.drivers} /> : null,
+    })
+  }
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -81,32 +113,17 @@ export default async function TelemetriaEventPage({ params }: PageProps) {
           {event.circuit} — {event.year}, round {event.round}
         </p>
 
-        <SessionTabs
-          hasQuali={!!quali}
-          hasRace={!!race}
-          quali={
-            quali ? (
-              // I dati generati prima dell'introduzione della scelta del giro
-              // non hanno l'elenco "laps": invece di rompersi, la pagina
-              // invita a rigenerarli dal pannello in /telemetria.
-              Array.isArray(quali.drivers?.[0]?.laps) ? (
-                <QualiCompare
-                  drivers={quali.drivers}
-                  dataPath={`/telemetria-data/${params.year}/${params.round}`}
-                />
-              ) : (
-                <div className="bg-lc-card border border-white/10 rounded-card p-6 max-w-xl">
-                  <p className="font-montserrat text-[14px] text-lc-subtle leading-relaxed">
-                    Questi dati sono in un formato precedente e non permettono di scegliere il
-                    giro. Rigenerali dal pannello &quot;Genera dati&quot; nella pagina Telemetria
-                    per abilitare il confronto completo.
-                  </p>
-                </div>
-              )
-            ) : null
-          }
-          race={race ? <RacePace drivers={race.drivers} /> : null}
-        />
+        {formatoVecchio ? (
+          <div className="bg-lc-card border border-white/10 rounded-card p-6 max-w-xl">
+            <p className="font-montserrat text-[14px] text-lc-subtle leading-relaxed">
+              Questi dati sono in un formato precedente, che copriva solo qualifica e gara.
+              Rigenerali dal pannello &quot;Genera dati&quot; nella pagina Telemetria per avere
+              tutte le sessioni del weekend e la scelta del giro.
+            </p>
+          </div>
+        ) : (
+          <SessionTabs panels={panels} />
+        )}
 
         <div className="h-16" />
       </main>
