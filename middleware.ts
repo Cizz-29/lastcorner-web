@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { tagRedirectFor } from '@/lib/tagRedirects'
+import { COMING_SOON_HTML, isComingSoonExempt } from '@/lib/comingSoon'
 
 // Redirect 301 dal vecchio sito WordPress (URL piatti, senza categoria)
 // alla nuova struttura /{categoria}/{slug}. Copre anche i vecchi URL di
@@ -103,8 +104,51 @@ async function findArticleCategorySlug(slug: string): Promise<string | null> {
   }
 }
 
+const ANTEPRIMA_COOKIE = 'lc-anteprima'
+
+// Modalità "prossimamente": con SITE_COMING_SOON=true il pubblico vede solo
+// la pagina di attesa. Chi ha la chiave (?anteprima=<ANTEPRIMA_KEY>) riceve
+// un cookie e continua a navigare il sito normalmente, per poter rivedere
+// tutto prima dell'annuncio.
+function comingSoonGate(req: NextRequest, pathname: string): NextResponse | null {
+  if (process.env.SITE_COMING_SOON !== 'true') return null
+  if (isComingSoonExempt(pathname)) return null
+
+  const chiave = process.env.ANTEPRIMA_KEY
+  const richiesta = req.nextUrl.searchParams.get('anteprima')
+
+  // Chiave corretta nell'URL: si sblocca questo browser e si prosegue.
+  if (chiave && richiesta === chiave) {
+    const url = req.nextUrl.clone()
+    url.searchParams.delete('anteprima')
+    const res = NextResponse.redirect(url)
+    res.cookies.set(ANTEPRIMA_COOKIE, chiave, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+    })
+    return res
+  }
+
+  if (chiave && req.cookies.get(ANTEPRIMA_COOKIE)?.value === chiave) return null
+
+  return new NextResponse(COMING_SOON_HTML, {
+    status: 503,
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'retry-after': '86400',
+      'cache-control': 'no-store',
+    },
+  })
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl
+
+  const attesa = comingSoonGate(req, pathname)
+  if (attesa) return attesa
 
   const gate = await telemetriaGate(req, pathname)
   if (gate) return gate
