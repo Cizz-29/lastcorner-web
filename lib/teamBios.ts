@@ -5,8 +5,10 @@ import { sanityClient } from '@/lib/sanity/client'
 // articoli), poi il fallback statico qui sotto, poi il placeholder
 // generico. Così i team già scritti a mano restano visibili anche prima
 // che qualcuno li ricrei nello Studio.
+// Testo neutro rispetto alla categoria: la stessa scheda serve F1, F2, F3
+// e F1 Academy, quindi non può dare per scontato il campionato.
 const PLACEHOLDER =
-  'La storia di questo team sarà pubblicata a breve. Torna a trovarci per scoprire il suo percorso in Formula 1.'
+  'La storia di questo team sarà pubblicata a breve. Torna a trovarci per scoprire il suo percorso nel motorsport.'
 
 export const TEAM_BIOS: Record<string, string> = {
   ferrari: `La Scuderia Ferrari è il team più antico e vincente della storia della Formula 1, presente ininterrottamente sin dal primo Mondiale del 1950. Con oltre 240 vittorie e 16 titoli tra piloti e costruttori, il Cavallino Rampante rappresenta un pezzo di storia dello sport a livello globale, capace di costruire un legame con i propri tifosi — i celebri "tifosi Ferrari" — che va oltre i risultati in pista. Dopo alcune stagioni di ricostruzione, il team di Maranello punta a tornare stabilmente al vertice, forte di un progetto tecnico rinnovato e di una line-up piloti tra le più attese del paddock.`,
