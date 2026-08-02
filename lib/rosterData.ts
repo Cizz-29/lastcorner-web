@@ -74,7 +74,7 @@ const F3_TEAMS: RosterTeamEntry[] = [
   { id: 'mp-motorsport', name: 'MP Motorsport', nationality: 'Dutch', drivers: [
     { number: '7', givenName: 'Mattia', familyName: 'Colnaghi', nationality: 'Argentine' },
     { number: '8', givenName: 'Tuukka', familyName: 'Taponen', nationality: 'Finnish' },
-    { number: '9', givenName: 'Alessandro', familyName: 'Giusti', nationality: 'Italian' },
+    { number: '9', givenName: 'Alessandro', familyName: 'Giusti', nationality: 'French' },
   ]},
   { id: 'art-grand-prix', name: 'ART Grand Prix', nationality: 'French', drivers: [
     { number: '10', givenName: 'Taito', familyName: 'Kato', nationality: 'Japanese' },
