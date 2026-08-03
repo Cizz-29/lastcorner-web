@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { sanityClient } from '@/lib/sanity/client'
 import { sanityWriteClient } from '@/lib/sanity/writeClient'
 import { STYLE_PROFILE } from '@/lib/ai/styleProfile'
 import { parseDraft } from '@/lib/ai/parseDraft'
@@ -14,13 +15,85 @@ import { parseDraft } from '@/lib/ai/parseDraft'
 export const dynamic = 'force-dynamic'
 
 const MODEL = 'claude-sonnet-5'
+// Quanti articoli reali allegare come esempio di stile. Tre bastano a
+// trasmettere ritmo, lessico e struttura senza gonfiare troppo la richiesta.
+const NUM_ESEMPI = 3
 
-function buildUserPrompt(fonte: string, descrizione: string | undefined): string {
+interface BloccoTesto {
+  _type?: string
+  style?: string
+  children?: { text?: string; marks?: string[] }[]
+}
+
+// Riporta il corpo Portable Text di un articolo nel formato testuale che
+// chiediamo al modello di produrre (## per i sottotitoli, ** per il
+// grassetto): così gli esempi parlano esattamente la stessa lingua
+// dell'output atteso.
+function bodyToTesto(blocchi: BloccoTesto[] | undefined): string {
+  if (!Array.isArray(blocchi)) return ''
+  return blocchi
+    .filter((b) => b?._type === 'block')
+    .map((b) => {
+      const testo = (b.children ?? [])
+        .map((c) => {
+          const t = c.text ?? ''
+          return c.marks?.includes('strong') && t.trim() ? `**${t}**` : t
+        })
+        .join('')
+      if (!testo.trim()) return ''
+      return b.style === 'h2' || b.style === 'h3' ? `## ${testo}` : testo
+    })
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+// Pesca dagli articoli già pubblicati alcuni esempi dello stesso autore,
+// preferendo la stessa categoria. È il modo più efficace per trasmettere
+// lo stile: il modello imita meglio da esempi reali che da descrizioni.
+async function esempiDiStile(autore: string, categoria: string): Promise<string> {
+  const query = `*[_type == "article" && author == $autore && defined(body) && count(body) >= 5
+      && (!defined($cat) || $cat == "" || category == $cat)]
+      | order(publishedAt desc)[0...$n]{ title, body }`
+  try {
+    let docs = await sanityClient.fetch<{ title: string; body: BloccoTesto[] }[]>(query, {
+      autore,
+      cat: categoria,
+      n: NUM_ESEMPI,
+    })
+    // Se in quella categoria non ci sono abbastanza pezzi suoi, si allarga
+    // a tutte le categorie piuttosto che rinunciare agli esempi.
+    if (docs.length < 2) {
+      docs = await sanityClient.fetch(query, { autore, cat: '', n: NUM_ESEMPI })
+    }
+    if (docs.length === 0) return ''
+
+    const blocchi = docs
+      .map((d, i) => {
+        const corpo = bodyToTesto(d.body)
+        if (!corpo) return ''
+        return `--- ESEMPIO ${i + 1} ---\nTITOLO: ${d.title}\n\nCORPO:\n${corpo}`
+      })
+      .filter(Boolean)
+
+    if (blocchi.length === 0) return ''
+
+    return `Di seguito alcuni articoli realmente scritti da ${autore}. Studiali con attenzione: sono il riferimento più affidabile per il ritmo delle frasi, la lunghezza dei paragrafi, il modo di introdurre e riportare le dichiarazioni, il lessico e il tipo di chiusura. Imita questo modo di scrivere, NON il contenuto: i fatti devono venire esclusivamente dalla fonte fornita più sotto.\n\n${blocchi.join('\n\n')}\n\n--- FINE ESEMPI ---\n\n`
+  } catch {
+    // Se Sanity non risponde si procede comunque con il solo profilo di stile.
+    return ''
+  }
+}
+
+function buildUserPrompt(
+  fonte: string,
+  descrizione: string | undefined,
+  esempi: string
+): string {
   const descrizioneBlock = descrizione?.trim()
     ? `Descrizione/spunto fornito dall'editore (es. per un post Instagram):\n${descrizione.trim()}\n\n`
     : ''
 
-  return `${descrizioneBlock}Fonte della notizia (può essere in lingua diversa dall'italiano):\n${fonte.trim()}\n\nScrivi una bozza di articolo in italiano su questa notizia, seguendo scrupolosamente lo stile descritto sopra. Rispondi SOLO nel seguente formato, senza aggiungere altro testo prima o dopo:\n\nTITOLO: <titolo dell'articolo>\n\nCORPO:\n<primo paragrafo>\n\n<secondo paragrafo>\n\n## <eventuale sottotitolo con citazione>\n\n<altri paragrafi>\n\nUsa "**testo**" per il grassetto sulle frasi-clou, come indicato nello stile. Non inventare fatti, nomi o cifre non presenti nella fonte.`
+  return `${esempi}${descrizioneBlock}Fonte della notizia (può essere in lingua diversa dall'italiano):\n${fonte.trim()}\n\nScrivi una bozza di articolo in italiano su questa notizia, seguendo scrupolosamente lo stile descritto sopra e ricalcando il modo di scrivere degli esempi. Rispondi SOLO nel seguente formato, senza aggiungere altro testo prima o dopo:\n\nTITOLO: <titolo dell'articolo>\n\nCORPO:\n<primo paragrafo>\n\n<secondo paragrafo>\n\n## <eventuale sottotitolo con citazione>\n\n<altri paragrafi>\n\nUsa "**testo**" per il grassetto sulle frasi-clou, come indicato nello stile. Non inventare fatti, nomi o cifre non presenti nella fonte.`
 }
 
 // Slug a partire dal titolo, come farebbe Sanity con "Generate": si può
@@ -58,6 +131,9 @@ export async function POST(req: Request) {
       )
     }
 
+    const nomeAutore = autore?.trim() || 'Francesco Di Blasi'
+    const esempi = await esempiDiStile(nomeAutore, categoria?.trim() || '')
+
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -69,7 +145,7 @@ export async function POST(req: Request) {
         model: MODEL,
         max_tokens: 2000,
         system: STYLE_PROFILE,
-        messages: [{ role: 'user', content: buildUserPrompt(fonte, descrizione) }],
+        messages: [{ role: 'user', content: buildUserPrompt(fonte, descrizione, esempi) }],
       }),
     })
 
@@ -107,7 +183,7 @@ export async function POST(req: Request) {
       slug: { _type: 'slug', current: slugFromTitle(title) },
       category: categoria?.trim() || 'Formula 1',
       subcategory: 'news',
-      author: autore?.trim() || 'Francesco Di Blasi',
+      author: nomeAutore,
       publishedAt: new Date().toISOString(),
       breaking: false,
       body: blocks,
