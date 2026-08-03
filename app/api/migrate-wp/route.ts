@@ -142,11 +142,15 @@ export async function POST(req: Request) {
   for (const post of posts) {
     const slug: string = post.slug
     try {
-      const esistente = await sanityClient.fetch<string | null>(
-        `*[_type == "article" && slug.current == $slug][0]._id`,
+      // Se l'articolo c'è già ed è completo si salta. Se invece esiste ma
+      // senza immagine principale (successo con le prime importazioni, per
+      // un difetto ora corretto) la si recupera e si aggiorna il documento
+      // invece di crearne un doppione.
+      const esistente = await sanityClient.fetch<{ _id: string; conImmagine: boolean } | null>(
+        `*[_type == "article" && slug.current == $slug][0]{_id, "conImmagine": defined(mainImage)}`,
         { slug }
       )
-      if (esistente) {
+      if (esistente?.conImmagine) {
         risultati.push({ slug, esito: 'già presente' })
         continue
       }
@@ -187,6 +191,13 @@ export async function POST(req: Request) {
         continue
       }
 
+      // Articolo già presente ma senza copertina: si completa e si passa oltre.
+      if (esistente) {
+        await sanityWriteClient.patch(esistente._id).set({ mainImage }).commit()
+        risultati.push({ slug, esito: 'immagine aggiunta' })
+        continue
+      }
+
       const corpo = await htmlToPortableText(
         post.content?.rendered ?? '',
         uploadImage,
@@ -201,6 +212,7 @@ export async function POST(req: Request) {
         subcategory: sottocategoria,
         author: autoreById.get(post.author) ?? 'Francesco Di Blasi',
         publishedAt: new Date(post.date_gmt + 'Z').toISOString(),
+        mainImage,
         excerpt: stripTags(post.excerpt?.rendered ?? '').slice(0, 300) || undefined,
         breaking: false,
         tags: tags.length ? tags : undefined,
