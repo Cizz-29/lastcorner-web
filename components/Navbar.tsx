@@ -28,9 +28,10 @@ const ROSTER_ITEMS = [
 function getSubmenuItems(categorySlug: string) {
   if (categorySlug === 'altro') return []
   const subcategoryItems = getSubcategoryPagesForCategory(categorySlug).map((s) => ({ label: s.label, slug: s.slug }))
-  const hasPiloti = getCategoryConfig(categorySlug)?.hasPiloti ?? true
+  const config = getCategoryConfig(categorySlug)
   let rosterItems = categorySlug === 'formula-1' ? ROSTER_ITEMS : ROSTER_ITEMS.filter((item) => item.slug !== 'calendario')
-  if (!hasPiloti) rosterItems = rosterItems.filter((item) => item.slug !== 'piloti')
+  if ((config?.hasPiloti ?? true) === false) rosterItems = rosterItems.filter((item) => item.slug !== 'piloti')
+  if ((config?.hasTeam ?? true) === false) rosterItems = rosterItems.filter((item) => item.slug !== 'team')
   return [{ label: 'News', slug: '' }, ...subcategoryItems, ...rosterItems]
 }
 
