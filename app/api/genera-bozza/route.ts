@@ -23,9 +23,28 @@ function buildUserPrompt(fonte: string, descrizione: string | undefined): string
   return `${descrizioneBlock}Fonte della notizia (può essere in lingua diversa dall'italiano):\n${fonte.trim()}\n\nScrivi una bozza di articolo in italiano su questa notizia, seguendo scrupolosamente lo stile descritto sopra. Rispondi SOLO nel seguente formato, senza aggiungere altro testo prima o dopo:\n\nTITOLO: <titolo dell'articolo>\n\nCORPO:\n<primo paragrafo>\n\n<secondo paragrafo>\n\n## <eventuale sottotitolo con citazione>\n\n<altri paragrafi>\n\nUsa "**testo**" per il grassetto sulle frasi-clou, come indicato nello stile. Non inventare fatti, nomi o cifre non presenti nella fonte.`
 }
 
+// Slug a partire dal titolo, come farebbe Sanity con "Generate": si può
+// sempre modificare a mano prima di pubblicare.
+function slugFromTitle(title: string): string {
+  return title
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/['’"]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 96)
+    .replace(/-$/, '')
+}
+
 export async function POST(req: Request) {
   try {
-    const { fonte, descrizione } = (await req.json()) as { fonte?: string; descrizione?: string }
+    const { fonte, descrizione, categoria, autore } = (await req.json()) as {
+      fonte?: string
+      descrizione?: string
+      categoria?: string
+      autore?: string
+    }
 
     if (!fonte || !fonte.trim()) {
       return NextResponse.json({ error: 'Manca il testo della fonte.' }, { status: 400 })
@@ -75,11 +94,22 @@ export async function POST(req: Request) {
 
     const { title, blocks } = parseDraft(rawText)
 
+    // La bozza viene precompilata con i campi obbligatori dello schema
+    // (slug, categoria, autore, data): senza, l'editor si trova un
+    // documento che Sanity rifiuta di pubblicare finché non li riempie a
+    // mano uno per uno. Restano tutti modificabili prima della pubblicazione.
+    // L'immagine principale non si può indovinare: quella va caricata a mano.
     const draftId = `drafts.ai-${Date.now()}`
     await sanityWriteClient.create({
       _id: draftId,
       _type: 'article',
       title,
+      slug: { _type: 'slug', current: slugFromTitle(title) },
+      category: categoria?.trim() || 'Formula 1',
+      subcategory: 'news',
+      author: autore?.trim() || 'Francesco Di Blasi',
+      publishedAt: new Date().toISOString(),
+      breaking: false,
       body: blocks,
     })
 
