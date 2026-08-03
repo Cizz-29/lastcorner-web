@@ -18,7 +18,7 @@ interface PageProps {
 }
 
 export function generateStaticParams() {
-  return CATEGORIES.map((c) => ({ category: c.slug }))
+  return CATEGORIES.filter((c) => c.hasTeam ?? true).map((c) => ({ category: c.slug }))
 }
 
 export function generateMetadata({ params }: PageProps): Metadata {
@@ -40,7 +40,7 @@ async function getTeams(categorySlug: string): Promise<RosterTeam[]> {
 
 export default async function TeamsOverviewPage({ params }: PageProps) {
   const config = getCategoryConfig(params.category)
-  if (!config) notFound()
+  if (!config || config.hasTeam === false) notFound()
 
   const teams = await getTeams(config.slug)
 
