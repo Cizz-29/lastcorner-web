@@ -4,6 +4,7 @@ import { visionTool } from '@sanity/vision'
 import { schemaTypes } from './sanity/schemaTypes'
 import { projectId, dataset } from './lib/sanity/env'
 import GeneraBozzaTool from './sanity/tools/GeneraBozzaTool'
+import { structure } from './sanity/structure'
 
 export { projectId, dataset }
 
@@ -18,8 +19,8 @@ export default defineConfig({
   // rumore — quindi compare solo in ambiente di sviluppo.
   plugins:
     process.env.NODE_ENV === 'development'
-      ? [structureTool(), visionTool()]
-      : [structureTool()],
+      ? [structureTool({ structure }), visionTool()]
+      : [structureTool({ structure })],
   schema: { types: schemaTypes },
   tools: [
     {
