@@ -8,10 +8,11 @@ export interface CategoryConfig {
   slug: string
   label: string
   hasStandings: boolean
-  // Sezione "Piloti" (nav, pagina overview, sitemap): assente per F1 Academy
-  // e WRC finché non c'è abbastanza materiale (roster/articoli) da
-  // giustificare una pagina dedicata — di default true.
+  // Sezioni "Piloti" e "Team" (nav, pagine overview, sitemap): si possono
+  // disattivare per categoria quando non c'è abbastanza materiale da
+  // giustificare una pagina dedicata. Di default entrambe attive.
   hasPiloti?: boolean
+  hasTeam?: boolean
 }
 
 export const CATEGORIES: CategoryConfig[] = [
@@ -19,7 +20,7 @@ export const CATEGORIES: CategoryConfig[] = [
   { slug: 'formula-2', label: 'Formula 2', hasStandings: false },
   { slug: 'formula-3', label: 'Formula 3', hasStandings: false },
   { slug: 'f1-academy', label: 'F1 Academy', hasStandings: false, hasPiloti: false },
-  { slug: 'wrc', label: 'WRC', hasStandings: false, hasPiloti: false },
+  { slug: 'wrc', label: 'WRC', hasStandings: false, hasPiloti: false, hasTeam: false },
   { slug: 'altro', label: 'Altro', hasStandings: false },
 ]
 
