@@ -165,7 +165,9 @@ export async function POST(req: Request) {
       const tagSlugs: string[] = (post.class_list ?? [])
         .filter((c: string) => c.startsWith('tag-'))
         .map((c: string) => c.slice(4))
-      const tags = [...new Set(tagSlugs.map(tagToId).filter((t): t is string => !!t))]
+      const tags = Array.from(
+        new Set(tagSlugs.map(tagToId).filter((t): t is string => !!t))
+      )
 
       // Immagine principale.
       let mainImage: any = undefined
