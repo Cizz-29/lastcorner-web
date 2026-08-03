@@ -64,11 +64,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.6,
       })
     }
-    entries.push({
-      url: `${SITE_URL}/${cat.slug}/team`,
-      changeFrequency: 'weekly',
-      priority: 0.6,
-    })
+    if (cat.hasTeam ?? true) {
+      entries.push({
+        url: `${SITE_URL}/${cat.slug}/team`,
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      })
+    }
     entries.push({
       url: `${SITE_URL}/${cat.slug}/classifica`,
       changeFrequency: 'daily',
