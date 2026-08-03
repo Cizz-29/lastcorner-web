@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Box, Button, Card, Flex, Stack, Text, TextArea, TextInput } from '@sanity/ui'
+import { Box, Button, Card, Flex, Select, Stack, Text, TextArea, TextInput } from '@sanity/ui'
+
+const CATEGORIE = ['Formula 1', 'Formula 2', 'Formula 3', 'F1 Academy', 'WRC', 'Altro']
 
 // Tool custom di Sanity Studio (appare come voce "Genera Bozza IA" nella
 // barra di navigazione dello Studio, accanto a "Structure" e "Vision").
@@ -16,6 +18,8 @@ type Status = 'idle' | 'loading' | 'done' | 'error'
 export default function GeneraBozzaTool() {
   const [fonte, setFonte] = useState('')
   const [descrizione, setDescrizione] = useState('')
+  const [categoria, setCategoria] = useState('Formula 1')
+  const [autore, setAutore] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [errore, setErrore] = useState('')
   const [risultato, setRisultato] = useState<{ title: string; studioUrl: string } | null>(null)
@@ -28,7 +32,7 @@ export default function GeneraBozzaTool() {
       const res = await fetch('/api/genera-bozza', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ fonte, descrizione }),
+        body: JSON.stringify({ fonte, descrizione, categoria, autore }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -55,9 +59,35 @@ export default function GeneraBozzaTool() {
             Incolla il testo di una fonte (notizia, articolo di un altro sito) e, se vuoi, una
             breve descrizione (es. lo spunto per un post Instagram). Il sistema genera una bozza
             nello stile di Francesco, salvata come bozza non pubblicata: revisionala sempre prima
-            di pubblicare.
+            di pubblicare. Categoria, autore, slug e data vengono precompilati e restano
+            modificabili; l&apos;immagine principale va invece caricata a mano.
           </Text>
         </Stack>
+
+        <Flex gap={3}>
+          <Stack space={2} flex={1}>
+            <Text size={1} weight="semibold">
+              Categoria
+            </Text>
+            <Select value={categoria} onChange={(e) => setCategoria(e.currentTarget.value)}>
+              {CATEGORIE.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+          </Stack>
+          <Stack space={2} flex={1}>
+            <Text size={1} weight="semibold">
+              Autore
+            </Text>
+            <TextInput
+              value={autore}
+              onChange={(e) => setAutore(e.currentTarget.value)}
+              placeholder="Francesco Di Blasi"
+            />
+          </Stack>
+        </Flex>
 
         <Stack space={2}>
           <Text size={1} weight="semibold">
