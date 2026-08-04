@@ -165,6 +165,72 @@ export default defineType({
           ],
           preview: { select: { title: 'url' } },
         },
+        {
+          type: 'object',
+          name: 'tabella',
+          title: 'Tabella',
+          description: 'Incolla righe e colonne: il sito le formatta da solo.',
+          fields: [
+            {
+              name: 'titolo',
+              title: 'Titolo (opzionale)',
+              type: 'string',
+              description: 'Es. "Classifica piloti dopo il GP d\'Ungheria".',
+            },
+            {
+              name: 'dati',
+              title: 'Dati',
+              type: 'text',
+              rows: 12,
+              description:
+                'Una riga per riga della tabella. Le colonne si separano con un TAB (copia-incolla da un foglio di calcolo o da una tabella) oppure con il carattere |. La prima riga è l\'intestazione.',
+              validation: (Rule: any) => Rule.required(),
+            },
+            {
+              name: 'primaRigaIntestazione',
+              title: 'La prima riga è l\'intestazione',
+              type: 'boolean',
+              initialValue: true,
+            },
+          ],
+          preview: {
+            select: { title: 'titolo', subtitle: 'dati' },
+            prepare({ title, subtitle }: { title?: string; subtitle?: string }) {
+              const righe = (subtitle ?? '').split('\n').filter(Boolean).length
+              return { title: title || 'Tabella', subtitle: `${righe} righe` }
+            },
+          },
+        },
+        {
+          type: 'object',
+          name: 'classificaF1',
+          title: 'Classifica F1 (aggiornata da sola)',
+          description:
+            'Inserisce la classifica live, la stessa della pagina Classifica. Si aggiorna da sé: non adatta ai riepiloghi post-gara immediati, perché i dati ufficiali arrivano dopo qualche ora.',
+          fields: [
+            {
+              name: 'tipo',
+              title: 'Quale classifica',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'Piloti', value: 'piloti' },
+                  { title: 'Costruttori', value: 'costruttori' },
+                ],
+                layout: 'radio',
+              },
+              initialValue: 'piloti',
+            },
+          ],
+          preview: {
+            select: { tipo: 'tipo' },
+            prepare({ tipo }: { tipo?: string }) {
+              return {
+                title: `Classifica F1 live — ${tipo === 'costruttori' ? 'costruttori' : 'piloti'}`,
+              }
+            },
+          },
+        },
       ],
     }),
   ],
