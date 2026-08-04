@@ -78,9 +78,14 @@ export default async function DriverPage({ params }: DriverPageProps) {
   const fullName = `${driver.givenName} ${driver.familyName}`
 
   const allArticles = await getAllArticles()
-  const relatedNews = allArticles.filter((a) =>
-    a.tags?.some((t) => t.toLowerCase() === driver.driverId.toLowerCase() || t.toLowerCase() === driver.teamId.toLowerCase())
-  ).slice(0, 6)
+  // Solo gli articoli che citano davvero il pilota. In passato si
+  // includevano anche quelli del suo team, per riempire la sezione quando i
+  // tag erano pochi; ora che sono diffusi produceva l'effetto opposto —
+  // sulla pagina di Hamilton comparivano notizie su Leclerc solo perché
+  // entrambe taggate Ferrari.
+  const relatedNews = allArticles
+    .filter((a) => a.tags?.some((t) => t.toLowerCase() === driver.driverId.toLowerCase()))
+    .slice(0, 6)
   const bio = await getDriverBio(driver.driverId)
 
   return (
