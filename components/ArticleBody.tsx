@@ -130,9 +130,9 @@ const components: PortableTextComponents = {
     image: ImageBlock,
     embed: EmbedBlock,
     tabella: ({ value }: { value: any }) => <TabellaBlock value={value} />,
-    // @ts-expect-error — Server Component dentro PortableText: il rendering
-    // avviene comunque sul server, dove i dati della classifica sono già
-    // disponibili, ma i tipi di @portabletext/react non lo prevedono.
+    // ClassificaF1Block è un Server Component asincrono: qui va bene,
+    // perché ArticleBody viene reso lato server e i dati della classifica
+    // sono già disponibili al momento del rendering.
     classificaF1: ({ value }: { value: any }) => <ClassificaF1Block tipo={value?.tipo} />,
     adSlot: () => <AdSlot height={120} label="Google AdSense" className="mb-6" />,
   },
