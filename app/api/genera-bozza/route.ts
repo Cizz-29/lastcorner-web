@@ -68,7 +68,7 @@ async function esempiDiStile(autore: string, categoria: string): Promise<string>
     if (docs.length === 0) return ''
 
     const blocchi = docs
-      .map((d, i) => {
+      .map((d: { title: string; body: BloccoTesto[] }, i: number) => {
         const corpo = bodyToTesto(d.body)
         if (!corpo) return ''
         return `--- ESEMPIO ${i + 1} ---\nTITOLO: ${d.title}\n\nCORPO:\n${corpo}`
