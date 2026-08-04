@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { hasConsent, CONSENT_CHANGED_EVENT } from '@/lib/cookieConsent'
 
 // ID publisher AdSense di Francesco. Questo componente carica lo script
@@ -27,8 +28,18 @@ function injectScript() {
 // Si carica solo con il consenso marketing, coerentemente con il banner
 // cookie. Resta in ascolto di CONSENT_CHANGED_EVENT per attivarsi anche se
 // il consenso arriva dopo il primo render, senza ricaricare la pagina.
+// Aree interne dove gli annunci non hanno senso e anzi danno fastidio:
+// il CMS (dove si scrive) e la telemetria (riservata allo staff). Gli
+// annunci automatici di Google comparirebbero ovunque lo script sia
+// caricato, quindi lì non lo si carica proprio.
+const PERCORSI_SENZA_ANNUNCI = ['/studio', '/telemetria']
+
 export default function AdsenseScript() {
+  const pathname = usePathname()
+  const areaInterna = PERCORSI_SENZA_ANNUNCI.some((p) => pathname?.startsWith(p))
+
   useEffect(() => {
+    if (areaInterna) return
     if (hasConsent('marketing')) injectScript()
 
     const onChange = () => {
@@ -36,7 +47,7 @@ export default function AdsenseScript() {
     }
     window.addEventListener(CONSENT_CHANGED_EVENT, onChange)
     return () => window.removeEventListener(CONSENT_CHANGED_EVENT, onChange)
-  }, [])
+  }, [areaInterna])
 
   return null
 }

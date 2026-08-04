@@ -1,6 +1,8 @@
 import Image from 'next/image'
 import { PortableText, type PortableTextComponents } from '@portabletext/react'
 import AdSlot from '@/components/AdSlot'
+import TabellaBlock from '@/components/TabellaBlock'
+import ClassificaF1Block from '@/components/ClassificaF1Block'
 import { urlFor } from '@/lib/sanity/image'
 
 // Ogni quanti paragrafi consecutivi inserire uno slot pubblicitario nel corpo.
@@ -127,6 +129,11 @@ const components: PortableTextComponents = {
   types: {
     image: ImageBlock,
     embed: EmbedBlock,
+    tabella: ({ value }: { value: any }) => <TabellaBlock value={value} />,
+    // @ts-expect-error — Server Component dentro PortableText: il rendering
+    // avviene comunque sul server, dove i dati della classifica sono già
+    // disponibili, ma i tipi di @portabletext/react non lo prevedono.
+    classificaF1: ({ value }: { value: any }) => <ClassificaF1Block tipo={value?.tipo} />,
     adSlot: () => <AdSlot height={120} label="Google AdSense" className="mb-6" />,
   },
 }
