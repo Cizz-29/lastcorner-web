@@ -150,7 +150,13 @@ export default defineType({
         {
           type: 'image',
           title: 'Immagine nel testo',
-          options: { hotspot: true },
+          // modal: dialog invece del popup piccolo. Il popup dell'editor si
+          // richiude da solo appena si digita nei campi di testo (difetto
+          // noto dell'editor Sanity: si "ridisegna" a ogni carattere e
+          // perde il fuoco), rendendo di fatto impossibile scrivere la
+          // didascalia. La finestra grande non ha questo problema ed è
+          // anche molto più comoda da telefono.
+          options: { hotspot: true, modal: { type: 'dialog' } },
           fields: [
             { name: 'caption', title: 'Didascalia', type: 'string' },
             { name: 'alt', title: 'Testo alternativo (alt)', type: 'string' },
@@ -160,6 +166,7 @@ export default defineType({
           type: 'object',
           name: 'embed',
           title: 'Embed (X / social)',
+          options: { modal: { type: 'dialog' } },
           fields: [
             { name: 'url', title: 'Link al post (X/Twitter, YouTube, ecc.)', type: 'url' },
           ],
@@ -170,6 +177,7 @@ export default defineType({
           name: 'tabella',
           title: 'Tabella',
           description: 'Incolla righe e colonne: il sito le formatta da solo.',
+          options: { modal: { type: 'dialog' } },
           fields: [
             {
               name: 'titolo',
@@ -207,6 +215,7 @@ export default defineType({
           title: 'Classifica F1 (aggiornata da sola)',
           description:
             'Inserisce la classifica live, la stessa della pagina Classifica. Si aggiorna da sé: non adatta ai riepiloghi post-gara immediati, perché i dati ufficiali arrivano dopo qualche ora.',
+          options: { modal: { type: 'dialog' } },
           fields: [
             {
               name: 'tipo',
