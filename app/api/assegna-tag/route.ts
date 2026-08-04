@@ -201,8 +201,13 @@ export async function POST(req: Request) {
     batchSize?: number
     usaIA?: boolean
     soloAnteprima?: boolean
+    offset?: number
   }
   const batchSize = Math.min(opzioni.batchSize ?? DEFAULT_BATCH, 50)
+  // Gli articoli in cui non si riconosce nulla restano senza tag: senza uno
+  // scorrimento tornerebbero in cima a ogni chiamata, bloccando l'avanzamento.
+  // Il chiamante incrementa l'offset del numero di articoli non assegnati.
+  const offset = Math.max(0, opzioni.offset ?? 0)
   const usaIA = opzioni.usaIA === true
   const soloAnteprima = opzioni.soloAnteprima === true
   const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
@@ -214,7 +219,7 @@ export async function POST(req: Request) {
 
   const articoli = await sanityClient.fetch<{ _id: string; title: string; category: string }[]>(
     `*[_type == "article" && (!defined(tags) || count(tags) == 0)]
-      | order(publishedAt desc)[0...${batchSize}]{ _id, title, category }`
+      | order(publishedAt desc)[${offset}...${offset + batchSize}]{ _id, title, category }`
   )
 
   const risultati: { titolo: string; tag: string[]; via: string }[] = []
@@ -243,9 +248,15 @@ export async function POST(req: Request) {
     `count(*[_type == "article" && (!defined(tags) || count(tags) == 0)])`
   )
 
+  const senzaCorrispondenza = risultati.filter((r) => r.tag.length === 0).length
+
   return NextResponse.json({
     esaminati: articoli.length,
     aggiornati,
+    senzaCorrispondenza,
+    // Offset da usare alla chiamata successiva per non ripescare gli
+    // articoli in cui non si è riconosciuto nulla.
+    prossimoOffset: offset + senzaCorrispondenza,
     restanti,
     anteprima: soloAnteprima,
     risultati,
