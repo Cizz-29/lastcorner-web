@@ -2,6 +2,7 @@ import Image from 'next/image'
 import { PortableText, type PortableTextComponents } from '@portabletext/react'
 import AdSlot from '@/components/AdSlot'
 import TabellaBlock from '@/components/TabellaBlock'
+import XEmbed from '@/components/XEmbed'
 import ClassificaF1Block from '@/components/ClassificaF1Block'
 import { urlFor } from '@/lib/sanity/image'
 
@@ -53,12 +54,16 @@ function ImageBlock({ value }: { value: any }) {
   )
 }
 
-// Embed X/Twitter/YouTube. I video YouTube vengono incorporati con un
-// iframe responsive; per il resto (X e altri) mostriamo per ora un link
-// diretto al post originale, senza caricare script esterni di terze parti.
+// Embed X/Twitter/YouTube. I video YouTube vanno in un iframe responsive;
+// i post di X mostrano l'anteprima vera (vedi XEmbed, che carica lo script
+// di X solo col consenso marketing); per tutto il resto resta il link.
 function EmbedBlock({ value }: { value: { url?: string } }) {
   const url = value?.url
   if (!url) return null
+
+  if (/(^|\/\/)(www\.)?(twitter\.com|x\.com)\//.test(url)) {
+    return <XEmbed url={url} />
+  }
 
   const yt = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=|youtube\.com\/embed\/)([\w-]{11})/)
   if (yt) {

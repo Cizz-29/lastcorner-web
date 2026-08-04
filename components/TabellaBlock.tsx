@@ -15,12 +15,34 @@ interface TabellaValue {
   primaRigaIntestazione?: boolean
 }
 
-function separaCelle(riga: string): string[] {
+// Il separatore si decide guardando l'intera tabella, non riga per riga:
+// così tutte le righe vengono divise allo stesso modo anche quando una
+// cella contiene per caso il carattere usato altrove come separatore.
+// L'ordine riflette quanto un carattere è inequivocabile: una tabulazione
+// non compare quasi mai dentro il testo, una virgola sì.
+function rilevaSeparatore(righe: string[]): RegExp {
+  if (righe.some((r) => r.includes('\t'))) return /\t/
+  if (righe.filter((r) => r.includes('|')).length >= righe.length / 2) return /\|/
+  // Virgola o punto e virgola (quest'ultimo tipico degli export italiani di
+  // Excel): si accettano solo se compaiono in modo regolare in quasi tutte
+  // le righe, indizio che sono davvero il separatore di colonna.
+  for (const [carattere, regex] of [
+    [';', /;/],
+    [',', /,/],
+  ] as [string, RegExp][]) {
+    const conteggi = righe.map((r) => r.split(carattere).length - 1).filter((n) => n > 0)
+    if (conteggi.length >= righe.length * 0.8 && conteggi.length > 0) {
+      const primo = conteggi[0]
+      if (conteggi.every((n) => Math.abs(n - primo) <= 1)) return regex
+    }
+  }
+  // Ultima risorsa: due o più spazi consecutivi.
+  return / {2,}/
+}
+
+function separaCelle(riga: string, separatore: RegExp): string[] {
   const pulita = riga.trim().replace(/^\|/, '').replace(/\|$/, '')
-  if (pulita.includes('\t')) return pulita.split('\t').map((c) => c.trim())
-  if (pulita.includes('|')) return pulita.split('|').map((c) => c.trim())
-  // Fallback: due o più spazi consecutivi come separatore.
-  return pulita.split(/ {2,}/).map((c) => c.trim())
+  return pulita.split(separatore).map((c) => c.trim())
 }
 
 // Righe di soli trattini (il separatore delle tabelle Markdown) non sono
@@ -33,13 +55,15 @@ export default function TabellaBlock({ value }: { value: TabellaValue }) {
   const testo = value?.dati?.trim()
   if (!testo) return null
 
-  const righe = testo
+  const righeTesto = testo
     .split('\n')
     .map((r) => r.trim())
     .filter((r) => r.length > 0 && !isSeparatore(r))
-    .map(separaCelle)
 
-  if (righe.length === 0) return null
+  if (righeTesto.length === 0) return null
+
+  const separatore = rilevaSeparatore(righeTesto)
+  const righe = righeTesto.map((r) => separaCelle(r, separatore))
 
   const conIntestazione = value.primaRigaIntestazione !== false && righe.length > 1
   const intestazione = conIntestazione ? righe[0] : null
