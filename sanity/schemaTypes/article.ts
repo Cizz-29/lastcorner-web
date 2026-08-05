@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { CampoTestoRitardato } from '../studio/personalizzazioni'
 
 // Categorie del sito — tenute in sync a mano con lib/categories.ts finche'
 // non collega direttamente lo schema a quella lista in fase di integrazione.
@@ -158,8 +159,19 @@ export default defineType({
           // anche molto più comoda da telefono.
           options: { hotspot: true, modal: { type: 'dialog' } },
           fields: [
-            { name: 'caption', title: 'Didascalia', type: 'string' },
-            { name: 'alt', title: 'Testo alternativo (alt)', type: 'string' },
+            {
+              name: 'caption',
+              title: 'Didascalia',
+              type: 'string',
+              components: { input: CampoTestoRitardato },
+            },
+            {
+              name: 'alt',
+              title: 'Testo alternativo (alt)',
+              type: 'string',
+              description: 'Descrive l\'immagine: serve all\'accessibilità, a Google e alla ricerca nell\'archivio.',
+              components: { input: CampoTestoRitardato },
+            },
           ],
         },
         {
