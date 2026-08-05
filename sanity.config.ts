@@ -6,6 +6,7 @@ import { projectId, dataset } from './lib/sanity/env'
 import GeneraBozzaTool from './sanity/tools/GeneraBozzaTool'
 import CategorieInBloccoTool from './sanity/tools/CategorieInBloccoTool'
 import { structure } from './sanity/structure'
+import { ricercaImmagini } from './sanity/studio/personalizzazioni'
 
 export { projectId, dataset }
 
@@ -23,6 +24,13 @@ export default defineConfig({
       ? [structureTool({ structure }), visionTool()]
       : [structureTool({ structure })],
   schema: { types: schemaTypes },
+  // Aggiunge la scheda "Cerca" nella finestra di selezione immagine, accanto
+  // a quelle native di Sanity (caricamento e archivio).
+  form: {
+    image: {
+      assetSources: (fonti) => [ricercaImmagini, ...fonti],
+    },
+  },
   tools: [
     {
       name: 'genera-bozza',
