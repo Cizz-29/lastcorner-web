@@ -32,7 +32,7 @@ function injectScript() {
 // il CMS (dove si scrive) e la telemetria (riservata allo staff). Gli
 // annunci automatici di Google comparirebbero ovunque lo script sia
 // caricato, quindi lì non lo si carica proprio.
-const PERCORSI_SENZA_ANNUNCI = ['/studio', '/telemetria']
+const PERCORSI_SENZA_ANNUNCI = ['/studio', '/telemetria', '/grafiche']
 
 export default function AdsenseScript() {
   const pathname = usePathname()
