@@ -37,7 +37,10 @@ async function telemetriaGate(req: NextRequest, pathname: string): Promise<NextR
   const isProtected =
     (pathname.startsWith('/telemetria') && !pathname.startsWith('/telemetria/login')) ||
     pathname.startsWith('/telemetria-data') ||
-    pathname.startsWith('/api/telemetria-run')
+    pathname.startsWith('/api/telemetria-run') ||
+    // Il generatore di grafiche social usa la stessa password: e' uno
+    // strumento di redazione, non una pagina per i lettori.
+    pathname.startsWith('/grafiche')
   if (!isProtected) return null
 
   const password = process.env.TELEMETRIA_PASSWORD
