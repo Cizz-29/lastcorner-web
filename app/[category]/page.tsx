@@ -1,6 +1,6 @@
 import { Suspense, Fragment } from 'react'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
@@ -39,7 +39,20 @@ export function generateMetadata({ params }: CategoryPageProps): Metadata {
 
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const config = getCategoryConfig(params.category)
-  if (!config) notFound()
+
+  // Indirizzi del vecchio sito WordPress: gli articoli stavano in radice
+  // (/quanto-costa-una-formula-1) mentre qui stanno sotto la categoria
+  // (/formula-1/quanto-costa-una-formula-1). Lo slug pero' e' rimasto lo
+  // stesso, quindi se il primo segmento non e' una categoria conosciuta si
+  // controlla se corrisponde a un articolo e si manda al suo indirizzo
+  // attuale con un redirect permanente: Google trasferisce cosi' la
+  // reputazione accumulata invece di trovare una pagina inesistente.
+  if (!config) {
+    const articoli = await getAllArticles()
+    const articolo = articoli.find((a) => a.slug.split('/')[1] === params.category)
+    if (articolo) permanentRedirect(`/${articolo.slug}`)
+    notFound()
+  }
 
   const allArticles = await getAllArticles()
   const categoryArticles = allArticles.filter((a) => a.category === config.label)
