@@ -257,20 +257,48 @@ function disponi(ctx: CanvasRenderingContext2D, parole: Parola[], tracking: numb
   return righe
 }
 
-function scriviCitazione(ctx: CanvasRenderingContext2D, testo: string) {
-  const parole = tokenizza(testo.toUpperCase())
+function larghRiga(ctx: CanvasRenderingContext2D, riga: Parola[], tracking: number) {
+  const spazio = ctx.measureText(' ').width + tracking
+  return (
+    riga.reduce((s, p) => s + larghParola(ctx, p, tracking), 0) + spazio * (riga.length - 1)
+  )
+}
+
+/** corpoFisso a 0 = la dimensione la sceglie il programma; altrimenti si usa
+ *  quella indicata. L'interlinea resta sempre legata al corpo dal rapporto
+ *  del template, quindi non si puo' sbagliare. */
+function scriviCitazione(ctx: CanvasRenderingContext2D, testo: string, corpoFisso: number) {
   const altezzaMax = BOX_BOTTOM - BOX_TOP_MIN
+
+  // Se il testo contiene degli a-capo, le righe le decide l'autore e
+  // vengono rispettate cosi' come sono. Altrimenti si va a capo da soli.
+  const forzate = testo.split('\n').map((r) => r.trim()).filter(Boolean)
+  const manuale = forzate.length > 1
+  const parole = manuale ? [] : tokenizza(testo.toUpperCase())
 
   let dim = 40
   let righe: Parola[][] = []
   let tracking = 0
-  for (dim = 150; dim >= 40; dim -= 2) {
+  const partenza = corpoFisso || 150
+  for (dim = partenza; dim >= 40; dim -= 2) {
     ctx.font = FONT_TITOLO.replace('__PX__', String(dim))
     tracking = dim * TRACKING_EM
-    righe = disponi(ctx, parole, tracking)
     const passo = Math.round(dim / RAPPORTO_CORPO_INTERLINEA)
-    // Mai piu' di cinque righe: oltre, il blocco diventa un muro di testo.
-    if (righe.length <= MAX_RIGHE && righe.length * passo <= altezzaMax) break
+
+    righe = manuale
+      ? forzate.map((r) => tokenizza(r.toUpperCase()))
+      : disponi(ctx, parole, tracking)
+
+    // Con la dimensione scelta a mano si prende quella e basta: se il blocco
+    // sfora, cresce verso l'alto ed e' una decisione di chi impagina.
+    if (corpoFisso) break
+
+    if (manuale) {
+      if (!righe.some((r) => larghRiga(ctx, r, tracking) > BOX_W) && righe.length * passo <= altezzaMax) break
+    } else if (righe.length <= MAX_RIGHE && righe.length * passo <= altezzaMax) {
+      // Mai piu' di cinque righe: oltre, il blocco diventa un muro di testo.
+      break
+    }
   }
 
   ctx.font = FONT_TITOLO.replace('__PX__', String(dim))
@@ -314,6 +342,7 @@ export default function GrafichePage() {
   const [spostaX, setSpostaX] = useState(50)
   const [spostaY, setSpostaY] = useState(0)
   const [forza, setForza] = useState(50)
+  const [corpo, setCorpo] = useState(0)
   const [pronto, setPronto] = useState(false)
   const [info, setInfo] = useState('')
   const [famiglia, setFamiglia] = useState('sans-serif')
@@ -357,12 +386,17 @@ export default function GrafichePage() {
 
       // Dissolvenza corta sul bordo inferiore: a quell'altezza il template
       // e' gia' quasi opaco, serve solo a non lasciare uno stacco netto.
+      // "destination-out" cancella la foto dove il gradiente e' opaco, cioe'
+      // solo verso il bordo inferiore. Con "destination-in" si cancellerebbe
+      // invece tutto cio' che sta FUORI dal rettangolo, lasciando visibile
+      // la sola striscia in fondo.
       const sfuma = cx.createLinearGradient(0, FONDO_FOTO - DISSOLVENZA, 0, FONDO_FOTO)
-      sfuma.addColorStop(0, 'rgba(0,0,0,1)')
-      sfuma.addColorStop(1, 'rgba(0,0,0,0)')
-      cx.globalCompositeOperation = 'destination-in'
+      sfuma.addColorStop(0, 'rgba(0,0,0,0)')
+      sfuma.addColorStop(1, 'rgba(0,0,0,1)')
+      cx.globalCompositeOperation = 'destination-out'
       cx.fillStyle = sfuma
       cx.fillRect(0, FONDO_FOTO - DISSOLVENZA, W, DISSOLVENZA)
+      cx.globalCompositeOperation = 'source-over'
 
       ctx.drawImage(c, 0, 0)
     }
@@ -371,10 +405,13 @@ export default function GrafichePage() {
 
     ctx.textBaseline = 'top'
     ctx.textAlign = 'left'
-    const esito = scriviCitazione(ctx, citazione)
+    const esito = scriviCitazione(ctx, citazione, corpo)
     scriviAttribuzione(ctx, attribuzione, famiglia)
-    setInfo(`corpo ${esito.dim}px · ${esito.righe} righe`)
-  }, [foto, template, pronto, citazione, attribuzione, zoom, spostaX, spostaY, forza, famiglia])
+    setInfo(
+      `corpo ${esito.dim}px · ${esito.righe} righe` +
+        (esito.righe > MAX_RIGHE ? ` — oltre il limite di ${MAX_RIGHE}` : '')
+    )
+  }, [foto, template, pronto, citazione, attribuzione, zoom, spostaX, spostaY, forza, corpo, famiglia])
 
   useEffect(() => {
     disegna()
@@ -431,7 +468,8 @@ export default function GrafichePage() {
               className={`${campo} mt-2 resize-y`}
             />
             <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
-              Metti fra asterischi le parti da evidenziare in rosso: *così*.
+              Metti fra asterischi le parti da evidenziare in rosso: *così*. Vai a capo per
+              decidere tu la divisione in righe, altrimenti la calcolo io. Massimo cinque.
             </p>
           </div>
 
@@ -442,6 +480,24 @@ export default function GrafichePage() {
               onChange={(e) => setAttribuzione(e.target.value)}
               className={`${campo} mt-2`}
             />
+          </div>
+
+          <div>
+            <label className={etichetta}>
+              Dimensione testo — {corpo === 0 ? 'automatica' : `${corpo}px`}
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={150}
+              step={2}
+              value={corpo}
+              onChange={(e) => setCorpo(Number(e.target.value))}
+              className="w-full mt-2 accent-lc-red"
+            />
+            <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
+              A zero la calcolo io. L&apos;interlinea segue sempre il corpo.
+            </p>
           </div>
 
           {([
