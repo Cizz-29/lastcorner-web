@@ -23,7 +23,7 @@ const OTHER_ARTICLES_COUNT = 5
 // (i nuovi slug non presenti in generateStaticParams al momento del build
 // vengono comunque generati "on demand" alla prima richiesta grazie a
 // dynamicParams, ma la richiesta deve poter leggere dati freschi).
-export const revalidate = 60
+export const revalidate = false
 
 interface ArticlePageProps {
   params: { category: string; slug: string }

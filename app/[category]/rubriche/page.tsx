@@ -4,7 +4,7 @@ import { getCategoryConfig } from '@/lib/categories'
 import { CATEGORIES_WITH_RUBRICHE } from '@/lib/subcategories'
 import SubcategoryPage from '@/components/SubcategoryPage'
 
-export const revalidate = 60
+export const revalidate = false
 
 interface PageProps {
   params: { category: string }

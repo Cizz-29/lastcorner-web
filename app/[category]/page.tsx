@@ -15,7 +15,7 @@ import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 // Rigenera la pagina al massimo ogni 60s: senza questo la pagina resta
 // statica al contenuto dell'ultimo deploy e i nuovi articoli Sanity non
 // comparirebbero finché non si ricarica manualmente.
-export const revalidate = 60
+export const revalidate = false
 
 const ARTICLES_PER_PAGE = 14
 const GRID_COUNT = 4              // le più recenti, stile card "Le ultime news"
