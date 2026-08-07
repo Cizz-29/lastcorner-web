@@ -339,7 +339,7 @@ export default function GrafichePage() {
   )
   const [attribuzione, setAttribuzione] = useState('Loic Serra, DT Ferrari')
   const [zoom, setZoom] = useState(100)
-  const [spostaX, setSpostaX] = useState(50)
+  const [spostaX, setSpostaX] = useState(0)
   const [spostaY, setSpostaY] = useState(0)
   const [forza, setForza] = useState(50)
   const [corpo, setCorpo] = useState(0)
@@ -378,8 +378,11 @@ export default function GrafichePage() {
       const scala = base * (zoom / 100)
       const larg = foto.width * scala
       const alt = foto.height * scala
-      const x = (W - larg) * (spostaX / 100)
-      const y = (FONDO_FOTO - alt) * (spostaY / 100)
+      // Partenza al centro, poi lo spostamento e' in pixel veri. Prima era
+      // una frazione dello spazio di manovra: con una foto orizzontale
+      // quello spazio in verticale e' zero, e il cursore non muoveva nulla.
+      const x = (W - larg) / 2 + spostaX
+      const y = (FONDO_FOTO - alt) / 2 + spostaY
       cx.drawImage(foto, x, y, larg, alt)
 
       trattaFoto(c, forza / 100)
@@ -502,8 +505,8 @@ export default function GrafichePage() {
 
           {([
             ['Ingrandimento', zoom, setZoom, 100, 300],
-            ['Sposta orizzontale', spostaX, setSpostaX, 0, 100],
-            ['Sposta verticale', spostaY, setSpostaY, 0, 100],
+            ['Sposta orizzontale', spostaX, setSpostaX, -800, 800],
+            ['Sposta verticale', spostaY, setSpostaY, -800, 800],
             ['Forza trattamento', forza, setForza, 0, 100],
           ] as Array<[string, number, (v: number) => void, number, number]>).map(
             ([nome, valore, imposta, min, max]) => (
