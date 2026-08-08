@@ -38,8 +38,16 @@ interface SanityArticleDoc {
   body?: any[]
 }
 
+// Nota importante sul campo "body": NON va richiesto qui.
+//
+// Questa query restituisce l'elenco completo degli articoli e viene eseguita
+// a ogni generazione di pagina. Includendo il corpo, la risposta pesava 4,2 MB
+// e con qualche centinaio di pagine da generare significava gigabyte di banda
+// Sanity a ogni build. Senza il corpo la stessa risposta sta in poche
+// centinaia di kilobyte. Il testo dell'articolo serve a una pagina sola, e
+// quella se lo va a prendere da se' con getArticleBody().
 const ARTICLE_QUERY = `*[_type == "article" && defined(slug.current)] | order(publishedAt desc){
-  _id, title, slug, category, subcategory, author, publishedAt, mainImage, excerpt, breaking, tags, body
+  _id, title, slug, category, subcategory, author, publishedAt, mainImage, excerpt, breaking, tags
 }`
 
 function toArticle(doc: SanityArticleDoc): Article {
@@ -55,7 +63,7 @@ function toArticle(doc: SanityArticleDoc): Article {
     excerpt: doc.excerpt,
     breaking: doc.breaking,
     tags: doc.tags,
-    content: doc.body,
+    content: doc.body, // presente solo se richiesto esplicitamente
   }
 }
 
@@ -72,5 +80,17 @@ export const getAllArticles = cache(async (): Promise<Article[]> => {
   } catch {
     // Sanity irraggiungibile: lista vuota, le pagine mostrano gli stati "vuoti".
     return []
+  }
+})
+
+// Corpo di un singolo articolo. Tenuto separato dall'elenco per non
+// trascinarsi dietro il testo di tutti gli altri: viene richiesto solo dalla
+// pagina dell'articolo, una volta, per il pezzo che sta mostrando.
+export const getArticleBody = cache(async (id: string): Promise<any[] | undefined> => {
+  try {
+    const body = await sanityClient.fetch<any[] | null>(`*[_id == $id][0].body`, { id })
+    return body ?? undefined
+  } catch {
+    return undefined
   }
 })

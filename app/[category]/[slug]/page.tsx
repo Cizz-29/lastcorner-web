@@ -11,7 +11,7 @@ import { StandingsWidgetSkeleton } from '@/components/Skeletons'
 import AdSlot from '@/components/AdSlot'
 import ArticleBody from '@/components/ArticleBody'
 import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
-import { getAllArticles } from '@/lib/sanity/articles'
+import { getAllArticles, getArticleBody } from '@/lib/sanity/articles'
 import { getCategoryConfig } from '@/lib/categories'
 import { authorSlug } from '@/lib/authors'
 
@@ -67,6 +67,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const hasStandings = getCategoryConfig(params.category)?.hasStandings ?? false
 
   const allArticles = await getAllArticles()
+  // Il testo dell'articolo viaggia separato dall'elenco: vedi la nota su
+  // ARTICLE_QUERY in lib/sanity/articles.ts.
+  const corpo = await getArticleBody(article.id)
   const otherArticles = allArticles
     .filter((a) => a.id !== article.id)
     .slice(0, OTHER_ARTICLES_COUNT)
@@ -128,8 +131,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               />
             </div>
 
-            {article.content && article.content.length > 0 ? (
-              <ArticleBody blocks={article.content} />
+            {corpo && corpo.length > 0 ? (
+              <ArticleBody blocks={corpo} />
             ) : (
               <p className="font-montserrat text-[14px] text-lc-subtle italic">
                 Contenuto in arrivo.
