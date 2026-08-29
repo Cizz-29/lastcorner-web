@@ -60,6 +60,37 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   }
 }
 
+const SITO = 'https://lastcorner.net'
+
+/** Dati strutturati dell'articolo. Servono a dire a Google che questa pagina
+ *  e' una notizia, di che data, e chi l'ha scritta: senza, il pezzo parte
+ *  svantaggiato rispetto a chi li dichiara — cioe' tutte le testate. */
+function datiStrutturati(article: Article, percorso: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: article.title,
+    description: article.excerpt,
+    image: article.imageUrl ? [article.imageUrl] : undefined,
+    datePublished: article.publishedAt ?? undefined,
+    dateModified: article.publishedAt ?? undefined,
+    articleSection: article.category,
+    author: article.author
+      ? {
+          '@type': 'Person',
+          name: article.author,
+          url: `${SITO}/autori/${authorSlug(article.author)}`,
+        }
+      : undefined,
+    publisher: {
+      '@type': 'Organization',
+      name: 'Lastcorner',
+      logo: { '@type': 'ImageObject', url: `${SITO}/images/logo.svg` },
+    },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITO}${percorso}` },
+  }
+}
+
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const article = await findArticle(params.category, params.slug)
   if (!article) notFound()
@@ -79,6 +110,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <Navbar />
 
       {/* Padding orizzontale: quello della home page (80px) + 8px extra */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            datiStrutturati(article, `/${params.category}/${params.slug}`)
+          ),
+        }}
+      />
+
       <main id="main-content" className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-[88px] pt-[96px] flex-1">
 
         {/* Breadcrumb */}

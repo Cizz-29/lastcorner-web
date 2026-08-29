@@ -15,10 +15,12 @@ const nextConfig = {
     // 828: quasi dieci volte i pixel necessari. Con 256 e 384 disponibili,
     // ogni immagine scarica la misura giusta.
     //
-    // Il tetto e' a 828 come misura d'emergenza per restare dentro la quota
-    // Sanity fino al primo del mese: sulle copertine grandi da scrivania si
-    // perde un po' di nitidezza. Da riportare a 1200 quando la quota si azzera.
-    deviceSizes: [256, 384, 640, 828],
+    // Il tetto e' a 1600 per una ragione precisa: Google Discover mostra solo
+    // contenuti con un'immagine da almeno 1200 pixel di larghezza. Fermandosi
+    // esattamente a 1200 si starebbe sul filo; 1600 lascia margine. Il costo
+    // di banda oggi e' irrilevante — dopo la correzione delle query siamo
+    // sotto i 10 MB al giorno.
+    deviceSizes: [256, 384, 640, 828, 1200, 1600],
     imageSizes: [128, 256, 384],
 
     formats: ['image/avif', 'image/webp'],

@@ -7,7 +7,11 @@ export interface Article {
   slug: string
   category: string
   author: string
+  /** Data gia' formattata per la lettura, es. "4 agosto". */
   date: string
+  /** Data originale in formato ISO: serve ai dati strutturati, dove Google
+   *  vuole una data leggibile da una macchina e non da una persona. */
+  publishedAt?: string
   imageUrl: string
   excerpt?: string
   breaking?: boolean

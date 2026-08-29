@@ -59,6 +59,7 @@ function toArticle(doc: SanityArticleDoc): Article {
     subcategory: doc.subcategory,
     author: doc.author,
     date: formatDate(doc.publishedAt),
+    publishedAt: doc.publishedAt,
     imageUrl: doc.mainImage ? urlFor(doc.mainImage).width(1200).height(675).fit('crop').url() : FALLBACK_IMAGE,
     excerpt: doc.excerpt,
     breaking: doc.breaking,

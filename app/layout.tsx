@@ -43,6 +43,17 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+    // Senza "max-image-preview: large" Google non puo' usare l'anteprima
+    // grande, e senza anteprima grande non si entra in Discover: il feed e'
+    // fatto di immagini a tutta larghezza. Vale anche per la ricerca, dove
+    // il risultato con immagine grande attira piu' clic.
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
   },
 }
 

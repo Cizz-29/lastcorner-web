@@ -4,21 +4,23 @@ import { CATEGORIES } from '@/lib/categories'
 
 // Aggiornamento su richiesta, chiamato da Sanity quando pubblichi.
 //
-// Prima le pagine si rigeneravano da sole a intervalli fissi: ogni visita
-// dopo la scadenza faceva ripartire il calcolo, anche se nel frattempo non
-// era cambiato nulla. Con qualche centinaio di pagine e i motori di ricerca
-// che scansionano in continuazione, e' quello che consumava la CPU inclusa
-// nel piano.
-//
-// Ora le pagine restano statiche a tempo indeterminato e vengono invalidate
-// solo qui. Ma con attenzione: invalidare l'intero sito a ogni pubblicazione
-// significherebbe che il primo crawler di passaggio fa ricalcolare tutte le
-// pagine una per una. Con cinque articoli al giorno sarebbero migliaia di
-// rigenerazioni, cioe' il problema di prima sotto altro nome. Quindi si
-// aggiorna solo cio' che l'articolo tocca davvero: se stesso, la sua
-// categoria e la home.
+// Regola di fondo: non si invalida MAI l'intero sito. Marcare tutte le pagine
+// come da rifare sembra prudente, ma significa che il primo crawler di
+// passaggio le fa ricalcolare una per una — centinaia di rigenerazioni, e
+// altrettante interrogazioni a Sanity, per una modifica che ne riguardava tre.
+// Qui si aggiorna solo cio' che il documento tocca davvero; se non si riesce a
+// capirlo, si aggiorna la home e ci si ferma.
 
 export const dynamic = 'force-dynamic'
+
+// Sotto-categorie che hanno una pagina propria (le altre confluiscono nella
+// pagina categoria, gia' inclusa).
+const SOTTOCATEGORIE_CON_PAGINA = new Set([
+  'editoriali',
+  'analisi-tecnica',
+  'guide-approfondimenti',
+  'rubriche',
+])
 
 function slugCategoria(etichetta: unknown): string | null {
   if (typeof etichetta !== 'string') return null
@@ -26,6 +28,43 @@ function slugCategoria(etichetta: unknown): string | null {
     (c) => c.label.toLowerCase() === etichetta.trim().toLowerCase()
   )
   return trovata?.slug ?? null
+}
+
+/** Percorsi da aggiornare per il documento ricevuto. Sempre un pugno, mai tutti. */
+function percorsiDa(corpo: any): string[] {
+  const percorsi = new Set<string>(['/'])
+  const tipo = corpo?._type
+
+  if (tipo === 'article') {
+    const categoria = slugCategoria(corpo?.category)
+    const slug = typeof corpo?.slug?.current === 'string' ? corpo.slug.current : null
+    if (categoria) {
+      percorsi.add(`/${categoria}`)
+      if (slug) percorsi.add(`/${categoria}/${slug}`)
+      const sotto = corpo?.subcategory
+      if (typeof sotto === 'string' && SOTTOCATEGORIE_CON_PAGINA.has(sotto)) {
+        percorsi.add(`/${categoria}/${sotto}`)
+      }
+    }
+    return Array.from(percorsi)
+  }
+
+  // Le biografie compaiono sulle schede pilota e team. La categoria non e'
+  // nel documento, quindi si aggiornano le schede in tutte le categorie: sono
+  // sei percorsi, non cinquecento.
+  if (tipo === 'driverBio' && typeof corpo?.driverId === 'string') {
+    for (const c of CATEGORIES) percorsi.add(`/${c.slug}/piloti/${corpo.driverId}`)
+    return Array.from(percorsi)
+  }
+  if (tipo === 'teamBio' && typeof corpo?.constructorId === 'string') {
+    for (const c of CATEGORIES) percorsi.add(`/${c.slug}/team/${corpo.constructorId}`)
+    return Array.from(percorsi)
+  }
+
+  // Tipo sconosciuto: si aggiorna la sola home. Se un domani nascera' un tipo
+  // di documento nuovo, va aggiunto qui sopra — meglio una riga da ricordare
+  // che un'invalidazione totale silenziosa a ogni salvataggio.
+  return Array.from(percorsi)
 }
 
 export async function POST(req: NextRequest) {
@@ -37,8 +76,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Il segreto si puo' passare nell'indirizzo o in un'intestazione: Sanity
-  // permette entrambi, e cosi' la configurazione del webhook e' libera.
   const fornito =
     req.nextUrl.searchParams.get('secret') ?? req.headers.get('x-lastcorner-secret')
   if (fornito !== atteso) {
@@ -46,34 +83,14 @@ export async function POST(req: NextRequest) {
   }
 
   const corpo = await req.json().catch(() => null)
-  const categoria = slugCategoria(corpo?.category)
-  const slug = typeof corpo?.slug?.current === 'string' ? corpo.slug.current : null
-
-  const aggiornate: string[] = []
-  const aggiorna = (percorso: string) => {
-    revalidatePath(percorso)
-    aggiornate.push(percorso)
-  }
-
-  // La home elenca sempre gli ultimi articoli, quindi va rifatta comunque.
-  aggiorna('/')
-
-  if (categoria) {
-    aggiorna(`/${categoria}`)
-    if (slug) aggiorna(`/${categoria}/${slug}`)
-  }
-
-  // Se il documento non e' un articolo (una bio, per esempio) non sappiamo
-  // quali pagine tocchi: in quel caso, e solo in quello, si rifa' tutto.
-  if (!categoria) {
-    revalidatePath('/', 'layout')
-    aggiornate.push('(intero sito)')
-  }
+  const percorsi = percorsiDa(corpo)
+  for (const p of percorsi) revalidatePath(p)
 
   return NextResponse.json({
-    aggiornate,
-    quando: new Date().toISOString(),
+    aggiornate: percorsi,
+    quante: percorsi.length,
     documento: corpo?._type ?? null,
+    quando: new Date().toISOString(),
   })
 }
 
