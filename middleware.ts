@@ -211,6 +211,19 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next()
 }
 
+// Su quali indirizzi far girare il middleware.
+//
+// Prima l'elenco escludeva solo tre cose, quindi il middleware — con dentro
+// i redirect WordPress, il controllo password e un calcolo di hash — girava
+// anche sui font, su icon.png, su robots.txt e sugli altri file statici, che
+// di redirect non hanno alcun bisogno. Era circa un terzo della CPU consumata.
+//
+// Restano DENTRO, e devono restarci: /api (il 401 sulle route telemetria),
+// /telemetria-data e /grafiche (file in public/ protetti dalla password).
+// Per questo non si esclude per estensione: /grafiche/template-intervista.webp
+// e' un'immagine, ma va protetta.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|images/).*)'],
+  matcher: [
+    '/((?!_next/|images/|fonts/|favicon\\.ico|icon\\.png|apple-icon|opengraph-image|robots\\.txt|sitemap\\.xml|ads\\.txt|google[0-9a-f]+\\.html).*)',
+  ],
 }

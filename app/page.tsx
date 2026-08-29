@@ -14,10 +14,16 @@ import { getAllArticles } from '@/lib/sanity/articles'
 // da Sanity, essendo in testa all'elenco, hanno sempre la priorità qui.
 const NEWS_COUNT = 8
 
-// Rigenera la pagina al massimo ogni 60s: senza questo la pagina resta
-// statica al contenuto dell'ultimo deploy e i nuovi articoli Sanity non
-// comparirebbero finché non si ricarica manualmente.
-export const revalidate = 60
+// Pagina statica a tempo indeterminato: si aggiorna SOLO su richiesta,
+// quando Sanity chiama /api/revalidate alla pubblicazione (quel gestore
+// include sempre '/' fra i percorsi che rinfresca).
+//
+// Prima qui c'era revalidate = 60. Con una finestra di 60 secondi la home
+// si rigenerava fino a 1.440 volte al giorno, e ogni rigenerazione scarica
+// i metadati di tutti gli articoli per mostrarne poco piu' di venti: era la
+// voce principale del consumo di CPU del piano. Il webhook fa lo stesso
+// lavoro cinque volte al giorno, quando serve davvero.
+export const revalidate = false
 
 export default async function HomePage() {
   const allArticles = await getAllArticles()
