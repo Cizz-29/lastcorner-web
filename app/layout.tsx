@@ -24,9 +24,15 @@ export const metadata: Metadata = {
   description: 'Next Gen Motorsport Coverage — news, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, F1 Academy, WRC e tutto il motorsport.',
   keywords: ['Formula 1', 'F1', 'motorsport', 'WEC', 'WRC', 'Formula 2', 'Formula 3'],
   authors: [{ name: 'Lastcorner' }],
-  alternates: {
-    canonical: '/',
-  },
+  // NIENTE "alternates.canonical" qui.
+  //
+  // In Next.js i metadati del layout vengono ereditati da OGNI pagina che non
+  // li sovrascrive. Un canonical fisso su '/' significava che ogni articolo,
+  // ogni categoria e ogni scheda pilota dichiaravano a Google "la versione
+  // ufficiale di questa pagina e' la home": un invito esplicito a non
+  // indicizzarle. Il canonical va messo pagina per pagina (vedi app/page.tsx
+  // per la home e generateMetadata nelle pagine dinamiche). Dove manca, Google
+  // usa l'URL stesso, che e' il comportamento corretto.
   openGraph: {
     title: 'Lastcorner | Next Gen Motorsport Coverage',
     description: 'Next Gen Motorsport Coverage — news, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, F1 Academy, WRC e tutto il motorsport.',

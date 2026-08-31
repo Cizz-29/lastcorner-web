@@ -48,14 +48,20 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   if (!article) return { title: 'Articolo non trovato' }
 
   const description = article.excerpt ?? `${article.title} — Lastcorner.net`
+  const percorso = `/${params.category}/${params.slug}`
   return {
     title: article.title,
     description,
+    // Senza questo l'articolo ereditava il canonical della home e diceva a
+    // Google di indicizzare quella al posto suo.
+    alternates: { canonical: percorso },
     openGraph: {
       title: article.title,
       description,
+      url: percorso,
       images: [article.imageUrl],
       type: 'article',
+      publishedTime: article.publishedAt,
     },
   }
 }

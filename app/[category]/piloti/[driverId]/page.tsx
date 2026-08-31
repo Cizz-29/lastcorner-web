@@ -51,7 +51,10 @@ async function findDriver(category: string, driverId: string): Promise<RosterDri
 export async function generateMetadata({ params }: DriverPageProps): Promise<Metadata> {
   const driver = await findDriver(params.category, params.driverId)
   if (!driver) return { title: 'Pilota non trovato' }
-  return { title: `${driver.givenName} ${driver.familyName}` }
+  return {
+    title: `${driver.givenName} ${driver.familyName}`,
+    alternates: { canonical: `/${params.category}/piloti/${params.driverId}` },
+  }
 }
 
 function StatTile({ label, value }: { label: string; value: string | number }) {

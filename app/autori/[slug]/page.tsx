@@ -31,6 +31,7 @@ export async function generateMetadata({ params }: AuthorPageProps): Promise<Met
   return {
     title: `${match.author} — Lastcorner.net`,
     description: descrizione,
+    alternates: { canonical: `/autori/${params.slug}` },
   }
 }
 

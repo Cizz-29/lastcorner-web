@@ -4,6 +4,7 @@ import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: 'Informativa sul trattamento dei dati personali di Lastcorner.net.',
+  alternates: { canonical: '/privacy' },
 }
 
 export default function PrivacyPage() {

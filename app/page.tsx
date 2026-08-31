@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import type { Metadata } from 'next'
 import Navbar from '@/components/Navbar'
 import NewsTicker from '@/components/NewsTicker'
 import HeroSection from '@/components/HeroSection'
@@ -13,6 +14,12 @@ import { getAllArticles } from '@/lib/sanity/articles'
 // Numero di articoli "in evidenza" (hero + ultime news): gli articoli reali
 // da Sanity, essendo in testa all'elenco, hanno sempre la priorità qui.
 const NEWS_COUNT = 8
+
+// La home e' l'unica pagina il cui canonical e' '/'. Prima stava nel layout ed
+// era ereditato da tutto il sito (vedi il commento in app/layout.tsx).
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+}
 
 // Pagina statica a tempo indeterminato: si aggiorna SOLO su richiesta,
 // quando Sanity chiama /api/revalidate alla pubblicazione (quel gestore

@@ -4,6 +4,7 @@ import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
 export const metadata: Metadata = {
   title: 'Contatti',
   description: 'Come contattare la redazione di Lastcorner.net.',
+  alternates: { canonical: '/contatti' },
 }
 
 const SOCIAL_LINKS = [

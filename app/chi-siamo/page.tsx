@@ -4,6 +4,7 @@ import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
 export const metadata: Metadata = {
   title: 'Chi siamo',
   description: 'La storia di Lastcorner.net: da pagina Instagram nata nel 2019 a risorsa di news e analisi sul motorsport.',
+  alternates: { canonical: '/chi-siamo' },
 }
 
 const SOCIAL_LINKS = [

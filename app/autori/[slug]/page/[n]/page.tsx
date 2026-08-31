@@ -37,6 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!match) return { title: 'Autore non trovato' }
   return {
     title: `${match.author} — pagina ${params.n}`,
+    alternates: { canonical: `/autori/${params.slug}/page/${params.n}` },
     robots: { index: false, follow: true },
   }
 }

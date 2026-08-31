@@ -58,7 +58,10 @@ async function findLineup(category: string, teamId: string): Promise<RosterDrive
 export async function generateMetadata({ params }: TeamPageProps): Promise<Metadata> {
   const team = await findTeam(params.category, params.teamId)
   if (!team) return { title: 'Team non trovato' }
-  return { title: team.name }
+  return {
+    title: team.name,
+    alternates: { canonical: `/${params.category}/team/${params.teamId}` },
+  }
 }
 
 function StatTile({ label, value }: { label: string; value: string | number }) {

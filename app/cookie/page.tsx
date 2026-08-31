@@ -4,6 +4,7 @@ import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
 export const metadata: Metadata = {
   title: 'Cookie Policy',
   description: 'Informativa sui cookie utilizzati da Lastcorner.net.',
+  alternates: { canonical: '/cookie' },
 }
 
 export default function CookiePage() {

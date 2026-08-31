@@ -4,6 +4,7 @@ import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
 export const metadata: Metadata = {
   title: 'Note Legali',
   description: 'Informazioni legali su Lastcorner.net: natura del sito, proprietà intellettuale, responsabilità.',
+  alternates: { canonical: '/note-legali' },
 }
 
 export default function NoteLegaliPage() {
