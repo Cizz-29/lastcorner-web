@@ -256,4 +256,7 @@ export const structure: StructureResolver = (S) =>
       S.listItem()
         .title('Bio team')
         .child(S.documentTypeList('teamBio').title('Bio team')),
+      S.listItem()
+        .title('Bio autore')
+        .child(S.documentTypeList('authorBio').title('Bio autore')),
     ])

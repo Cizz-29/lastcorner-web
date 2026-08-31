@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { tagRedirectFor } from '@/lib/tagRedirects'
 import { COMING_SOON_HTML, isComingSoonExempt } from '@/lib/comingSoon'
+import { CATEGORIES } from '@/lib/categories'
+import { PAGINE_MASSIME, SOTTOCATEGORIE_PAGINABILI, percorsoPagina } from '@/lib/paginazione'
 
 // Redirect 301 dal vecchio sito WordPress (URL piatti, senza categoria)
 // alla nuova struttura /{categoria}/{slug}. Copre anche i vecchi URL di
@@ -147,6 +149,26 @@ function comingSoonGate(req: NextRequest, pathname: string): NextResponse | null
   })
 }
 
+const SLUG_CATEGORIE = new Set(CATEGORIES.map((c) => c.slug))
+
+// La paginazione stava nei parametri (/formula-1?page=2) ed e' passata nel
+// percorso (/formula-1/page/2). Qui si riconoscono gli indirizzi che avevano
+// quel parametro, per mandarli alla forma nuova con un redirect permanente:
+// link salvati, condivisi o gia' indicizzati continuano a funzionare.
+//
+// Il controllo e' stretto di proposito: solo le tre forme che la paginazione
+// l'avevano davvero. Un ?page= su un articolo non e' un elenco, e mandarlo a
+// /{categoria}/{slug}/page/2 produrrebbe un 404 al posto della pagina giusta.
+function elencoPaginabile(segments: string[]): boolean {
+  const [primo, secondo] = segments
+  if (segments.length === 1) return SLUG_CATEGORIE.has(primo)
+  if (segments.length === 2) {
+    if (primo === 'autori') return true
+    return SLUG_CATEGORIE.has(primo) && SOTTOCATEGORIE_PAGINABILI.includes(secondo)
+  }
+  return false
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl
 
@@ -172,6 +194,15 @@ export async function middleware(req: NextRequest) {
   if (segments.length === 0) return NextResponse.next()
 
   const [first, second] = segments
+
+  // Vecchia paginazione nei parametri -> nuova paginazione nel percorso.
+  const paginaRichiesta = searchParams.get('page')
+  if (paginaRichiesta !== null && elencoPaginabile(segments)) {
+    const n = Number(paginaRichiesta)
+    const destinazione =
+      Number.isInteger(n) && n >= 2 ? percorsoPagina(clean, Math.min(n, PAGINE_MASSIME)) : clean
+    return NextResponse.redirect(new URL(destinazione, req.url), 301)
+  }
 
   // Vecchie pagine tag di WordPress (/tag/lewis-hamilton): ospitavano le
   // biografie ed erano indicizzate. Si mandano alla scheda corrispondente

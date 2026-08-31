@@ -6,23 +6,20 @@ import Pagination from '@/components/Pagination'
 import { ArticleCardGrid, ArticleCardSmall } from '@/components/ArticleCard'
 import { getAllArticles } from '@/lib/sanity/articles'
 import { getCategoryConfig } from '@/lib/categories'
-
-const ARTICLES_PER_PAGE = 14
-const GRID_COUNT = 4
-const MAX_PAGES = 9 // stessa regola della pagina categoria: max 9 pagine navigabili
+import { fettaElenco } from '@/lib/paginazione'
 
 interface SubcategoryPageProps {
   categorySlug: string
   subcategoryValue: string
   title: string
-  page?: string
+  pagina: number
 }
 
 // Pagina di una singola sotto-categoria editoriale (es. Editoriali, Analisi
 // Tecnica, Rubriche): stessa struttura della pagina categoria principale ma
 // filtrata anche per sottocategoria. Usata da app/[category]/{editoriali,
-// analisi-tecnica, guide-approfondimenti, rubriche}/page.tsx.
-export default async function SubcategoryPage({ categorySlug, subcategoryValue, title, page }: SubcategoryPageProps) {
+// analisi-tecnica, guide-approfondimenti, rubriche}/{page.tsx, page/[n]/page.tsx}.
+export default async function SubcategoryPage({ categorySlug, subcategoryValue, title, pagina }: SubcategoryPageProps) {
   const config = getCategoryConfig(categorySlug)
   if (!config) return null
 
@@ -31,14 +28,7 @@ export default async function SubcategoryPage({ categorySlug, subcategoryValue, 
     (a) => a.category === config.label && a.subcategory?.toLowerCase() === subcategoryValue
   )
 
-  const totalPages = Math.min(Math.max(1, Math.ceil(articles.length / ARTICLES_PER_PAGE)), MAX_PAGES)
-  const requestedPage = Number(page) || 1
-  const currentPage = Math.min(Math.max(1, requestedPage), totalPages)
-
-  const start = (currentPage - 1) * ARTICLES_PER_PAGE
-  const pageArticles = articles.slice(start, start + ARTICLES_PER_PAGE)
-  const gridArticles = pageArticles.slice(0, GRID_COUNT)
-  const smallArticles = pageArticles.slice(GRID_COUNT)
+  const { paginaCorrente, paginePresenti, grandi, piccoli, vuota } = fettaElenco(articles, pagina)
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -53,22 +43,22 @@ export default async function SubcategoryPage({ categorySlug, subcategoryValue, 
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
           <div className="min-w-0">
-            {pageArticles.length === 0 ? (
+            {vuota ? (
               <p className="font-montserrat text-[14px] text-lc-subtle pb-20">
                 Nessun articolo disponibile in questa sezione per ora.
               </p>
             ) : (
               <>
-                {gridArticles.length > 0 && (
+                {grandi.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                    {gridArticles.map((a) => (
+                    {grandi.map((a) => (
                       <ArticleCardGrid key={a.id} article={a} />
                     ))}
                   </div>
                 )}
-                {smallArticles.length > 0 && (
+                {piccoli.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                    {smallArticles.map((a) => (
+                    {piccoli.map((a) => (
                       <ArticleCardSmall key={a.id} article={a} />
                     ))}
                   </div>
@@ -76,7 +66,7 @@ export default async function SubcategoryPage({ categorySlug, subcategoryValue, 
               </>
             )}
 
-            <Pagination currentPage={currentPage} totalPages={totalPages} basePath={`/${config.slug}/${subcategoryValue}`} />
+            <Pagination currentPage={paginaCorrente} totalPages={paginePresenti} basePath={`/${config.slug}/${subcategoryValue}`} />
           </div>
 
           <aside className="flex flex-col gap-4">
@@ -89,4 +79,14 @@ export default async function SubcategoryPage({ categorySlug, subcategoryValue, 
       <Footer />
     </div>
   )
+}
+
+/** Quanti articoli ha una sotto-categoria: serve a generateStaticParams delle pagine. */
+export async function conteggioSottocategoria(categorySlug: string, subcategoryValue: string): Promise<number> {
+  const config = getCategoryConfig(categorySlug)
+  if (!config) return 0
+  const articoli = await getAllArticles()
+  return articoli.filter(
+    (a) => a.category === config.label && a.subcategory?.toLowerCase() === subcategoryValue
+  ).length
 }

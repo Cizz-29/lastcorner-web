@@ -4,7 +4,7 @@ import AdSlot from '@/components/AdSlot'
 import TabellaBlock from '@/components/TabellaBlock'
 import XEmbed from '@/components/XEmbed'
 import ClassificaF1Block from '@/components/ClassificaF1Block'
-import { urlFor } from '@/lib/sanity/image'
+import { urlFor, dimensioniDa } from '@/lib/sanity/image'
 
 // Ogni quanti paragrafi consecutivi inserire uno slot pubblicitario nel corpo.
 const AD_EVERY_N_PARAGRAPHS = 3
@@ -28,28 +28,66 @@ function withAdsInjected(blocks: any[]): any[] {
   return result
 }
 
-// Immagine nel corpo articolo. Supporta sia asset Sanity veri (asset._ref,
-// risolto con urlFor) sia il vecchio formato mock con URL diretto
-// (asset.url), per non dover riscrivere l'articolo di esempio esistente.
+// Immagine nel corpo articolo.
+//
+// Le proporzioni sono quelle originali dell'immagine caricata: niente
+// ritaglio. Prima ogni immagine veniva forzata in un riquadro alto 280px
+// (360 su desktop) e tagliata al centro, il che rovinava tutto cio' che non
+// fosse gia' panoramico — uno screenshot di telemetria, un grafico, una foto
+// verticale.
+//
+// Le misure originali si leggono dal riferimento Sanity (vedi dimensioniDa):
+// passandole a next/image il browser conosce le proporzioni prima di scaricare
+// il file e riserva lo spazio giusto, quindi il testo non si sposta mentre la
+// pagina carica.
+//
+// Unico limite imposto: l'altezza non supera l'85% dello schermo, altrimenti
+// un'immagine molto verticale spingerebbe fuori vista il testo che la segue.
+//
+// Se le dimensioni non sono ricavabili (vecchie immagini mock con URL diretto)
+// si ricade sul riquadro a proporzioni fisse di prima.
 function ImageBlock({ value }: { value: any }) {
-  const src = value?.asset?._ref ? urlFor(value).width(1600).url() : value?.asset?.url
+  const dim = dimensioniDa(value)
+  const daSanity = Boolean(value?.asset?._ref)
+  const src = daSanity
+    ? urlFor(value).width(Math.min(1600, dim?.larghezza ?? 1600)).url()
+    : value?.asset?.url
   if (!src) return null
+
+  const didascalia = value.caption ? (
+    <figcaption className="font-montserrat italic text-[12px] text-lc-subtle mt-2">
+      {value.caption}
+    </figcaption>
+  ) : null
+
+  if (!dim) {
+    return (
+      <figure className="mb-6">
+        <div className="relative w-full h-[280px] lg:h-[360px] rounded-card overflow-hidden">
+          <Image
+            src={src}
+            alt={value.alt || value.caption || ''}
+            fill
+            className="object-cover"
+            sizes="(max-width: 1024px) 100vw, 800px"
+          />
+        </div>
+        {didascalia}
+      </figure>
+    )
+  }
+
   return (
     <figure className="mb-6">
-      <div className="relative w-full h-[280px] lg:h-[360px] rounded-card overflow-hidden">
-        <Image
-          src={src}
-          alt={value.alt || value.caption || ''}
-          fill
-          className="object-cover"
-          sizes="(max-width: 1024px) 100vw, 800px"
-        />
-      </div>
-      {value.caption && (
-        <figcaption className="font-montserrat italic text-[12px] text-lc-subtle mt-2">
-          {value.caption}
-        </figcaption>
-      )}
+      <Image
+        src={src}
+        alt={value.alt || value.caption || ''}
+        width={dim.larghezza}
+        height={dim.altezza}
+        sizes="(max-width: 1024px) 100vw, 800px"
+        className="w-auto h-auto max-w-full max-h-[85vh] mx-auto rounded-card"
+      />
+      {didascalia}
     </figure>
   )
 }

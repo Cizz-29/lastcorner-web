@@ -4,11 +4,12 @@ import { getCategoryConfig } from '@/lib/categories'
 import { CATEGORIES_WITH_FULL_SUBCATEGORIES } from '@/lib/subcategories'
 import SubcategoryPage from '@/components/SubcategoryPage'
 
+// Statica: prima leggeva ?page=... e quello bastava a renderla dinamica per
+// sempre. Le pagine successive stanno in page/[n] qui accanto.
 export const revalidate = false
 
 interface PageProps {
   params: { category: string }
-  searchParams: { page?: string }
 }
 
 export function generateStaticParams() {
@@ -21,14 +22,14 @@ export function generateMetadata({ params }: PageProps): Metadata {
   return { title: `Guide e Approfondimenti ${config.label}` }
 }
 
-export default function GuideApprofondimentiPage({ params, searchParams }: PageProps) {
+export default function GuideApprofondimentiPage({ params }: PageProps) {
   if (!CATEGORIES_WITH_FULL_SUBCATEGORIES.includes(params.category)) notFound()
   return (
     <SubcategoryPage
       categorySlug={params.category}
       subcategoryValue="guide-approfondimenti"
       title="Guide e Approfondimenti"
-      page={searchParams.page}
+      pagina={1}
     />
   )
 }

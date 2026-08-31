@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { percorsoPagina } from '@/lib/paginazione'
 
 interface PaginationProps {
   currentPage: number
@@ -19,18 +20,20 @@ function getPaginationItems(totalPages: number): number[] {
   return range(1, Math.min(totalPages, MAX_VISIBLE_PAGES))
 }
 
-// Paginazione semplice via query string (?page=n) — nessun JS lato client,
-// coerente con il resto delle pagine categoria che sono Server Component.
 export default function Pagination({ currentPage, totalPages, basePath }: PaginationProps) {
   if (totalPages <= 1) return null
 
   const items = getPaginationItems(totalPages)
   const pillBase = 'font-akira text-[11px] flex items-center justify-center rounded-full border transition-colors duration-200'
 
+  const precedente = Math.max(1, currentPage - 1)
+  const successiva = Math.min(totalPages, currentPage + 1)
+
   return (
     <nav aria-label="Paginazione" className="flex flex-wrap items-center justify-center gap-2 mt-10">
       <Link
-        href={`${basePath}${currentPage > 1 ? `?page=${currentPage - 1}` : ''}`}
+        href={percorsoPagina(basePath, precedente)}
+        aria-label="Pagina precedente"
         aria-disabled={currentPage === 1}
         tabIndex={currentPage === 1 ? -1 : undefined}
         className={`${pillBase} w-9 h-9 ${
@@ -45,7 +48,7 @@ export default function Pagination({ currentPage, totalPages, basePath }: Pagina
       {items.map((item) => (
         <Link
           key={item}
-          href={item === 1 ? basePath : `${basePath}?page=${item}`}
+          href={percorsoPagina(basePath, item)}
           aria-current={item === currentPage ? 'page' : undefined}
           className={`${pillBase} w-9 h-9 ${
             item === currentPage
@@ -58,7 +61,8 @@ export default function Pagination({ currentPage, totalPages, basePath }: Pagina
       ))}
 
       <Link
-        href={`${basePath}?page=${currentPage < totalPages ? currentPage + 1 : totalPages}`}
+        href={percorsoPagina(basePath, successiva)}
+        aria-label="Pagina successiva"
         aria-disabled={currentPage === totalPages}
         tabIndex={currentPage === totalPages ? -1 : undefined}
         className={`${pillBase} w-9 h-9 ${
