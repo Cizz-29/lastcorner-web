@@ -60,7 +60,14 @@ function toArticle(doc: SanityArticleDoc): Article {
     author: doc.author,
     date: formatDate(doc.publishedAt),
     publishedAt: doc.publishedAt,
+    // 16:9 — formato delle card, dell'anteprima social e dei dati strutturati.
     imageUrl: doc.mainImage ? urlFor(doc.mainImage).width(1200).height(675).fit('crop').url() : FALLBACK_IMAGE,
+    // 3:2 — solo per l'immagine grande in cima all'articolo, dove il 16:9
+    // risultava troppo schiacciato. E' un secondo ritaglio della stessa foto,
+    // non un secondo file: la CDN di Sanity lo genera al volo e nessuna query
+    // in piu' viene fatta. Il punto di interesse scelto nello Studio (hotspot)
+    // vale per entrambi i formati.
+    heroImageUrl: doc.mainImage ? urlFor(doc.mainImage).width(1200).height(800).fit('crop').url() : FALLBACK_IMAGE,
     excerpt: doc.excerpt,
     breaking: doc.breaking,
     tags: doc.tags,

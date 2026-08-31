@@ -35,5 +35,23 @@ export function dimensioniDa(source: any): DimensioniImmagine | null {
   const altezza = Number(match[2])
   if (!Number.isFinite(larghezza) || !Number.isFinite(altezza)) return null
   if (larghezza <= 0 || altezza <= 0) return null
+
+  // Se l'immagine e' stata ritagliata nello Studio, il file servito NON ha piu'
+  // le misure scritte nell'id: il builder aggiunge un "rect=..." all'URL e la
+  // CDN restituisce solo la porzione scelta. Senza tenerne conto passeremmo a
+  // next/image proporzioni sbagliate e il browser deformerebbe la foto per
+  // farla entrare nel riquadro riservato.
+  const crop = source?.crop
+  if (crop && typeof crop === 'object') {
+    const frazioneOrizzontale = 1 - (Number(crop.left) || 0) - (Number(crop.right) || 0)
+    const frazioneVerticale = 1 - (Number(crop.top) || 0) - (Number(crop.bottom) || 0)
+    if (frazioneOrizzontale > 0 && frazioneVerticale > 0) {
+      return {
+        larghezza: Math.max(1, Math.round(larghezza * frazioneOrizzontale)),
+        altezza: Math.max(1, Math.round(altezza * frazioneVerticale)),
+      }
+    }
+  }
+
   return { larghezza, altezza }
 }

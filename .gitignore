@@ -35,3 +35,4 @@ yarn-error.log*
 
 # Cache di Python: la crea da sola ogni esecuzione dello script telemetria.
 __pycache__/
+tsconfig.tsbuildinfo

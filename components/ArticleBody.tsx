@@ -30,19 +30,25 @@ function withAdsInjected(blocks: any[]): any[] {
 
 // Immagine nel corpo articolo.
 //
-// Le proporzioni sono quelle originali dell'immagine caricata: niente
-// ritaglio. Prima ogni immagine veniva forzata in un riquadro alto 280px
-// (360 su desktop) e tagliata al centro, il che rovinava tutto cio' che non
-// fosse gia' panoramico — uno screenshot di telemetria, un grafico, una foto
-// verticale.
+// L'immagine occupa tutta la larghezza della colonna di testo e mantiene le
+// proporzioni con cui e' stata caricata (o ritagliata nello Studio): niente
+// ritaglio automatico. Prima veniva forzata in un riquadro alto 280px (360 su
+// desktop) e tagliata al centro, il che rovinava tutto cio' che non fosse gia'
+// panoramico — uno screenshot di telemetria, un grafico, una foto verticale.
 //
-// Le misure originali si leggono dal riferimento Sanity (vedi dimensioniDa):
-// passandole a next/image il browser conosce le proporzioni prima di scaricare
-// il file e riserva lo spazio giusto, quindi il testo non si sposta mentre la
-// pagina carica.
+// La larghezza piena e' voluta: usando la dimensione in pixel del file, una
+// foto piu' stretta della colonna restava piccola e sperduta in mezzo alla
+// pagina, con un margine bianco diverso da immagine a immagine.
 //
-// Unico limite imposto: l'altezza non supera l'85% dello schermo, altrimenti
-// un'immagine molto verticale spingerebbe fuori vista il testo che la segue.
+// Le misure si leggono dal riferimento Sanity (vedi dimensioniDa): passandole a
+// next/image il browser conosce le proporzioni prima di scaricare il file e
+// riserva lo spazio giusto, quindi il testo non si sposta mentre la pagina
+// carica.
+//
+// Unico limite: una foto verticale non deve occupare piu' di circa l'80%
+// dell'altezza dello schermo, altrimenti spinge fuori vista il testo che la
+// segue. Il limite e' espresso come limite di LARGHEZZA ricavato dalle
+// proporzioni, cosi' l'immagine rimpicciolisce invece di venire tagliata.
 //
 // Se le dimensioni non sono ricavabili (vecchie immagini mock con URL diretto)
 // si ricade sul riquadro a proporzioni fisse di prima.
@@ -77,17 +83,21 @@ function ImageBlock({ value }: { value: any }) {
     )
   }
 
+  const proporzioni = dim.larghezza / dim.altezza
+
   return (
     <figure className="mb-6">
-      <Image
-        src={src}
-        alt={value.alt || value.caption || ''}
-        width={dim.larghezza}
-        height={dim.altezza}
-        sizes="(max-width: 1024px) 100vw, 800px"
-        className="w-auto h-auto max-w-full max-h-[85vh] mx-auto rounded-card"
-      />
-      {didascalia}
+      <div className="mx-auto" style={{ maxWidth: `calc(80vh * ${proporzioni.toFixed(4)})` }}>
+        <Image
+          src={src}
+          alt={value.alt || value.caption || ''}
+          width={dim.larghezza}
+          height={dim.altezza}
+          sizes="(max-width: 1024px) 100vw, 800px"
+          className="w-full h-auto rounded-card"
+        />
+        {didascalia}
+      </div>
     </figure>
   )
 }

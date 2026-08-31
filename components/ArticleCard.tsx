@@ -13,6 +13,9 @@ export interface Article {
    *  vuole una data leggibile da una macchina e non da una persona. */
   publishedAt?: string
   imageUrl: string
+  /** Stessa foto ritagliata 3:2, usata solo dall'immagine grande in cima
+   *  all'articolo. Assente per gli articoli mock. */
+  heroImageUrl?: string
   excerpt?: string
   breaking?: boolean
   /**

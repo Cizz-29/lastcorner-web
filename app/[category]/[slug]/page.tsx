@@ -160,9 +160,22 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               </Link>
             </div>
 
-            <div className="relative w-full h-[300px] lg:h-[440px] rounded-card overflow-hidden mb-8 border-b-2 border-lc-red">
+            {/* Riquadro a proporzioni fisse, non libere come per le immagini nel
+                corpo: la stessa foto compare anche nelle card e nell'anteprima
+                social, e un formato costante tiene allineate le griglie di
+                tutto il sito. Il 16:9 di prima (440px di altezza su desktop)
+                risultava troppo schiacciato, quindi qui si passa al 3:2. Su
+                schermo intermedio (finestra a meta', tablet) l'altezza fissa di
+                300px faceva anche di peggio: la colonna li' e' larga oltre
+                800px, quindi il riquadro diventava una striscia 2,8:1. Un
+                rapporto al posto di un'altezza in pixel elimina il problema a
+                ogni larghezza, e coincide col ritaglio 3:2 richiesto alla CDN,
+                quindi il browser non taglia piu' nulla per conto suo. Cosa
+                resta dentro il ritaglio si decide nello Studio col punto di
+                interesse (hotspot). */}
+            <div className="relative w-full aspect-[3/2] rounded-card overflow-hidden mb-8 border-b-2 border-lc-red">
               <Image
-                src={article.imageUrl}
+                src={article.heroImageUrl ?? article.imageUrl}
                 alt={article.title}
                 fill
                 className="object-cover"
