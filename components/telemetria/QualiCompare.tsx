@@ -264,7 +264,13 @@ export default function QualiCompare({
         const risultati = await Promise.all(
           mancanti.map(async (n) => {
             try {
-              const res = await fetch(`${dataPath}/qualifying/${n}.json`)
+              // dataPath arriva dalla pagina gia' completo di /tel (vedi
+              // app/telemetria/[year]/[round]/page.tsx): qui va aggiunto solo
+              // il file del pilota. Prima si aggiungeva anche /qualifying,
+              // rimasto da un vecchio formato dei dati, e il risultato era un
+              // 404 su ogni pilota di ogni weekend — cioe' il pannello di
+              // confronto sempre vuoto.
+              const res = await fetch(`${dataPath}/${n}.json`)
               if (!res.ok) return [n, {}] as const
               return [n, (await res.json()) as Record<string, Telemetry>] as const
             } catch {
