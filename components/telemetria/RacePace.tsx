@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { esportaPng } from '@/components/telemetria/esportaPng'
 
 // Passo: tempo sul giro di ogni pilota selezionato, giro per giro.
 // Si può restringere l'analisi a un intervallo di giri (utile per isolare
@@ -51,6 +52,12 @@ function shade(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
 }
 
+// Stessa regola del confronto qualifica: il secondo pilota di una squadra
+// prende il bianco. Schiarire il colore del team non basta — due tracce
+// Mercedes, una verde acqua e una verde acqua un po' piu' chiara, su fondo
+// nero e per settanta giri sono indistinguibili.
+const BIANCO_COMPAGNO = '#FFFFFF'
+
 function buildColors(drivers: RaceDriver[]): Record<string, string> {
   const seen: Record<string, number> = {}
   const out: Record<string, string> = {}
@@ -58,7 +65,12 @@ function buildColors(drivers: RaceDriver[]): Record<string, string> {
     const key = d.color.toLowerCase()
     const n = seen[key] ?? 0
     seen[key] = n + 1
-    out[d.abbr] = n === 0 ? d.color : shade(d.color, Math.min(0.3 + 0.25 * (n - 1), 0.75))
+    out[d.abbr] =
+      n === 0
+        ? d.color
+        : n === 1
+          ? BIANCO_COMPAGNO
+          : shade(d.color, Math.min(0.3 + 0.25 * (n - 2), 0.75))
   }
   return out
 }
@@ -143,6 +155,33 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
   const gridLaps = Array.from({ length: 6 }, (_, i) =>
     Math.round(from + (i / 5) * (to - from))
   )
+
+  const svgRef = useRef<SVGSVGElement>(null)
+  const titoloRef = useRef<HTMLParagraphElement>(null)
+  const assiRef = useRef<HTMLSpanElement>(null)
+  const [salvando, setSalvando] = useState(false)
+
+  // Stessa esportazione del confronto qualifica (components/telemetria/
+  // esportaPng.ts): cambia solo cosa c'e' sugli assi.
+  async function scaricaPng() {
+    if (!chart) return
+    setSalvando(true)
+    try {
+      await esportaPng({
+        svg: svgRef.current,
+        titolo: 'Passo gara',
+        unita: `giri ${from}–${to}`,
+        etichette: gridTimes.map((t) => ({ testo: formatLapTime(t), y: pos(from, t).y })),
+        altezzaGrafico: H,
+        legenda: picked.map((d) => ({ abbr: d.abbr, color: colors[d.abbr] ?? d.color })),
+        nomeFile: `lastcorner-passo-${picked.map((d) => d.abbr).join('-')}.png`.toLowerCase(),
+        fontTitolo: titoloRef.current,
+        fontTesto: assiRef.current,
+      })
+    } finally {
+      setSalvando(false)
+    }
+  }
 
   return (
     <div>
@@ -237,6 +276,21 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
         </p>
       ) : (
         <>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <p ref={titoloRef} className="font-akira text-[10px] text-white uppercase tracking-widest">
+              Passo gara <span className="text-lc-subtle normal-case">(giri {from}–{to})</span>
+            </p>
+            <button
+              type="button"
+              onClick={scaricaPng}
+              disabled={salvando}
+              title="Scarica questo grafico come immagine PNG"
+              className="font-akira text-[9px] uppercase tracking-widest text-lc-subtle border border-white/15 rounded-full px-3 py-1 shrink-0 transition-colors duration-200 hover:border-lc-red hover:text-lc-red disabled:opacity-40"
+            >
+              {salvando ? 'salvo…' : 'png'}
+            </button>
+          </div>
+
           <div className="flex mb-3">
             <div className="relative shrink-0" style={{ width: AXIS_W, height: H }} aria-hidden>
               {gridTimes.map((t, i) => {
@@ -244,6 +298,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
                 return (
                   <span
                     key={i}
+                    ref={i === 0 ? assiRef : undefined}
                     className="absolute right-2 font-montserrat text-[9px] text-lc-subtle leading-none"
                     style={{ top: p.y, transform: 'translateY(-50%)' }}
                   >
@@ -254,7 +309,13 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
             </div>
 
             <div className="flex-1 min-w-0 bg-lc-card border border-white/10 rounded-card-sm overflow-hidden">
-              <svg viewBox={`0 0 ${W} ${H}`} className="w-full block" preserveAspectRatio="none" style={{ height: H }}>
+              <svg
+                ref={svgRef}
+                viewBox={`0 0 ${W} ${H}`}
+                className="w-full block"
+                preserveAspectRatio="none"
+                style={{ height: H }}
+              >
                 {gridTimes.map((t, i) => {
                   const y = pos(from, t).y
                   return (

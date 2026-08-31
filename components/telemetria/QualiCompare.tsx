@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { esportaPng, type VoceLegenda } from '@/components/telemetria/esportaPng'
 
 // Confronto giri di qualifica: si scelgono fino a 4 piloti, per ciascuno si
 // sceglie quale tentativo confrontare, e si sovrappongono le tracce
@@ -68,31 +69,54 @@ function shade(hex: string, amount: number): string {
 
 interface Style {
   color: string
+  /** Tratteggio SVG: distingue piu' giri dello stesso pilota. */
+  dash?: string
 }
 
-// Come si distinguono due piloti della stessa squadra.
-//
-// Prima si schiariva il colore del team, ma fra una Ferrari e una Ferrari un
-// po' piu' chiara, sovrapposte su fondo scuro, non si capiva quale fosse
-// quale. Il secondo pilota di una squadra prende quindi il bianco: massimo
-// contrasto sia col fondo sia col colore del compagno. Dal terzo in poi
-// (caso che in qualifica non esiste, ma meglio non lasciarlo scoperto) si
-// torna a schiarire il colore del team.
-const BIANCO_COMPAGNO = '#FFFFFF'
+/** Un giro da confrontare: un pilota e uno dei suoi giri. */
+export interface Traccia {
+  num: number
+  lap: number
+}
 
-function buildStyles(drivers: QualiDriver[]): Record<number, Style> {
-  const seen: Record<string, number> = {}
-  const styles: Record<number, Style> = {}
-  for (const d of drivers) {
-    const key = d.color.toLowerCase()
-    const n = seen[key] ?? 0
-    seen[key] = n + 1
-    styles[d.number] = {
-      color:
-        n === 0 ? d.color : n === 1 ? BIANCO_COMPAGNO : shade(d.color, Math.min(0.3 + 0.25 * (n - 2), 0.75)),
+// Come si distinguono le tracce fra loro.
+//
+// Piloti di squadre diverse: il colore del team, che basta.
+//
+// Due piloti della STESSA squadra: prima si schiariva il colore, ma fra una
+// Ferrari e una Ferrari poco piu' chiara, sovrapposte su fondo scuro, non si
+// capiva quale fosse quale. Il secondo prende il bianco.
+//
+// Piu' giri dello STESSO pilota: stesso colore — e' sempre lui — ma tratto
+// diverso. Cambiargli colore direbbe "altro pilota", che e' falso.
+const BIANCO_COMPAGNO = '#FFFFFF'
+const TRATTI: (string | undefined)[] = [undefined, '10 6', '2 5', '14 5 2 5']
+
+function buildStyles(tracce: Traccia[], perNumero: Record<number, QualiDriver>): Style[] {
+  const contaTeam: Record<string, number> = {}
+  const coloreDi: Record<number, string> = {}
+  const contaGiri: Record<number, number> = {}
+
+  return tracce.map((t) => {
+    const d = perNumero[t.num]
+    if (!d) return { color: BIANCO_COMPAGNO }
+
+    if (!(t.num in coloreDi)) {
+      const key = d.color.toLowerCase()
+      const n = contaTeam[key] ?? 0
+      contaTeam[key] = n + 1
+      coloreDi[t.num] =
+        n === 0
+          ? d.color
+          : n === 1
+            ? BIANCO_COMPAGNO
+            : shade(d.color, Math.min(0.3 + 0.25 * (n - 2), 0.75))
     }
-  }
-  return styles
+
+    const g = contaGiri[t.num] ?? 0
+    contaGiri[t.num] = g + 1
+    return { color: coloreDi[t.num], dash: TRATTI[Math.min(g, TRATTI.length - 1)] }
+  })
 }
 
 // --- Grafico ----------------------------------------------------------------
@@ -121,160 +145,6 @@ interface Serie {
   style: Style
   x: number[]
   y: number[]
-}
-
-// --- Esportazione PNG -------------------------------------------------------
-
-/** Famiglia di caratteri realmente in uso, letta dalla pagina.
- *  next/font genera nomi con un suffisso casuale a ogni build, quindi scrivere
- *  "Montserrat" nel canvas non basterebbe: si chiede al browser quale famiglia
- *  sta effettivamente applicando a quell'elemento. */
-function famigliaDi(el: Element | null): string {
-  if (!el) return 'system-ui, sans-serif'
-  return getComputedStyle(el).fontFamily || 'system-ui, sans-serif'
-}
-
-interface VoceLegenda {
-  abbr: string
-  color: string
-}
-
-/** Salva il grafico come PNG.
- *
- *  Il grafico sullo schermo e' fatto di due pezzi: l'SVG con le tracce e, fuori
- *  da esso, le etichette dell'asse in HTML. Un'esportazione del solo SVG
- *  perderebbe i numeri sull'asse, cioe' la parte che rende leggibile
- *  l'immagine. Qui si disegna tutto su una tela: sfondo, titolo, etichette,
- *  tracce (rasterizzando l'SVG) e legenda con le sigle dei piloti.
- *
- *  L'immagine esce a larghezza fissa, quindi identica indipendentemente da
- *  quanto e' larga la finestra al momento del clic.
- */
-async function esportaPng(opts: {
-  svg: SVGSVGElement | null
-  titolo: string
-  unita: string
-  etichette: { testo: string; y: number }[]
-  altezzaGrafico: number
-  legenda: VoceLegenda[]
-  nomeFile: string
-  fontTitolo: Element | null
-  fontTesto: Element | null
-}) {
-  const { svg, titolo, unita, etichette, altezzaGrafico, legenda, nomeFile } = opts
-  if (!svg) return
-
-  const LARGHEZZA_GRAFICO = 1600
-  const MARGINE = 28
-  const COL_ASSE = 64
-  const ALT_TITOLO = 34
-  const ALT_LEGENDA = legenda.length > 0 ? 34 : 0
-  const SCALA = 2 // il doppio dei pixel: nitido anche ingrandito
-
-  const larghezza = MARGINE * 2 + COL_ASSE + LARGHEZZA_GRAFICO
-  const altezza = MARGINE * 2 + ALT_TITOLO + altezzaGrafico + ALT_LEGENDA
-
-  // L'SVG va serializzato con misure esplicite: sulla pagina e' stirato dal
-  // CSS, e senza width/height il browser non saprebbe a che dimensione
-  // rasterizzarlo.
-  const copia = svg.cloneNode(true) as SVGSVGElement
-  // Fuori dalla pagina le classi Tailwind non esistono e lo stile inline
-  // potrebbe litigare con le misure che imposto qui sotto: si tolgono.
-  copia.removeAttribute('class')
-  copia.removeAttribute('style')
-  copia.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
-  copia.setAttribute('width', String(LARGHEZZA_GRAFICO))
-  copia.setAttribute('height', String(altezzaGrafico))
-  const testo = new XMLSerializer().serializeToString(copia)
-  // encodeURIComponent e non btoa: btoa esplode sui caratteri non ASCII.
-  const sorgente = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(testo)}`
-
-  const img = new Image()
-  await new Promise<void>((risolvi, rifiuta) => {
-    img.onload = () => risolvi()
-    img.onerror = () => rifiuta(new Error('rasterizzazione fallita'))
-    img.src = sorgente
-  })
-
-  const tela = document.createElement('canvas')
-  tela.width = larghezza * SCALA
-  tela.height = altezza * SCALA
-  const ctx = tela.getContext('2d')
-  if (!ctx) return
-  ctx.scale(SCALA, SCALA)
-
-  const famigliaTitolo = famigliaDi(opts.fontTitolo)
-  const famigliaTesto = famigliaDi(opts.fontTesto)
-
-  // Sfondo: lo stesso del sito, cosi' l'immagine si incolla in un articolo
-  // senza stonare.
-  ctx.fillStyle = '#0A0A0A'
-  ctx.fillRect(0, 0, larghezza, altezza)
-
-  ctx.fillStyle = '#FFFFFF'
-  ctx.font = `700 17px ${famigliaTitolo}`
-  ctx.textBaseline = 'middle'
-  const yTitolo = MARGINE + ALT_TITOLO / 2 - 6
-  ctx.fillText(titolo.toUpperCase(), MARGINE, yTitolo)
-  const largTitolo = ctx.measureText(titolo.toUpperCase()).width
-  ctx.fillStyle = 'rgba(255,255,255,0.45)'
-  ctx.font = `500 14px ${famigliaTesto}`
-  ctx.fillText(`(${unita})`, MARGINE + largTitolo + 10, yTitolo)
-
-  const yGrafico = MARGINE + ALT_TITOLO
-  const xGrafico = MARGINE + COL_ASSE
-
-  // Riquadro attorno alle tracce, come sullo schermo.
-  ctx.strokeStyle = 'rgba(255,255,255,0.10)'
-  ctx.lineWidth = 1
-  ctx.strokeRect(xGrafico + 0.5, yGrafico + 0.5, LARGHEZZA_GRAFICO - 1, altezzaGrafico - 1)
-
-  ctx.drawImage(img, xGrafico, yGrafico, LARGHEZZA_GRAFICO, altezzaGrafico)
-
-  // Etichette dell'asse, alle stesse altezze che hanno sullo schermo.
-  ctx.fillStyle = 'rgba(255,255,255,0.45)'
-  ctx.font = `500 13px ${famigliaTesto}`
-  ctx.textAlign = 'right'
-  for (const e of etichette) {
-    ctx.fillText(e.testo, xGrafico - 12, yGrafico + e.y)
-  }
-  ctx.textAlign = 'left'
-
-  // Legenda: senza, un'immagine con quattro tracce non dice chi e' chi.
-  if (legenda.length > 0) {
-    let x = xGrafico
-    const yLeg = yGrafico + altezzaGrafico + ALT_LEGENDA / 2 + 2
-    ctx.font = `700 14px ${famigliaTitolo}`
-    for (const v of legenda) {
-      ctx.strokeStyle = v.color
-      ctx.lineWidth = 3
-      ctx.beginPath()
-      ctx.moveTo(x, yLeg)
-      ctx.lineTo(x + 26, yLeg)
-      ctx.stroke()
-      ctx.fillStyle = '#FFFFFF'
-      ctx.fillText(v.abbr, x + 34, yLeg)
-      x += 34 + ctx.measureText(v.abbr).width + 26
-    }
-  }
-
-  ctx.fillStyle = 'rgba(255,255,255,0.30)'
-  ctx.font = `500 12px ${famigliaTesto}`
-  ctx.textAlign = 'right'
-  ctx.fillText('lastcorner.net', larghezza - MARGINE, altezza - MARGINE / 2)
-
-  await new Promise<void>((risolvi) => {
-    tela.toBlob((blob) => {
-      if (!blob) return risolvi()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = nomeFile
-      a.click()
-      URL.revokeObjectURL(url)
-      risolvi()
-    }, 'image/png')
-  })
 }
 
 // --- Grafico ----------------------------------------------------------------
@@ -413,6 +283,7 @@ function Chart({
                 fill="none"
                 stroke={s.style.color}
                 strokeWidth={1.7}
+                strokeDasharray={s.style.dash}
                 vectorEffect="non-scaling-stroke"
               />
             ))}
@@ -452,16 +323,25 @@ export default function QualiCompare({
     [drivers]
   )
 
-  const [selected, setSelected] = useState<number[]>(() => sorted.slice(0, 2).map((d) => d.number))
-  const [lapChoice, setLapChoice] = useState<Record<number, number>>({})
+  const perNumero = useMemo(
+    () => Object.fromEntries(drivers.map((d) => [d.number, d])) as Record<number, QualiDriver>,
+    [drivers]
+  )
+
+  // Si confrontano tracce, non piloti: una traccia e' "questo pilota, questo
+  // giro". Cosi' lo stesso pilota puo' comparire piu' volte con giri diversi,
+  // che e' il confronto piu' utile quando si studia un tentativo mancato.
+  const [tracce, setTracce] = useState<Traccia[]>(() =>
+    sorted.slice(0, 2).map((d) => ({ num: d.number, lap: d.bestLap }))
+  )
   const [cache, setCache] = useState<Record<number, Record<string, Telemetry>>>({})
   const [caricamento, setCaricamento] = useState(false)
   // Quanto sono alti i grafici. 1 e' l'altezza di riferimento; il cursore
   // arriva al doppio, utile quando si guarda una singola staccata.
   const [ingrandimento, setIngrandimento] = useState(1)
 
-  const picked = sorted.filter((d) => selected.includes(d.number))
-  const styles = useMemo(() => buildStyles(picked), [picked])
+  const styles = useMemo(() => buildStyles(tracce, perNumero), [tracce, perNumero])
+  const numeriScelti = useMemo(() => Array.from(new Set(tracce.map((t) => t.num))), [tracce])
 
   // Carica la telemetria dei piloti selezionati non ancora in cache.
   const load = useCallback(
@@ -500,21 +380,45 @@ export default function QualiCompare({
   )
 
   useEffect(() => {
-    load(selected)
-  }, [selected, load])
+    load(numeriScelti)
+  }, [numeriScelti, load])
 
+  const MAX_TRACCE = 4
+
+  /** Clic sulla pastiglia: aggiunge il pilota col suo giro migliore, oppure lo
+   *  toglie del tutto, con tutti i suoi giri. */
   function toggle(num: number) {
-    setSelected((prev) =>
-      prev.includes(num) ? prev.filter((n) => n !== num) : prev.length < 4 ? [...prev, num] : prev
-    )
+    setTracce((prev) => {
+      if (prev.some((t) => t.num === num)) return prev.filter((t) => t.num !== num)
+      if (prev.length >= MAX_TRACCE) return prev
+      const d = perNumero[num]
+      return d ? [...prev, { num, lap: d.bestLap }] : prev
+    })
   }
 
-  function lapFor(d: QualiDriver): number {
-    return lapChoice[d.number] ?? d.bestLap
+  /** Aggiunge un altro giro dello stesso pilota, scegliendo il primo non gia'
+   *  in confronto: cosi' il tasto non produce due tracce identiche. */
+  function aggiungiGiro(num: number) {
+    setTracce((prev) => {
+      if (prev.length >= MAX_TRACCE) return prev
+      const d = perNumero[num]
+      if (!d) return prev
+      const gia = new Set(prev.filter((t) => t.num === num).map((t) => t.lap))
+      const libero = d.laps.find((l) => !gia.has(l.lap))
+      return libero ? [...prev, { num, lap: libero.lap }] : prev
+    })
   }
 
-  function telemetryFor(d: QualiDriver): Telemetry | null {
-    return cache[d.number]?.[String(lapFor(d))] ?? null
+  function rimuoviTraccia(i: number) {
+    setTracce((prev) => prev.filter((_, k) => k !== i))
+  }
+
+  function cambiaGiro(i: number, lap: number) {
+    setTracce((prev) => prev.map((t, k) => (k === i ? { ...t, lap } : t)))
+  }
+
+  function telemetriaDi(t: Traccia): Telemetry | null {
+    return cache[t.num]?.[String(t.lap)] ?? null
   }
 
   // Altezze di riferimento dei grafici, moltiplicate dal cursore. La velocita'
@@ -524,47 +428,82 @@ export default function QualiCompare({
   const ALTEZZE = { delta: 150, velocita: 260, acceleratore: 130, freno: 80, marcia: 130 }
   const alto = (base: number) => Math.round(base * ingrandimento)
 
-  const attivi = picked
-    .map((d) => ({ driver: d, tel: telemetryFor(d) }))
-    .filter((x): x is { driver: QualiDriver; tel: Telemetry } => x.tel !== null)
+  // Quante volte compare ciascun pilota: serve a decidere se nell'etichetta va
+  // indicato anche il numero del giro.
+  const quanteVolte = tracce.reduce<Record<number, number>>((acc, t) => {
+    acc[t.num] = (acc[t.num] ?? 0) + 1
+    return acc
+  }, {})
+
+  const attivi = tracce
+    .map((t, i) => ({ traccia: t, driver: perNumero[t.num], tel: telemetriaDi(t), style: styles[i] }))
+    .filter(
+      (x): x is { traccia: Traccia; driver: QualiDriver; tel: Telemetry; style: Style } =>
+        x.tel !== null && Boolean(x.driver)
+    )
+
+  const etichettaDi = (x: { traccia: Traccia; driver: QualiDriver }) =>
+    quanteVolte[x.traccia.num] > 1 ? `${x.driver.abbr} g.${x.traccia.lap}` : x.driver.abbr
 
   // Sigla e colore dei piloti a schermo: servono alla legenda del PNG, che
   // altrimenti sarebbe un grafico senza indicazione di chi e' chi.
-  const legenda: VoceLegenda[] = attivi.map(({ driver }) => ({
-    abbr: driver.abbr,
-    color: styles[driver.number]?.color ?? driver.color,
+  const legenda: VoceLegenda[] = attivi.map((x) => ({
+    abbr: etichettaDi(x),
+    color: x.style?.color ?? x.driver.color,
   }))
 
   // Nome del file scaricato: sessione, grafico e piloti confrontati, cosi' in
   // cartella Download non ci si ritrova dieci "grafico.png".
   const sessione = dataPath.split('/').filter(Boolean).slice(-2, -1)[0] ?? 'telemetria'
   const nomeFileDi = (grafico: string) =>
-    `lastcorner-${sessione}-${grafico}-${attivi.map((a) => a.driver.abbr).join('-')}.png`.toLowerCase()
+    `lastcorner-${sessione}-${grafico}-${attivi
+      .map((a) => etichettaDi(a).replace(/[^A-Za-z0-9]+/g, ''))
+      .join('-')}.png`.toLowerCase()
 
   function serieDa(getter: (t: Telemetry) => number[]): Serie[] {
-    return attivi.map(({ driver, tel }) => ({
-      key: driver.number,
-      style: styles[driver.number],
+    return attivi.map(({ traccia, tel, style }, i) => ({
+      key: `${traccia.num}-${traccia.lap}-${i}`,
+      style,
       x: tel.distance,
       y: getter(tel),
     }))
   }
 
-  // Delta cumulato rispetto al primo pilota selezionato.
+  // Delta cumulato rispetto alla prima traccia.
+  //
+  // Il confronto avviene alla stessa FRAZIONE di giro, non alla stessa
+  // distanza in metri. La distanza non e' un dato di OpenF1: si ricava
+  // integrando la velocita', e due giri dello stesso tracciato finiscono con
+  // lunghezze che differiscono di qualche decina di metri. Confrontandoli a
+  // metri uguali si mettevano a confronto punti diversi della pista, e a 300
+  // km/h quaranta metri di disallineamento valgono mezzo secondo di delta
+  // inventato, con picchi assurdi nelle staccate dove la velocita' cambia in
+  // fretta.
+  //
+  // A frazioni uguali i due giri sono allineati per costruzione all'inizio e
+  // al traguardo, quindi il delta finale coincide con il distacco
+  // cronometrato. L'asse resta etichettato in metri, con la lunghezza della
+  // traccia di riferimento.
   const delta = useMemo(() => {
     if (attivi.length < 2) return null
-    const ref = attivi[0]
-    const maxDist = Math.min(...attivi.map((a) => a.tel.distance[a.tel.distance.length - 1]))
-    const steps = 400
-    const dists = Array.from({ length: steps }, (_, i) => (i / (steps - 1)) * maxDist)
-    const series: Serie[] = attivi.slice(1).map(({ driver, tel }) => ({
-      key: driver.number,
-      style: styles[driver.number],
-      x: dists,
-      y: dists.map((d) => timeAtDistance(tel, d) - timeAtDistance(ref.tel, d)),
+    const rif = attivi[0]
+    const lunghezzaRif = rif.tel.distance[rif.tel.distance.length - 1] || 1
+    const passi = 400
+    const frazioni = Array.from({ length: passi }, (_, i) => i / (passi - 1))
+    const xs = frazioni.map((f) => f * lunghezzaRif)
+
+    const tempoA = (tel: Telemetry, f: number) =>
+      timeAtDistance(tel, f * (tel.distance[tel.distance.length - 1] || 1))
+
+    const series: Serie[] = attivi.slice(1).map((x, i) => ({
+      key: `${x.traccia.num}-${x.traccia.lap}-${i}`,
+      style: x.style,
+      x: xs,
+      y: frazioni.map((f) => tempoA(x.tel, f) - tempoA(rif.tel, f)),
     }))
-    return { refAbbr: ref.driver.abbr, series }
-  }, [attivi, styles])
+    return { refAbbr: etichettaDi(rif), series }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attivi])
 
   return (
     <div>
@@ -573,8 +512,9 @@ export default function QualiCompare({
       </p>
       <div className="flex flex-wrap gap-2 mb-8">
         {sorted.map((d) => {
-          const on = selected.includes(d.number)
-          const st = styles[d.number]
+          const idx = tracce.findIndex((t) => t.num === d.number)
+          const on = idx >= 0
+          const st = on ? styles[idx] : undefined
           return (
             <button
               key={d.number}
@@ -591,26 +531,49 @@ export default function QualiCompare({
         })}
       </div>
 
-      {picked.length === 0 ? (
+      {tracce.length === 0 ? (
         <p className="font-montserrat text-[13px] text-lc-subtle">Seleziona almeno un pilota.</p>
       ) : (
         <>
-          {/* Scheda per pilota con selettore del giro */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-            {picked.map((d) => {
-              const st = styles[d.number]
-              const scelto = lapFor(d)
+          {/* Una scheda per traccia: pilota, giro scelto, e i tasti per
+              aggiungere un altro giro dello stesso pilota o togliere questa. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            {tracce.map((t, i) => {
+              const d = perNumero[t.num]
+              if (!d) return null
+              const st = styles[i]
               return (
                 <div
-                  key={d.number}
+                  key={`${t.num}-${t.lap}-${i}`}
                   className="bg-lc-card border border-white/10 rounded-card-sm p-4 border-l-2"
                   style={{ borderLeftColor: st?.color }}
                 >
-                  <div className="flex items-baseline justify-between mb-1">
-                    <p className="font-akira text-[13px] text-white">{d.abbr}</p>
-                    <svg width="26" height="6" aria-hidden>
-                      <line x1="0" y1="3" x2="26" y2="3" stroke={st?.color} strokeWidth="2" />
-                    </svg>
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <p className="font-akira text-[13px] text-white truncate">{d.abbr}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <svg width="26" height="6" aria-hidden>
+                        <line
+                          x1="0"
+                          y1="3"
+                          x2="26"
+                          y2="3"
+                          stroke={st?.color}
+                          strokeWidth="2"
+                          strokeDasharray={st?.dash}
+                        />
+                      </svg>
+                      {tracce.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => rimuoviTraccia(i)}
+                          aria-label={`Togli ${d.abbr}, giro ${t.lap}`}
+                          title="Togli questo giro dal confronto"
+                          className="font-montserrat text-[15px] leading-none text-lc-subtle hover:text-lc-red"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="font-montserrat text-[11px] text-lc-subtle mb-3 truncate">{d.team}</p>
 
@@ -618,24 +581,38 @@ export default function QualiCompare({
                     Giro
                   </label>
                   <select
-                    value={scelto}
-                    onChange={(e) =>
-                      setLapChoice((prev) => ({ ...prev, [d.number]: Number(e.target.value) }))
-                    }
+                    value={t.lap}
+                    onChange={(e) => cambiaGiro(i, Number(e.target.value))}
                     className="w-full bg-lc-bg border border-white/15 rounded px-2 py-1.5 font-montserrat text-[12px] text-white focus:outline-none focus:border-lc-red"
                   >
-                    {d.laps.map((l, i) => (
+                    {d.laps.map((l, k) => (
                       <option key={l.lap} value={l.lap}>
                         {formatLapTime(l.time)}
-                        {i === 0 ? ' — migliore' : ''}
+                        {k === 0 ? ' — migliore' : ''}
                         {l.compound ? ` · ${l.compound.slice(0, 4)}` : ''}
                       </option>
                     ))}
                   </select>
+
+                  {d.laps.length > 1 && tracce.length < MAX_TRACCE && (
+                    <button
+                      type="button"
+                      onClick={() => aggiungiGiro(t.num)}
+                      className="mt-3 w-full font-montserrat text-[11px] text-lc-subtle border border-dashed border-white/20 rounded px-2 py-1 hover:border-lc-red hover:text-lc-red transition-colors"
+                    >
+                      + un altro giro di {d.abbr}
+                    </button>
+                  )}
                 </div>
               )
             })}
           </div>
+
+          <p className="font-montserrat text-[11px] text-lc-subtle mb-8">
+            {tracce.length >= MAX_TRACCE
+              ? `Massimo ${MAX_TRACCE} giri a confronto: togline uno per aggiungerne un altro.`
+              : 'Si possono confrontare anche più giri dello stesso pilota: stesso colore, tratto diverso.'}
+          </p>
 
           {caricamento && attivi.length === 0 ? (
             <p className="font-montserrat text-[13px] text-lc-subtle">Carico la telemetria…</p>
@@ -702,7 +679,8 @@ export default function QualiCompare({
 
               <p className="font-montserrat text-[11px] text-lc-subtle ml-[52px]">
                 Asse orizzontale: distanza percorsa sul giro, dalla linea del traguardo.
-                Il compagno di squadra ha la linea bianca.
+                Il compagno di squadra ha la linea bianca; piu&apos; giri dello stesso pilota
+                hanno lo stesso colore ma tratto diverso.
               </p>
             </>
           )}

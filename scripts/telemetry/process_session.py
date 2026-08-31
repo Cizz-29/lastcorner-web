@@ -225,14 +225,41 @@ def build_telemetry(session_key: int, driver_number: int, lap: dict) -> dict | N
     """Telemetria di un giro, ricampionata, con distanza calcolata.
 
     OpenF1 non espone la distanza percorsa: la si ricava integrando la
-    velocità nel tempo (v * dt), sufficiente per l'asse X dei grafici.
+    velocita' nel tempo. Tre accortezze, tutte necessarie perche' il confronto
+    fra due giri abbia senso:
+
+    1. I campioni si fermano alla fine del giro. La finestra richiesta e' piu'
+       larga di un secondo (per non perdere l'ultimo campione a causa degli
+       arrotondamenti dell'API), ma quel secondo in piu' va tagliato: prima
+       restava dentro, in misura diversa per ogni pilota — da 0,57 a 0,83 s sul
+       weekend di prova — e la distanza continuava a crescere oltre il
+       traguardo.
+
+    2. Il tempo parte dal passaggio sul traguardo, non dal primo campione.
+       Con campionamento a circa 3,7 Hz il primo campione arriva fino a 0,27 s
+       dopo la linea, e quel ritardo, diverso per ogni pilota, finiva dritto
+       nel delta.
+
+    3. La traccia e' ancorata al traguardo alle DUE estremita': un punto in
+       t=0 e uno in t=durata. Senza, l'ultimo campione cade prima della linea
+       di quanto capita — 0,13 s per un pilota, 0,25 s per un altro — e quella
+       differenza si presenta come distacco finale sbagliato.
+
+    4. L'integrazione usa la velocita' media fra due campioni (trapezio) e non
+       quella finale (rettangolo): a parita' di dati dimezza l'errore.
+
+    Il risultato: entrambi i giri partono e finiscono sulla linea, quindi
+    confrontandoli alla stessa frazione di giro il delta al traguardo coincide
+    con il distacco cronometrato.
     """
     start = parse_dt(lap.get("date_start"))
     duration = lap.get("lap_duration")
     if start is None or not duration:
         return None
 
-    end = start + timedelta(seconds=float(duration) + 1)
+    fine_giro = start + timedelta(seconds=float(duration))
+    # Un secondo di margine nella richiesta, per non perdere l'ultimo campione.
+    end = fine_giro + timedelta(seconds=1)
     rows = get(
         "car_data",
         session_key=session_key,
@@ -244,26 +271,52 @@ def build_telemetry(session_key: int, driver_number: int, lap: dict) -> dict | N
 
     rows = [r for r in rows if r.get("date")]
     rows.sort(key=lambda r: r["date"])
-    rows = resample(rows, TELEMETRY_POINTS)
 
-    t0 = parse_dt(rows[0]["date"])
+    # Taglio alla fine del giro vera (punto 1).
+    dentro = []
+    for r in rows:
+        quando = parse_dt(r["date"])
+        if quando is None or quando > fine_giro:
+            break
+        dentro.append(r)
+    if len(dentro) < 20:
+        return None
+    rows = resample(dentro, TELEMETRY_POINTS)
+
     distance, speed, throttle, brake, gear, times = [], [], [], [], [], []
     dist = 0.0
-    prev = t0
-    for r in rows:
-        now = parse_dt(r["date"])
-        if now is None or t0 is None:
-            continue
-        dt = (now - prev).total_seconds()
-        prev = now
-        spd = float(r.get("speed") or 0)
-        dist += (spd / 3.6) * dt
+    prev = start
+    spd_prec = float(rows[0].get("speed") or 0)
+
+    def aggiungi(t_rel: float, spd: float, r: dict) -> None:
         distance.append(round(dist, 1))
         speed.append(spd)
         throttle.append(float(r.get("throttle") or 0))
         brake.append(1 if float(r.get("brake") or 0) > 0 else 0)
         gear.append(int(r.get("n_gear") or 0))
-        times.append(round((now - t0).total_seconds(), 3))
+        times.append(round(t_rel, 3))
+
+    # Punto sulla linea di partenza: distanza zero, tempo zero.
+    aggiungi(0.0, spd_prec, rows[0])
+
+    for r in rows:
+        now = parse_dt(r["date"])
+        if now is None:
+            continue
+        dt = (now - prev).total_seconds()
+        spd = float(r.get("speed") or 0)
+        dist += ((spd + spd_prec) / 2 / 3.6) * dt  # trapezio (punto 4)
+        prev = now
+        spd_prec = spd
+        aggiungi((now - start).total_seconds(), spd, r)
+
+    # Punto sulla linea d'arrivo: fra l'ultimo campione e il traguardo si tiene
+    # la velocita' dell'ultimo campione. E' il tratto che prima mancava, in
+    # misura diversa per ogni pilota.
+    coda = (fine_giro - prev).total_seconds()
+    if coda > 0:
+        dist += (spd_prec / 3.6) * coda
+        aggiungi(float(duration), spd_prec, rows[-1])
 
     return {
         "distance": distance,

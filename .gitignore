@@ -32,3 +32,6 @@ yarn-error.log*
 # (public/grafiche resta invece versionato: il template e' un export da
 # Photoshop, non lo si rigenera con un comando.)
 /public/telemetria-data/
+
+# Cache di Python: la crea da sola ogni esecuzione dello script telemetria.
+__pycache__/
