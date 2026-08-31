@@ -22,6 +22,7 @@ Struttura prodotta:
 import json
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -32,8 +33,25 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "public" / "telemetria-data"
 
 TELEMETRY_POINTS = 350
-THROTTLE_S = 0.25
 DEFAULT_COLOR = "FF3A3A"
+
+# Limiti dichiarati da OpenF1 per l'uso gratuito: 3 richieste al secondo E 30
+# al minuto. Il secondo e' quello che conta davvero: 30 al minuto significa una
+# richiesta ogni 2 secondi tenuta nel tempo.
+#
+# Prima qui c'era una pausa di 0,25 s applicata solo dopo le telemetrie: 4
+# richieste al secondo, otto volte il limite al minuto. Su GitHub passava, dal
+# PC no, e il risultato erano i 429 che facevano perdere in silenzio il giro di
+# quel pilota.
+INTERVALLO_MIN_S = 2.05
+
+# Quanto rallentare stabilmente dopo essere stati limitati: tornare al ritmo
+# di prima significherebbe solo farsi limitare di nuovo.
+INCREMENTO_DOPO_429_S = 0.5
+
+# Attesa quando OpenF1 risponde 429 senza dire quanto aspettare. Un minuto
+# pieno, perche' e' la finestra su cui si azzera il conteggio.
+ATTESA_429_S = 60.0
 
 # Sessioni del weekend, nell'ordine in cui si svolgono. "tel" indica quanti
 # giri per pilota salvare con la telemetria completa: nelle qualifiche il
@@ -50,20 +68,72 @@ SESSION_TYPES = [
 ]
 
 
+# Stato del regolatore di ritmo. Vive per tutta l'esecuzione: una volta che
+# OpenF1 ci ha limitato, rallentiamo e restiamo rallentati.
+_ultima_richiesta = 0.0
+_intervallo = INTERVALLO_MIN_S
+_conteggio_429 = 0
+
+
+def _aspetta_il_turno() -> None:
+    """Non parte una richiesta prima che sia passato l'intervallo dalla precedente."""
+    global _ultima_richiesta
+    da_aspettare = _intervallo - (time.monotonic() - _ultima_richiesta)
+    if da_aspettare > 0:
+        time.sleep(da_aspettare)
+    _ultima_richiesta = time.monotonic()
+
+
 def get(endpoint: str, **params) -> list:
-    """GET su OpenF1 con ritentativi. Restituisce [] in caso di fallimento."""
+    """GET su OpenF1, rispettando i limiti di frequenza.
+
+    Restituisce [] solo dopo aver davvero esaurito i tentativi: un 429 non e'
+    un errore ma un "rallenta", e trattarlo come fallimento significa buttare
+    via il giro di un pilota senza accorgersene.
+    """
+    global _intervallo, _conteggio_429
     qs = urllib.parse.urlencode(params, safe="<>=")
     url = f"{API}/{endpoint}?{qs}" if params else f"{API}/{endpoint}"
-    for attempt in range(3):
+
+    for tentativo in range(6):
+        _aspetta_il_turno()
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "LastcornerTelemetry/1.0"})
             with urllib.request.urlopen(req, timeout=60) as res:
                 return json.loads(res.read().decode("utf-8"))
-        except Exception as exc:
-            if attempt == 2:
+
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429:
+                _conteggio_429 += 1
+                _intervallo += INCREMENTO_DOPO_429_S
+                # Se OpenF1 dice quanto aspettare, gli si da' retta.
+                # "is not None" e non "if exc.headers": un oggetto intestazioni
+                # senza voci e' falsy, e cosi' si perderebbe il Retry-After.
+                intestazione = (
+                    exc.headers.get("Retry-After") if exc.headers is not None else None
+                )
+                try:
+                    attesa = float(intestazione) if intestazione else ATTESA_429_S
+                except (TypeError, ValueError):
+                    attesa = ATTESA_429_S
+                print(
+                    f"    limite raggiunto, aspetto {attesa:.0f}s "
+                    f"(d'ora in poi una richiesta ogni {_intervallo:.2f}s)"
+                )
+                time.sleep(attesa)
+                continue
+            if tentativo == 5:
                 print(f"    ! {endpoint} fallito: {exc}")
                 return []
-            time.sleep(2 * (attempt + 1))
+            time.sleep(2 * (tentativo + 1))
+
+        except Exception as exc:
+            if tentativo == 5:
+                print(f"    ! {endpoint} fallito: {exc}")
+                return []
+            time.sleep(2 * (tentativo + 1))
+
+    print(f"    ! {endpoint}: tentativi esauriti")
     return []
 
 
@@ -275,6 +345,7 @@ def process_session(session: dict, spec: dict, base: Path) -> dict | None:
         return result
 
     ranked = sorted(timed.items(), key=lambda kv: min(l["lap_duration"] for l in kv[1]))
+    giri_persi = 0
     tel_drivers = []
     for position, (num, driver_laps) in enumerate(ranked, start=1):
         info = drivers_info.get(
@@ -286,8 +357,8 @@ def process_session(session: dict, spec: dict, base: Path) -> dict | None:
         for lap in driver_laps[:max_laps]:
             n = lap.get("lap_number")
             tel = build_telemetry(session_key, num, lap)
-            time.sleep(THROTTLE_S)
             if tel is None:
+                giri_persi += 1
                 continue
             compound, _ = stints.get((num, n), (None, None))
             telemetry_by_lap[str(n)] = tel
@@ -317,7 +388,8 @@ def process_session(session: dict, spec: dict, base: Path) -> dict | None:
     if tel_drivers:
         save_json(out_dir / "laps.json", {"session": spec["key"], "drivers": tel_drivers})
         result["telemetry"] = True
-        print(f"  [{spec['key']}] telemetria: {len(tel_drivers)} piloti")
+        nota = f" ({giri_persi} giri persi)" if giri_persi else ""
+        print(f"  [{spec['key']}] telemetria: {len(tel_drivers)} piloti{nota}")
 
     return result
 
@@ -374,6 +446,11 @@ def process_round(year: int, rnd: int) -> bool:
     )
     save_json(OUT / "index.json", index)
     print(f"  fatto: {len(sessions)} sessioni")
+    if _conteggio_429:
+        print(
+            f"  nota: OpenF1 ha imposto {_conteggio_429} pause per limite di frequenza; "
+            f"ritmo finale una richiesta ogni {_intervallo:.2f}s"
+        )
     return True
 
 

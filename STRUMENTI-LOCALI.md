@@ -43,6 +43,16 @@ Lo script usa solo la libreria standard di Python — non c'è niente da
 installare — e prende i dati dall'API pubblica OpenF1. Scrive in
 `public/telemetria-data/`. Finito, ricarica la pagina telemetria.
 
+**Metterà una decina di minuti, ed è normale.** OpenF1 consente 30 richieste
+al minuto sul piano gratuito, cioè una ogni due secondi, e un weekend
+richiede qualche centinaio di chiamate. Lo script rispetta quel ritmo da
+solo: se lo superasse, l'API risponderebbe "troppe richieste" e i giri di
+quei piloti andrebbero persi in silenzio.
+
+Alla fine stampa un riepilogo. Se compare `(N giri persi)` accanto a una
+sessione, quei giri non hanno telemetria: rilancia lo script per quel round
+e vedrai il numero scendere.
+
 ## Dove stanno i dati, e cosa succede se si perdono
 
 `public/telemetria-data/` non è più versionato: quei file esistono solo sul

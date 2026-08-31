@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { CATEGORIES } from '@/lib/categories'
+import { authorSlug } from '@/lib/authors'
 
 // Aggiornamento su richiesta, chiamato da Sanity quando pubblichi.
 //
@@ -58,6 +59,13 @@ function percorsiDa(corpo: any): string[] {
   }
   if (tipo === 'teamBio' && typeof corpo?.constructorId === 'string') {
     for (const c of CATEGORIES) percorsi.add(`/${c.slug}/team/${corpo.constructorId}`)
+    return Array.from(percorsi)
+  }
+
+  // La scheda autore sta su una pagina sola, ricavata normalizzando il nome
+  // esattamente come fa la pagina stessa.
+  if (tipo === 'authorBio' && typeof corpo?.fullName === 'string') {
+    percorsi.add(`/autori/${authorSlug(corpo.fullName)}`)
     return Array.from(percorsi)
   }
 
