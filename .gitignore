@@ -24,3 +24,11 @@ yarn-error.log*
 .DS_Store
 *.pem
 .vercel
+
+# Dati telemetria: 31 MB di JSON prodotti dallo script Python. Stanno sul PC,
+# non nel repository: erano il 94% del peso del progetto e su Vercel non
+# servono, perche' l'area telemetria gira solo in locale. Se si perdono si
+# rigenerano con scripts/telemetry/process_session.py.
+# (public/grafiche resta invece versionato: il template e' un export da
+# Photoshop, non lo si rigenera con un comando.)
+/public/telemetria-data/

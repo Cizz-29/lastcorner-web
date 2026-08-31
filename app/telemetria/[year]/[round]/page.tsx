@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { STRUMENTI_LOCALI } from '@/lib/strumenti'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import Navbar from '@/components/Navbar'
@@ -12,6 +13,10 @@ import RacePace, { type RaceDriver } from '@/components/telemetria/RacePace'
 // Pagina di un weekend: una scheda per ogni sessione disponibile (libere,
 // qualifiche, sprint, gara). Per ciascuna si mostra il passo e, dove la
 // pipeline l'ha raccolta, il confronto telemetrico dei giri.
+
+// Solo i weekend generati qui sotto esistono: senza questa riga un indirizzo
+// inventato farebbe partire una funzione per poi rispondere 404.
+export const dynamicParams = false
 
 export const metadata: Metadata = {
   title: 'Telemetria',
@@ -50,11 +55,13 @@ async function readJson<T>(...segments: string[]): Promise<T | null> {
 }
 
 export async function generateStaticParams() {
+  if (!STRUMENTI_LOCALI) return []
   const index = (await readJson<IndexEntry[]>('index.json')) ?? []
   return index.map((e) => ({ year: String(e.year), round: String(e.round) }))
 }
 
 export default async function TelemetriaEventPage({ params }: PageProps) {
+  if (!STRUMENTI_LOCALI) notFound()
   const index = (await readJson<IndexEntry[]>('index.json')) ?? []
   const event = index.find(
     (e) => String(e.year) === params.year && String(e.round) === params.round

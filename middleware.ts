@@ -22,42 +22,10 @@ const KNOWN_TOP_LEVEL = new Set([
   'ads.txt', 'fonts',
 ])
 
-// --- Sezione Telemetria (riservata allo staff) -----------------------------
-// Protetta da password condivisa (env TELEMETRIA_PASSWORD su Vercel). Il
-// login (app/api/telemetria-login) salva in un cookie httpOnly lo SHA-256
-// della password: qui si ricalcola l'hash dell'env e si confronta. Niente
-// database né account: per un'area interna a pochi editor è sufficiente.
-async function sha256Hex(value: string): Promise<string> {
-  const data = new TextEncoder().encode(value)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
-async function telemetriaGate(req: NextRequest, pathname: string): Promise<NextResponse | null> {
-  const isProtected =
-    (pathname.startsWith('/telemetria') && !pathname.startsWith('/telemetria/login')) ||
-    pathname.startsWith('/telemetria-data') ||
-    pathname.startsWith('/api/telemetria-run') ||
-    // Il generatore di grafiche social usa la stessa password: e' uno
-    // strumento di redazione, non una pagina per i lettori.
-    pathname.startsWith('/grafiche')
-  if (!isProtected) return null
-
-  const password = process.env.TELEMETRIA_PASSWORD
-  if (!password) return null // env non configurata: sezione aperta (solo in sviluppo)
-
-  const cookie = req.cookies.get('lc-telemetria-auth')?.value
-  if (cookie && cookie === (await sha256Hex(password))) return null
-
-  // Sulle route API si risponde 401 invece di reindirizzare: una fetch che
-  // segue il redirect riceverebbe l'HTML del login e fallirebbe il parsing.
-  if (pathname.startsWith('/api/')) {
-    return NextResponse.json({ error: 'Non autorizzato.' }, { status: 401 })
-  }
-  return NextResponse.redirect(new URL('/telemetria/login', req.url))
-}
+// Nota: qui c'era il controllo password per /telemetria e /grafiche, con un
+// calcolo SHA-256 a ogni richiesta protetta. Quegli strumenti ora girano solo
+// sul PC (vedi lib/strumenti.ts) e online rispondono 404, quindi non c'e' piu'
+// niente da proteggere.
 
 // Vecchia sotto-categoria "news" del vecchio sito: sul nuovo sito non ha una
 // pagina dedicata (la pagina categoria principale già mostra tutte le news),
@@ -174,9 +142,6 @@ export async function middleware(req: NextRequest) {
 
   const attesa = comingSoonGate(req, pathname)
   if (attesa) return attesa
-
-  const gate = await telemetriaGate(req, pathname)
-  if (gate) return gate
 
   // Vecchie pagine con query string (?page_id=...)
   const pageId = searchParams.get('page_id')

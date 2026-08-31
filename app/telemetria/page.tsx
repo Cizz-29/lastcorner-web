@@ -1,14 +1,17 @@
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import RunPanel, { type Meeting } from '@/components/telemetria/RunPanel'
+import { STRUMENTI_LOCALI } from '@/lib/strumenti'
 
-// Indice dell'area Telemetria (staff): elenca i weekend elaborati dalla
-// pipeline GitHub Actions (scripts/telemetry). I dati vivono come JSON
-// statici in public/telemetria-data/ — questa pagina legge solo l'indice.
+// Indice dell'area Telemetria: elenca i weekend gia' elaborati. I dati sono
+// JSON su disco in public/telemetria-data/ (non piu' versionati), prodotti
+// dallo script Python. Questa pagina legge solo l'indice.
+//
+// Strumento di redazione: esiste solo in locale (vedi lib/strumenti.ts).
 
 export const metadata: Metadata = {
   title: 'Telemetria',
@@ -37,43 +40,9 @@ async function readIndex(): Promise<IndexEntry[]> {
   }
 }
 
-// Calendario della stagione da OpenF1, per popolare il menu del pannello.
-// Stessi filtri dello script (niente test pre-stagionali né GP cancellati),
-// così i numeri di round coincidono. Se l'API non risponde il pannello
-// resta usabile in modalità "Automatico".
-async function readCalendar(done: Set<number>): Promise<Meeting[]> {
-  try {
-    const year = new Date().getFullYear()
-    // revalidate breve: se OpenF1 non risponde durante un build, il menu
-    // resterebbe vuoto per tutto il periodo di cache.
-    const res = await fetch(`https://api.openf1.org/v1/meetings?year=${year}`, {
-      next: { revalidate: 3600 },
-    })
-    if (!res.ok) return []
-    const raw = (await res.json()) as any[]
-    return raw
-      .filter(
-        (m) =>
-          m.date_start &&
-          !m.is_cancelled &&
-          !String(m.meeting_name ?? '').toLowerCase().includes('testing')
-      )
-      .sort((a, b) => String(a.date_start).localeCompare(String(b.date_start)))
-      .map((m, i) => ({
-        round: i + 1,
-        name: m.meeting_name ?? `Round ${i + 1}`,
-        circuit: m.circuit_short_name ?? m.location ?? '',
-        date: String(m.date_start).slice(0, 10),
-        done: done.has(i + 1),
-      }))
-  } catch {
-    return []
-  }
-}
-
 export default async function TelemetriaIndexPage() {
+  if (!STRUMENTI_LOCALI) notFound()
   const events = await readIndex()
-  const calendar = await readCalendar(new Set(events.map((e) => e.round)))
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -89,13 +58,22 @@ export default async function TelemetriaIndexPage() {
           Area interna — confronto giri di qualifica e passo gara, weekend per weekend.
         </p>
 
-        <RunPanel meetings={calendar} />
+        <div className="bg-lc-card border border-white/10 rounded-card p-6 mb-10 max-w-2xl">
+          <p className="font-akira font-bold text-[13px] text-white mb-3">Elaborare un weekend</p>
+          <p className="font-montserrat text-[13px] text-lc-subtle leading-relaxed mb-3">
+            Dalla cartella <code className="text-white">lastcorner</code>, con il numero del round:
+          </p>
+          <pre className="font-mono text-[12px] text-white bg-black/40 rounded-lg p-3 overflow-x-auto">python scripts\telemetry\process_session.py 2026 13</pre>
+          <p className="font-montserrat text-[12px] text-lc-subtle leading-relaxed mt-3">
+            Oppure <code className="text-white">--auto</code> al posto di anno e round per l&apos;ultimo
+            weekend concluso. Finito lo script, ricarica questa pagina.
+          </p>
+        </div>
 
         {events.length === 0 ? (
           <div className="bg-lc-card border border-white/10 rounded-card p-8 mb-16 max-w-xl">
             <p className="font-montserrat text-[14px] text-lc-subtle leading-relaxed">
-              Nessun weekend elaborato ancora. I dati compaiono qui automaticamente dopo ogni
-              sessione, appena la pipeline li ha processati.
+              Nessun weekend elaborato ancora. Lancia il comando qui sopra e ricarica.
             </p>
           </div>
         ) : (
