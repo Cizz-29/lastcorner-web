@@ -140,7 +140,12 @@ export default async function TeamPage({ params }: TeamPageProps) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10 mb-16">
-          <div>
+          {/* min-w-0: senza, la colonna di una griglia non scende mai sotto la
+              larghezza minima del suo contenuto. Un'immagine larga bastava a
+              gonfiare la colonna e a spingere la barra laterale fuori dallo
+              schermo. Con min-w-0 la colonna vale esattamente lo spazio
+              disponibile e il contenuto si adatta a lei. */}
+          <div className="min-w-0">
             {/* Statistiche stagione — solo dove disponibile un dato live (F1) */}
             {isLive && (
               <>

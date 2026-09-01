@@ -139,7 +139,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10 mb-16">
-          <article>
+          {/* min-w-0: senza, la colonna di una griglia non scende mai sotto la
+              larghezza minima del suo contenuto. Un'immagine larga bastava a
+              gonfiare la colonna e a spingere la barra laterale fuori dallo
+              schermo. Con min-w-0 la colonna vale esattamente lo spazio
+              disponibile e il contenuto si adatta a lei. */}
+          <article className="min-w-0">
             <span className="inline-block font-akira font-bold text-[11px] text-white bg-lc-red rounded-full px-3 py-1 mb-4 tracking-wide">
               {article.category.toUpperCase()}
             </span>

@@ -85,16 +85,21 @@ function ImageBlock({ value }: { value: any }) {
 
   const proporzioni = dim.larghezza / dim.altezza
 
+  // Il tetto di altezza e' scritto come min(100%, ...) e l'immagine tiene un
+  // max-w-full: senza il 100% il riquadro poteva chiedere piu' spazio della
+  // colonna (su una finestra bassa e larga 80vh vale poco, ma moltiplicato
+  // per le proporzioni di una foto panoramica diventa piu' della colonna) e
+  // la pagina finiva per allargarsi oltre lo schermo.
   return (
     <figure className="mb-6">
-      <div className="mx-auto" style={{ maxWidth: `calc(80vh * ${proporzioni.toFixed(4)})` }}>
+      <div className="mx-auto" style={{ maxWidth: `min(100%, calc(80vh * ${proporzioni.toFixed(4)}))` }}>
         <Image
           src={src}
           alt={value.alt || value.caption || ''}
           width={dim.larghezza}
           height={dim.altezza}
           sizes="(max-width: 1024px) 100vw, 800px"
-          className="w-full h-auto rounded-card"
+          className="w-full max-w-full h-auto rounded-card"
         />
         {didascalia}
       </div>
