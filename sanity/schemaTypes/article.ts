@@ -1,5 +1,11 @@
 import { defineField, defineType } from 'sanity'
 import { CampoTestoRitardato } from '../studio/personalizzazioni'
+import {
+  LARGHEZZA_MINIMA_PRINCIPALE,
+  LARGHEZZA_MINIMA_CORPO,
+  larghezzaSufficiente,
+  orientamentoOrizzontale,
+} from './misureImmagine'
 
 // Categorie del sito — tenute in sync a mano con lib/categories.ts finche'
 // non collega direttamente lo schema a quella lista in fase di integrazione.
@@ -80,10 +86,18 @@ export default defineType({
       title: 'Immagine principale',
       type: 'image',
       options: { hotspot: true },
+      description: `Almeno ${LARGHEZZA_MINIMA_PRINCIPALE}px di larghezza, orizzontale. E' l'immagine che Google usa per Discover e per l'anteprima social.`,
       fields: [
         { name: 'alt', title: 'Testo alternativo (alt)', type: 'string', description: 'Descrizione breve per accessibilita e SEO.' },
       ],
-      validation: (Rule) => Rule.required(),
+      validation: (Rule) => [
+        Rule.required(),
+        // Errore, non avviso: sotto i 1200px l'articolo e' fuori da Discover
+        // e l'anteprima social esce sgranata. Vale la pena fermarsi e
+        // cercare il file originale.
+        Rule.custom((value) => larghezzaSufficiente(value, LARGHEZZA_MINIMA_PRINCIPALE)),
+        Rule.custom((value) => orientamentoOrizzontale(value)).warning(),
+      ],
     }),
     defineField({
       name: 'excerpt',
@@ -158,6 +172,12 @@ export default defineType({
           // didascalia. La finestra grande non ha questo problema ed è
           // anche molto più comoda da telefono.
           options: { hotspot: true, modal: { type: 'dialog' } },
+          description: `Mostrata a tutta la larghezza della colonna nelle sue proporzioni reali: sotto ${LARGHEZZA_MINIMA_CORPO}px viene ingrandita e sgrana.`,
+          // Avviso e non errore: nel corpo capita di dover mettere uno
+          // screenshot, un grafico o una vecchia foto d'archivio che a piena
+          // risoluzione non esiste. Meglio segnalarlo che impedirlo.
+          validation: (Rule) =>
+            Rule.custom((value) => larghezzaSufficiente(value, LARGHEZZA_MINIMA_CORPO)).warning(),
           fields: [
             {
               name: 'caption',

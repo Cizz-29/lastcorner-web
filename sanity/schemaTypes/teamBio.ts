@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { LARGHEZZA_MINIMA_CORPO, larghezzaSufficiente } from './misureImmagine'
 
 export default defineType({
   name: 'teamBio',
@@ -48,6 +49,9 @@ export default defineType({
           type: 'image',
           title: 'Immagine',
           options: { hotspot: true },
+          description: `Mostrata a tutta la larghezza della colonna: sotto ${LARGHEZZA_MINIMA_CORPO}px viene ingrandita e sgrana.`,
+          validation: (Rule) =>
+            Rule.custom((value) => larghezzaSufficiente(value, LARGHEZZA_MINIMA_CORPO)).warning(),
           fields: [{ name: 'alt', title: 'Testo alternativo (alt)', type: 'string' }],
         },
       ],
