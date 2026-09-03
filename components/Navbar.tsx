@@ -32,6 +32,13 @@ function getSubmenuItems(categorySlug: string) {
   let rosterItems = categorySlug === 'formula-1' ? ROSTER_ITEMS : ROSTER_ITEMS.filter((item) => item.slug !== 'calendario')
   if ((config?.hasPiloti ?? true) === false) rosterItems = rosterItems.filter((item) => item.slug !== 'piloti')
   if ((config?.hasTeam ?? true) === false) rosterItems = rosterItems.filter((item) => item.slug !== 'team')
+  // La F1 Academy chiama la sua sezione "Pilote": e' un campionato tutto
+  // femminile e "Piloti" suonerebbe sbagliato a chi lo segue.
+  if (config?.etichettaPiloti) {
+    rosterItems = rosterItems.map((item) =>
+      item.slug === 'piloti' ? { ...item, label: config.etichettaPiloti! } : item
+    )
+  }
   return [{ label: 'News', slug: '' }, ...subcategoryItems, ...rosterItems]
 }
 

@@ -64,6 +64,14 @@ export default function DriverCard({
           </span>
         )}
       </div>
+      {/* F1 Academy: il team di F1 alle spalle della pilota. Riga separata e
+          piu' tenue perche' e' un'informazione di contorno, non l'identita'
+          della card. */}
+      {driver.supportingTeamName && (
+        <p className="font-montserrat text-[10px] text-lc-subtle/70 truncate mt-1">
+          Supportata da {driver.supportingTeamName}
+        </p>
+      )}
     </Link>
   )
 }

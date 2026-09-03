@@ -16,6 +16,11 @@ export interface RosterDriver {
   position?: string
   points?: string
   wins?: string
+  /** Solo F1 Academy: il team di Formula 1 che sostiene la pilota, con
+   *  l'id della sua pagina sul sito per poterlo collegare. Non tutte ne
+   *  hanno uno, quindi entrambi i campi sono opzionali. */
+  supportingTeamName?: string
+  supportingTeamId?: string
 }
 
 export interface RosterTeam {

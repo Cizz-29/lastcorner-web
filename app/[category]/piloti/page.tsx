@@ -25,7 +25,7 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: PageProps): Metadata {
   const config = getCategoryConfig(params.category)
   if (!config) return { title: 'Categoria non trovata' }
-  return { title: `Piloti ${config.label}` }
+  return { title: `${config.etichettaPiloti ?? 'Piloti'} ${config.label}` }
 }
 
 // La F1 ha dati live (Jolpica); F2/F3 usano un roster statico raccolto dai
@@ -52,7 +52,7 @@ export default async function DriversOverviewPage({ params }: PageProps) {
         <div className="flex items-center gap-3 mb-10">
           <div className="w-1 h-8 bg-lc-red rounded-full shrink-0" />
           <h1 className="font-akira font-extrabold text-[22px] lg:text-[28px] text-white leading-tight uppercase">
-            Piloti {config.label}
+            {config.etichettaPiloti ?? 'Piloti'} {config.label}
           </h1>
         </div>
 

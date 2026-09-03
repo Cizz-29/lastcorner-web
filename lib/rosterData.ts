@@ -10,7 +10,17 @@ interface RosterTeamEntry {
   id: string
   name: string
   nationality?: string
-  drivers: { number: string; givenName: string; familyName: string; nationality: string }[]
+  drivers: {
+    number: string
+    givenName: string
+    familyName: string
+    nationality: string
+    /** Solo F1 Academy: team di Formula 1 che sostiene la pilota.
+     *  `supportId` deve corrispondere all'id della pagina team F1
+     *  (quelli di Jolpica: red_bull, rb, aston_martin, ...). */
+    support?: string
+    supportId?: string
+  }[]
 }
 
 const F2_TEAMS: RosterTeamEntry[] = [
@@ -117,15 +127,46 @@ const F3_TEAMS: RosterTeamEntry[] = [
 // che corrono in F2/F3, quindi gli id coincidono di proposito — così la bio
 // scritta una volta sola su Sanity (documento teamBio con quel
 // constructorId) compare automaticamente in tutte e tre le categorie.
-// I piloti non sono elencati: la sezione "Piloti" per questa categoria è
-// disattivata (vedi hasPiloti in lib/categories.ts).
+// F1 Academy 2026 — iscritte all'intera stagione.
+//
+// Le wildcard NON sono incluse di proposito: cambiano a ogni weekend e una
+// pagina che compare e sparisce farebbe piu' danni che altro (link rotti,
+// URL indicizzati e poi svuotati). Per questo Hitech ha due pilote e non tre.
+//
+// "support" e' il team di Formula 1 che sostiene la pilota nel proprio
+// programma giovani: e' un'informazione che il pubblico cerca e che collega
+// questa sezione alle pagine team di F1. Chi non ha un programma alle spalle
+// semplicemente non ha il campo.
 const F1_ACADEMY_TEAMS: RosterTeamEntry[] = [
-  { id: 'art-grand-prix', name: 'ART Grand Prix', nationality: 'French', drivers: [] },
-  { id: 'campos-racing', name: 'Campos Racing', nationality: 'Spanish', drivers: [] },
-  { id: 'hitech', name: 'Hitech', nationality: 'British', drivers: [] },
-  { id: 'mp-motorsport', name: 'MP Motorsport', nationality: 'Dutch', drivers: [] },
-  { id: 'prema-racing', name: 'PREMA Racing', nationality: 'Italian', drivers: [] },
-  { id: 'rodin-motorsport', name: 'Rodin Motorsport', nationality: 'New Zealander', drivers: [] },
+  { id: 'mp-motorsport', name: 'MP Motorsport', nationality: 'Dutch', drivers: [
+    { number: '3', givenName: 'Nina', familyName: 'Gademan', nationality: 'Dutch', support: 'Alpine', supportId: 'alpine' },
+    { number: '12', givenName: 'Alba', familyName: 'Hurup Larsen', nationality: 'Danish', support: 'Ferrari', supportId: 'ferrari' },
+    { number: '32', givenName: 'Esmee', familyName: 'Kosterman', nationality: 'Dutch' },
+  ]},
+  { id: 'campos-racing', name: 'Campos Racing', nationality: 'Spanish', drivers: [
+    { number: '4', givenName: 'Megan', familyName: 'Bruce', nationality: 'British' },
+    { number: '18', givenName: 'Rafaela', familyName: 'Ferreira', nationality: 'Brazilian', support: 'Racing Bulls', supportId: 'rb' },
+    { number: '21', givenName: 'Alisha', familyName: 'Palmowski', nationality: 'British', support: 'Red Bull Racing', supportId: 'red_bull' },
+  ]},
+  { id: 'rodin-motorsport', name: 'Rodin Motorsport', nationality: 'New Zealander', drivers: [
+    { number: '5', givenName: 'Emma', familyName: 'Felbermayr', nationality: 'Austrian', support: 'Audi', supportId: 'audi' },
+    { number: '20', givenName: 'Ella', familyName: 'Lloyd', nationality: 'British', support: 'McLaren', supportId: 'mclaren' },
+    { number: '28', givenName: 'Ella', familyName: 'Stevens', nationality: 'British' },
+  ]},
+  { id: 'prema-racing', name: 'PREMA Racing', nationality: 'Italian', drivers: [
+    { number: '8', givenName: 'Mathilda', familyName: 'Paatz', nationality: 'German', support: 'Aston Martin', supportId: 'aston_martin' },
+    { number: '9', givenName: 'Payton', familyName: 'Westcott', nationality: 'American', support: 'Mercedes', supportId: 'mercedes' },
+    { number: '19', givenName: 'Natalia', familyName: 'Granada', nationality: 'Spanish' },
+  ]},
+  { id: 'art-grand-prix', name: 'ART Grand Prix', nationality: 'French', drivers: [
+    { number: '14', givenName: 'Lisa', familyName: 'Billard', nationality: 'French' },
+    { number: '91', givenName: 'Kaylee', familyName: 'Countryman', nationality: 'American', support: 'Haas', supportId: 'haas' },
+    { number: '95', givenName: 'Jade', familyName: 'Jacquet', nationality: 'French', support: 'Williams', supportId: 'williams' },
+  ]},
+  { id: 'hitech', name: 'Hitech', nationality: 'British', drivers: [
+    { number: '55', givenName: 'Ava', familyName: 'Dobson', nationality: 'American' },
+    { number: '56', givenName: 'Rachel', familyName: 'Robertson', nationality: 'British' },
+  ]},
 ]
 
 function slugify(s: string): string {
@@ -153,6 +194,8 @@ function buildRoster(teamEntries: RosterTeamEntry[]): { drivers: RosterDriver[];
         nationality: d.nationality,
         teamId: t.id,
         teamName: t.name,
+        supportingTeamName: d.support,
+        supportingTeamId: d.supportId,
       })
     }
   }

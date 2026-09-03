@@ -100,7 +100,7 @@ export default async function DriverPage({ params }: DriverPageProps) {
           <Link href="/" className="hover:text-lc-red transition-colors duration-200">Home</Link>
           <span className="opacity-50">/</span>
           <Link href={`/${config.slug}/piloti`} className="hover:text-lc-red transition-colors duration-200">
-            Piloti {config.label}
+            {config.etichettaPiloti ?? 'Piloti'} {config.label}
           </Link>
           <span className="opacity-50">/</span>
           <span className="text-white/60">{fullName}</span>
@@ -128,6 +128,25 @@ export default async function DriverPage({ params }: DriverPageProps) {
               >
                 {driver.teamName} →
               </Link>
+              {/* Team di F1 che la sostiene (solo F1 Academy). Il rimando alla
+                  pagina team di Formula 1 e' voluto: e' l'informazione che il
+                  lettore cerca subito dopo il nome, e collega due sezioni del
+                  sito che altrimenti resterebbero separate. */}
+              {driver.supportingTeamName && (
+                <p className="font-montserrat text-[12px] text-lc-subtle mt-1">
+                  Supportata da{' '}
+                  {driver.supportingTeamId ? (
+                    <Link
+                      href={`/formula-1/team/${driver.supportingTeamId}`}
+                      className="text-white/80 hover:text-lc-red transition-colors duration-200"
+                    >
+                      {driver.supportingTeamName}
+                    </Link>
+                  ) : (
+                    <span className="text-white/80">{driver.supportingTeamName}</span>
+                  )}
+                </p>
+              )}
             </div>
             <span
               className="font-akira font-extrabold text-[40px] sm:text-[64px] lg:text-[88px] leading-none shrink-0 tabular-nums"
