@@ -69,7 +69,7 @@ export default function DriverCard({
           della card. */}
       {driver.supportingTeamName && (
         <p className="font-montserrat text-[10px] text-lc-subtle/70 truncate mt-1">
-          Supportata da {driver.supportingTeamName}
+          ({driver.supportingTeamName})
         </p>
       )}
     </Link>

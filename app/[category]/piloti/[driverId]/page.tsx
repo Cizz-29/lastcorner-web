@@ -134,7 +134,7 @@ export default async function DriverPage({ params }: DriverPageProps) {
                   sito che altrimenti resterebbero separate. */}
               {driver.supportingTeamName && (
                 <p className="font-montserrat text-[12px] text-lc-subtle mt-1">
-                  Supportata da{' '}
+                  (
                   {driver.supportingTeamId ? (
                     <Link
                       href={`/formula-1/team/${driver.supportingTeamId}`}
@@ -145,6 +145,7 @@ export default async function DriverPage({ params }: DriverPageProps) {
                   ) : (
                     <span className="text-white/80">{driver.supportingTeamName}</span>
                   )}
+                  )
                 </p>
               )}
             </div>
