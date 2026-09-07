@@ -17,15 +17,48 @@ import { PAGINE_MASSIME, SOTTOCATEGORIE_PAGINABILI, percorsoPagina } from '@/lib
 const KNOWN_TOP_LEVEL = new Set([
   'formula-1', 'formula-2', 'formula-3', 'f1-academy', 'wrc', 'altro',
   'chi-siamo', 'contatti', 'privacy', 'cookie', 'note-legali', 'autori',
-  'cerca', 'telemetria', 'telemetria-data',
+  'cerca', 'telemetria', 'telemetria-data', 'grafiche',
   'studio', 'api', 'images', 'sitemap.xml', 'robots.txt', '_next', 'favicon.ico',
   'ads.txt', 'fonts',
 ])
 
-// Nota: qui c'era il controllo password per /telemetria e /grafiche, con un
-// calcolo SHA-256 a ogni richiesta protetta. Quegli strumenti ora girano solo
-// sul PC (vedi lib/strumenti.ts) e online rispondono 404, quindi non c'e' piu'
-// niente da proteggere.
+// La telemetria gira solo sul PC (vedi lib/strumenti.ts) e online risponde
+// 404: non c'e' niente da proteggere. Il generatore di grafiche invece e'
+// tornato online, perche' serve proprio quando il PC non c'e' — si fa una
+// grafica dal telefono senza aprire Photoshop — e tenerlo in locale ne
+// annullava lo scopo.
+//
+// Protetto da password del browser (autenticazione HTTP). Rispetto alla
+// pagina di login che c'era prima: niente route API, niente cookie, niente
+// SHA-256 ricalcolato a ogni richiesta protetta, e sul telefono la password
+// si inserisce una volta sola. Se la variabile d'ambiente non e' configurata
+// la sezione resta aperta, cosi' in locale funziona senza.
+function protezioneGrafiche(req: NextRequest): NextResponse | null {
+  const attesa = process.env.GRAFICHE_PASSWORD
+  if (!attesa) return null
+
+  const intestazione = req.headers.get('authorization') ?? ''
+  if (intestazione.startsWith('Basic ')) {
+    try {
+      const decodificata = atob(intestazione.slice(6))
+      // Si confronta solo la password: l'utente puo' scrivere quello che
+      // vuole nel campo nome, tanto e' una password condivisa, non un
+      // account.
+      if (decodificata.slice(decodificata.indexOf(':') + 1) === attesa) return null
+    } catch {
+      // Intestazione malformata: si richiede la password invece di rompere.
+    }
+  }
+
+  return new NextResponse('Serve la password.', {
+    status: 401,
+    headers: {
+      'WWW-Authenticate': 'Basic realm="Lastcorner", charset="UTF-8"',
+      // Uno strumento di redazione non deve finire in nessuna cache.
+      'Cache-Control': 'no-store',
+    },
+  })
+}
 
 // Vecchia sotto-categoria "news" del vecchio sito: sul nuovo sito non ha una
 // pagina dedicata (la pagina categoria principale già mostra tutte le news),
@@ -140,6 +173,12 @@ function elencoPaginabile(segments: string[]): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl
 
+  if (pathname === '/grafiche' || pathname.startsWith('/grafiche/')) {
+    const chiedi = protezioneGrafiche(req)
+    if (chiedi) return chiedi
+    return NextResponse.next()
+  }
+
   const attesa = comingSoonGate(req, pathname)
   if (attesa) return attesa
 
@@ -214,8 +253,8 @@ export async function middleware(req: NextRequest) {
 // anche sui font, su icon.png, su robots.txt e sugli altri file statici, che
 // di redirect non hanno alcun bisogno. Era circa un terzo della CPU consumata.
 //
-// Restano DENTRO, e devono restarci: /api (il 401 sulle route telemetria),
-// /telemetria-data e /grafiche (file in public/ protetti dalla password).
+// Restano DENTRO, e devono restarci: /grafiche e il template che sta sotto
+// di esso, che e' un file in public/ ma va protetto dalla stessa password.
 // Per questo non si esclude per estensione: /grafiche/template-intervista.webp
 // e' un'immagine, ma va protetta.
 export const config = {

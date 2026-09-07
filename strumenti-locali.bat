@@ -1,6 +1,7 @@
 @echo off
 REM ---------------------------------------------------------------------
-REM  Strumenti Lastcorner in locale (telemetria + generatore grafiche).
+REM  Strumenti Lastcorner in locale (telemetria; le grafiche sono anche
+REM  online su lastcorner.net/grafiche, qui sono comode se sei gia' al PC).
 REM
 REM  Doppio clic su questo file: avvia il sito sul tuo computer e apre il
 REM  browser. Niente di tutto questo passa da internet - i dati telemetria
