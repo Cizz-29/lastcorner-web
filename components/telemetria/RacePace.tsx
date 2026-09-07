@@ -6,6 +6,12 @@ import { esportaPng } from '@/components/telemetria/esportaPng'
 // Passo: tempo sul giro di ogni pilota selezionato, giro per giro.
 // Si può restringere l'analisi a un intervallo di giri (utile per isolare
 // uno stint) e si legge la media di ciascun pilota su quell'intervallo.
+//
+// L'intervallo da solo però non basta: un giro rovinato dal traffico può
+// stare comodamente sotto la soglia del 107% e restare dentro la media,
+// falsandola. Per questo ogni giro è un pallino che si può cliccare per
+// escluderlo — singolarmente e per singolo pilota, perché il traffico
+// rallenta chi lo trova, non tutti quelli che passano in quel giro.
 
 export interface RaceLap {
   n: number
@@ -104,9 +110,31 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
 
   const [from, to] = range
 
+  // Giri esclusi a mano, come chiavi "SIGLA:numero". Un oggetto e non un Set
+  // perche' React confronta per identita': sostituirlo per intero a ogni
+  // modifica e' quello che fa ridisegnare il grafico.
+  const [esclusi, setEsclusi] = useState<Record<string, true>>({})
+  const chiave = (abbr: string, n: number) => `${abbr}:${n}`
+  const escluso = (abbr: string, n: number) => esclusi[chiave(abbr, n)] === true
+
+  function alternaGiro(abbr: string, n: number) {
+    setEsclusi((prev) => {
+      const next = { ...prev }
+      if (next[chiave(abbr, n)]) delete next[chiave(abbr, n)]
+      else next[chiave(abbr, n)] = true
+      return next
+    })
+  }
+
   const chart = useMemo(() => {
-    const inRange = (l: RaceLap) => l.n >= from && l.n <= to && l.t != null
-    const times = picked.flatMap((d) => d.laps.filter(inRange).map((l) => l.t as number))
+    // I giri che entrano nei conti: dentro l'intervallo, cronometrati, e non
+    // esclusi a mano. L'esclusione entra qui e non solo nel disegno, altrimenti
+    // il giro tolto continuerebbe a spostare media e soglia.
+    const utili = (d: RaceDriver) =>
+      d.laps.filter(
+        (l) => l.n >= from && l.n <= to && l.t != null && !esclusi[`${d.abbr}:${l.n}`]
+      )
+    const times = picked.flatMap((d) => utili(d).map((l) => l.t as number))
     if (times.length === 0) return null
 
     // Soglia per i giri anomali: 107% della media. La media viene calcolata
@@ -127,7 +155,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
     // Media per pilota sull'intervallo, esclusi i giri anomali.
     const medie = picked
       .map((d) => {
-        const ts = d.laps.filter(inRange).map((l) => l.t).filter((t): t is number => t != null && t <= cutoff)
+        const ts = utili(d).map((l) => l.t).filter((t): t is number => t != null && t <= cutoff)
         return {
           abbr: d.abbr,
           media: ts.length ? ts.reduce((a, b) => a + b, 0) / ts.length : null,
@@ -138,7 +166,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
       .sort((a, b) => (a.media as number) - (b.media as number))
 
     return { lo, hi, cutoff, fastest, medie }
-  }, [picked, filtra, from, to])
+  }, [picked, filtra, from, to, esclusi])
 
   function pos(lap: number, time: number) {
     if (!chart) return { x: 0, y: 0 }
@@ -147,6 +175,37 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
     const usable = H - PAD_V * 2 - PAD_B
     const y = PAD_V + (1 - (time - chart.lo) / (chart.hi - chart.lo || 1)) * usable
     return { x, y }
+  }
+
+  // Elenco dei giri tolti a mano, per le pastiglie sopra il grafico. Si guarda
+  // solo ai piloti e all'intervallo mostrati: le esclusioni di un pilota poi
+  // deselezionato restano in memoria ma non si elencano.
+  const listaEsclusi = useMemo(() => {
+    const out: { abbr: string; n: number }[] = []
+    for (const d of picked) {
+      for (const l of d.laps) {
+        if (l.n >= from && l.n <= to && esclusi[`${d.abbr}:${l.n}`]) {
+          out.push({ abbr: d.abbr, n: l.n })
+        }
+      }
+    }
+    return out.sort((a, b) => a.abbr.localeCompare(b.abbr) || a.n - b.n)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked, from, to, esclusi])
+
+  // Rovescia la selezione: quello che ora e' escluso diventa l'unico incluso.
+  // E' il modo breve per dire "guarda solo questi tre giri" senza doverne
+  // togliere quaranta a uno a uno.
+  function tieniSoloGliEsclusi() {
+    const next: Record<string, true> = {}
+    for (const d of picked) {
+      for (const l of d.laps) {
+        if (l.n >= from && l.n <= to && l.t != null && !esclusi[`${d.abbr}:${l.n}`]) {
+          next[`${d.abbr}:${l.n}`] = true
+        }
+      }
+    }
+    setEsclusi(next)
   }
 
   const gridTimes = chart
@@ -170,7 +229,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
       await esportaPng({
         svg: svgRef.current,
         titolo: 'Passo gara',
-        unita: `giri ${from}–${to}`,
+        unita: `giri ${from}–${to}${listaEsclusi.length ? ` · ${listaEsclusi.length} esclusi` : ''}`,
         etichette: gridTimes.map((t) => ({ testo: formatLapTime(t), y: pos(from, t).y })),
         altezzaGrafico: H,
         legenda: picked.map((d) => ({ abbr: d.abbr, color: colors[d.abbr] ?? d.color })),
@@ -258,7 +317,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
         </div>
       </div>
 
-      <label className="flex items-center gap-2 mb-6 cursor-pointer w-fit">
+      <label className="flex items-center gap-2 mb-3 cursor-pointer w-fit">
         <input
           type="checkbox"
           checked={filtra}
@@ -269,6 +328,46 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
           Nascondi giri anomali (oltre il 107% della media)
         </span>
       </label>
+
+      {listaEsclusi.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className="font-montserrat text-[12px] text-white shrink-0">
+            {listaEsclusi.length === 1 ? '1 giro escluso' : `${listaEsclusi.length} giri esclusi`}
+          </span>
+          {/* Le pastiglie si elencano solo se sono poche: dopo un "tieni solo
+              questi" gli esclusi sono decine e la barra mangerebbe la pagina.
+              Il conteggio e i pallini vuoti sul grafico bastano. */}
+          {listaEsclusi.length <= 8 &&
+            listaEsclusi.map((e) => (
+            <button
+              key={`${e.abbr}:${e.n}`}
+              onClick={() => alternaGiro(e.abbr, e.n)}
+              title="Rimetti questo giro nel conto"
+              className="font-montserrat text-[11px] text-lc-subtle border border-white/15 rounded-full px-2.5 py-1 hover:border-lc-red hover:text-white transition-colors"
+            >
+              {e.abbr} g.{e.n} <span className="opacity-60 ml-0.5">×</span>
+              </button>
+            ))}
+          <button
+            onClick={() => setEsclusi({})}
+            className="font-montserrat text-[11px] text-lc-subtle hover:text-white border border-white/15 rounded-full px-3 py-1"
+          >
+            rimetti tutti
+          </button>
+          <button
+            onClick={tieniSoloGliEsclusi}
+            title="Rovescia la selezione: restano solo i giri ora esclusi"
+            className="font-montserrat text-[11px] text-lc-subtle hover:text-white border border-white/15 rounded-full px-3 py-1"
+          >
+            tieni solo questi
+          </button>
+        </div>
+      ) : (
+        <p className="font-montserrat text-[12px] text-lc-subtle mb-6">
+          Clicca un pallino sul grafico per togliere quel giro dalla media —
+          utile per i giri rovinati dal traffico, che restano sotto il 107%.
+        </p>
+      )}
 
       {!chart ? (
         <p className="font-montserrat text-[13px] text-lc-subtle">
@@ -330,11 +429,14 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
                 })}
 
                 {picked.map((d) => {
+                  // La linea si spezza sui giri fuori soglia e su quelli
+                  // esclusi a mano: unirli darebbe un segmento che passa
+                  // sopra un dato che si e' deciso di non guardare.
                   const segments: { x: number; y: number }[][] = []
                   let current: { x: number; y: number }[] = []
                   for (const lap of d.laps) {
                     if (lap.n < from || lap.n > to) continue
-                    if (lap.t == null || lap.t > chart.cutoff) {
+                    if (lap.t == null || lap.t > chart.cutoff || escluso(d.abbr, lap.n)) {
                       if (current.length) segments.push(current)
                       current = []
                       continue
@@ -343,6 +445,13 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
                   }
                   if (current.length) segments.push(current)
                   const c = colors[d.abbr] ?? d.color
+
+                  // Un pallino per giro: rende visibile dove cade ogni tempo
+                  // ed e' il bersaglio del clic che lo esclude. Si disegnano
+                  // anche i giri esclusi (vuoti) per poterli rimettere.
+                  const punti = d.laps.filter(
+                    (l) => l.n >= from && l.n <= to && l.t != null && (l.t as number) <= chart.hi
+                  )
 
                   return (
                     <g key={d.abbr}>
@@ -357,12 +466,47 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
                           vectorEffect="non-scaling-stroke"
                         />
                       ))}
-                      {d.laps
-                        .filter((l) => l.pit && l.n >= from && l.n <= to && l.t != null && l.t <= chart.cutoff)
-                        .map((l) => {
-                          const p = pos(l.n, l.t as number)
-                          return <circle key={l.n} cx={p.x} cy={p.y} r={3} fill={c} stroke="#131318" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-                        })}
+                      {punti.map((l) => {
+                        const p = pos(l.n, l.t as number)
+                        const fuori = escluso(d.abbr, l.n)
+                        // I giri di box restano piu' grandi e con il bordo
+                        // scuro: erano gia' segnalati cosi' e continuano a
+                        // distinguersi dai pallini normali.
+                        const r = l.pit ? 3 : 2.2
+                        return (
+                          <g key={l.n}>
+                            <circle
+                              cx={p.x}
+                              cy={p.y}
+                              r={r}
+                              fill={fuori ? 'none' : c}
+                              stroke={fuori ? c : l.pit ? '#131318' : 'none'}
+                              strokeWidth={fuori ? 1.3 : 1}
+                              strokeOpacity={fuori ? 0.55 : 1}
+                              vectorEffect="non-scaling-stroke"
+                              pointerEvents="none"
+                            />
+                            {/* Bersaglio del clic, piu' largo del pallino:
+                                a 2 pixel di raggio non si prenderebbe mai. */}
+                            <circle
+                              cx={p.x}
+                              cy={p.y}
+                              r={6}
+                              fill="transparent"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => alternaGiro(d.abbr, l.n)}
+                            >
+                              {/* Un solo figlio di testo: due lo spezzerebbero
+                                  in due nodi e l'idratazione fallirebbe. */}
+                              <title>
+                                {`${d.abbr} · giro ${l.n} · ${formatLapTime(l.t as number)} · ${
+                                  fuori ? 'escluso, clicca per rimetterlo' : 'clicca per escluderlo'
+                                }`}
+                              </title>
+                            </circle>
+                          </g>
+                        )
+                      })}
                     </g>
                   )
                 })}
@@ -407,8 +551,10 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
           </div>
 
           <p className="font-montserrat text-[11px] text-lc-subtle mb-8">
-            I punti indicano i giri di entrata/uscita dai box. Giro più veloce
-            nell&apos;intervallo: {formatLapTime(chart.fastest)}.
+            Ogni pallino è un giro; quelli più grandi col bordo scuro sono
+            entrata/uscita dai box, quelli vuoti i giri esclusi a mano. Clicca
+            per escludere o rimettere. Giro più veloce nell&apos;intervallo:{' '}
+            {formatLapTime(chart.fastest)}.
           </p>
 
           {/* Stint e mescole */}

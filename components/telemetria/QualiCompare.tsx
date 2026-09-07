@@ -152,6 +152,18 @@ interface Serie {
   y: number[]
 }
 
+// Un traguardo di settore: una riga verticale nel punto del giro in cui il
+// cronometro chiude il settore, e su di essa il distacco esatto letto dai
+// tempi di settore. E' l'unico riferimento certo che abbiamo: la curva del
+// delta e' ricostruita dalla telemetria, questi tre numeri no.
+export interface Traguardo {
+  /** Posizione lungo il giro, da 0 (traguardo) a 1. */
+  frazione: number
+  /** Etichetta del settore, es. "S1". */
+  etichetta: string
+  punti: { valore: number; testo: string; colore: string }[]
+}
+
 // --- Grafico ----------------------------------------------------------------
 
 // Le etichette dell'asse Y sono HTML accanto all'SVG, non testo dentro di
@@ -170,6 +182,7 @@ function Chart({
   legenda = [],
   nomeFile,
   annotazioni = [],
+  traguardi = [],
 }: {
   title: string
   unit: string
@@ -183,6 +196,7 @@ function Chart({
   legenda?: VoceLegenda[]
   nomeFile: string
   annotazioni?: Annotazione[]
+  traguardi?: Traguardo[]
 }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const titoloRef = useRef<HTMLParagraphElement>(null)
@@ -196,6 +210,34 @@ function Chart({
   const n = ticks ?? 3
   const values = Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1))
 
+  // Le etichette dei traguardi diventano annotazioni come le altre: cosi'
+  // finiscono nel PNG senza che l'esportazione debba sapere cosa sono. La
+  // conversione sta qui e non nel chiamante perche' serve la scala verticale,
+  // che e' nota solo dentro il grafico.
+  const etichetteTraguardi: Annotazione[] = traguardi.map((t) => {
+    // L'etichetta si appoggia al pallino piu' esterno, non alla media dei
+    // pallini: ancorandola in mezzo finirebbe sopra quelli piu' alti e li
+    // coprirebbe proprio mentre serve vederli.
+    const ys = t.punti.map((p) => yOf(p.valore, height, lo, hi))
+    const alto = ys.length ? Math.min(...ys) : height / 2
+    const basso = ys.length ? Math.max(...ys) : height / 2
+    // Stessa regola delle velocita': l'etichetta va sopra, ma se sopra non ci
+    // sta si ribalta sotto invece di uscire dal riquadro.
+    const ingombro = (t.punti.length + 1) * 11 + 10
+    const sopra = alto >= ingombro
+    const y = sopra ? alto : basso
+    return {
+      frazione: t.frazione,
+      y,
+      sopra,
+      righe: [
+        { testo: t.etichetta, colore: 'rgba(255,255,255,0.55)' },
+        ...t.punti.map((p) => ({ testo: p.testo, colore: p.colore })),
+      ],
+    }
+  })
+  const tutteLeAnnotazioni = [...annotazioni, ...etichetteTraguardi]
+
   async function scarica() {
     setSalvando(true)
     try {
@@ -205,7 +247,7 @@ function Chart({
         unita: unit,
         etichette: values.map((v) => ({ testo: format(v), y: yOf(v, height, lo, hi) })),
         altezzaGrafico: height,
-        annotazioni,
+        annotazioni: tutteLeAnnotazioni,
         legenda,
         nomeFile,
         fontTitolo: titoloRef.current,
@@ -253,7 +295,7 @@ function Chart({
         <div className="relative flex-1 min-w-0 bg-lc-card border border-white/10 rounded-card-sm overflow-hidden">
           {/* Etichette delle velocita': HTML sovrapposto, non testo dentro
               l'SVG, che verrebbe stirato da preserveAspectRatio="none". */}
-          {annotazioni.map((a, i) => (
+          {tutteLeAnnotazioni.map((a, i) => (
             <div
               key={i}
               className="pointer-events-none absolute z-10 flex flex-col items-center leading-none"
@@ -309,6 +351,19 @@ function Chart({
                 vectorEffect="non-scaling-stroke"
               />
             )}
+            {traguardi.map((t, i) => (
+              <line
+                key={`tg${i}`}
+                x1={t.frazione * W}
+                y1={PAD_V}
+                x2={t.frazione * W}
+                y2={height - PAD_V}
+                stroke="rgba(255,255,255,0.22)"
+                strokeWidth={1}
+                strokeDasharray="4 4"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
             {series.map((s) => (
               <path
                 key={s.key}
@@ -320,6 +375,22 @@ function Chart({
                 vectorEffect="non-scaling-stroke"
               />
             ))}
+            {/* Il distacco esatto da cronometro, sopra la curva ricostruita:
+                se il pallino e' lontano dalla linea, la curva sta sbagliando. */}
+            {traguardi.map((t, i) =>
+              t.punti.map((p, k) => (
+                <circle
+                  key={`tp${i}-${k}`}
+                  cx={t.frazione * W}
+                  cy={yOf(p.valore, height, lo, hi)}
+                  r={3}
+                  fill={p.colore}
+                  stroke="#131318"
+                  strokeWidth={1.2}
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))
+            )}
           </svg>
         </div>
       </div>
@@ -359,6 +430,25 @@ function timeAtDistance(tel: Telemetry, dist: number): number {
   const span = distance[hi] - distance[lo] || 1
   const f = (dist - distance[lo]) / span
   return time[lo] + f * (time[hi] - time[lo])
+}
+
+// L'inverso: a che punto del giro si trovava il pilota a un dato istante.
+// Serve per i traguardi di settore, che il cronometro da' in secondi mentre
+// il grafico e' in metri.
+function distanzaAlTempo(tel: Telemetry, istante: number): number {
+  const { distance, time } = tel
+  if (istante <= time[0]) return distance[0]
+  if (istante >= time[time.length - 1]) return distance[distance.length - 1]
+  let lo = 0
+  let hi = time.length - 1
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1
+    if (time[mid] > istante) hi = mid
+    else lo = mid
+  }
+  const span = time[hi] - time[lo] || 1
+  const f = (istante - time[lo]) / span
+  return distance[lo] + f * (distance[hi] - distance[lo])
 }
 
 export default function QualiCompare({
@@ -552,6 +642,59 @@ export default function QualiCompare({
       y: frazioni.map((f) => tempoA(x.tel, f) - tempoA(rif.tel, f)),
     }))
     return { refAbbr: etichettaDi(rif), series }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attivi])
+
+  // Traguardi di settore sul grafico del delta.
+  //
+  // La curva del delta e' ricostruita dalla telemetria: la distanza non e' un
+  // dato misurato e alle curve lente conserva un'incertezza di un decimo
+  // abbondante. I tempi di settore invece vengono dal cronometro e sono
+  // esatti. Segnandoli sul grafico si legge la curva sapendo dove deve
+  // passare: se il pallino e' lontano dalla linea, li' la curva sbaglia.
+  //
+  // Il terzo settore non si disegna: cade sul traguardo, dove il delta e' gia'
+  // il distacco finale e la riga verticale coinciderebbe col bordo.
+  const traguardiSettore = useMemo<Traguardo[]>(() => {
+    if (attivi.length < 2) return []
+    const rif = attivi[0]
+    const settoriDi = (x: (typeof attivi)[number]) =>
+      x.driver.laps.find((l) => l.lap === x.traccia.lap)?.settori
+    const sRif = settoriDi(rif)
+    if (!sRif) return []
+
+    const cumulato = (s: (number | null)[] | undefined, fino: number) => {
+      if (!s || s.length < fino + 1) return null
+      let somma = 0
+      for (let i = 0; i <= fino; i++) {
+        const v = s[i]
+        if (v == null) return null
+        somma += v
+      }
+      return somma
+    }
+
+    const lunghezzaRif = rif.tel.distance[rif.tel.distance.length - 1] || 1
+    const fuori: Traguardo[] = []
+    for (const i of [0, 1]) {
+      const cumRif = cumulato(sRif, i)
+      if (cumRif == null) continue
+      const frazione = distanzaAlTempo(rif.tel, cumRif) / lunghezzaRif
+      if (!(frazione > 0.02) || !(frazione < 0.98)) continue
+      const punti = attivi.slice(1).flatMap((x) => {
+        const cum = cumulato(settoriDi(x), i)
+        if (cum == null) return []
+        const valore = cum - cumRif
+        return [{
+          valore,
+          testo: `${valore >= 0 ? '+' : ''}${valore.toFixed(3)}`,
+          colore: x.style.color,
+        }]
+      })
+      if (punti.length === 0) continue
+      fuori.push({ frazione, etichetta: `S${i + 1}`, punti })
+    }
+    return fuori
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attivi])
 
@@ -755,6 +898,7 @@ export default function QualiCompare({
                     format={(v) => v.toFixed(2)}
                     legenda={legenda}
                     nomeFile={nomeFileDi('delta')}
+                    traguardi={traguardiSettore}
                   />
                   <p className="font-montserrat text-[11px] text-lc-subtle -mt-4 mb-6 ml-[52px]">
                     Sopra lo zero: più lento di {delta.refAbbr}. Sotto: più veloce.
