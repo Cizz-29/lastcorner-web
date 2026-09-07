@@ -39,19 +39,51 @@ python scripts\telemetry\process_session.py --auto
 
 che elabora l'ultimo weekend concluso.
 
-Lo script usa solo la libreria standard di Python — non c'è niente da
-installare — e prende i dati dall'API pubblica OpenF1. Scrive in
-`public/telemetria-data/`. Finito, ricarica la pagina telemetria.
+Lo script prende i dati con **FastF1**, che va installato una volta sola:
 
-**Metterà una decina di minuti, ed è normale.** OpenF1 consente 30 richieste
-al minuto sul piano gratuito, cioè una ogni due secondi, e un weekend
-richiede qualche centinaio di chiamate. Lo script rispetta quel ritmo da
-solo: se lo superasse, l'API risponderebbe "troppe richieste" e i giri di
-quei piloti andrebbero persi in silenzio.
+```
+pip install fastf1
+```
+
+Scrive in `public/telemetria-data/`. Finito, ricarica la pagina telemetria.
+
+La prima volta che elabori un weekend il download è la parte lenta; da lì in
+poi FastF1 tiene tutto in `scripts/telemetry/.cache-fastf1/` (una cinquantina
+di megabyte a sessione, non versionati) e **rilanciare lo stesso round è
+quasi immediato**. Quindi, se qualcosa va storto, rilanciare non costa nulla.
 
 Alla fine stampa un riepilogo. Se compare `(N giri persi)` accanto a una
-sessione, quei giri non hanno telemetria: rilancia lo script per quel round
-e vedrai il numero scendere.
+sessione, quei giri non hanno telemetria nella fonte: rilanciare non li fa
+comparire, è un buco nei dati F1.
+
+### Perché FastF1 e non più OpenF1
+
+Prima i dati venivano da OpenF1, che limita a 30 richieste al minuto: un
+weekend erano ~300 chiamate e una decina di minuti di attesa.
+
+Ma il motivo vero è un altro. OpenF1 data l'inizio del giro con un errore
+diverso per ogni pilota — sul giro di prova a Monza 0,10 s per Leclerc e
+0,16 s per Russell. Quei 0,06 s di differenza, a 84 m/s sul rettilineo del
+traguardo, sono cinque metri di sfasamento infilati all'inizio del giro; e
+cinque metri alla prima variante, dove le macchine vanno a 20 m/s, valgono un
+quarto di secondo di delta che non è mai esistito.
+
+Misurato sullo stesso confronto, con i tempi di settore come metro:
+
+|                    | escursione del delta | picco alla Variante |
+| ------------------ | -------------------- | ------------------- |
+| OpenF1             | 0,571 s              | −0,562 s            |
+| FastF1             | 0,404 s              | −0,391 s            |
+
+Spostando i tempi OpenF1 di quei 0,06 s si ottiene la curva FastF1 quasi al
+millesimo: la differenza è tutta lì.
+
+Resta un limite che nessuna elaborazione toglie: a una curva da 70 km/h il
+delta conserva un'incertezza di circa ±0,15 s, perché la distanza non è un
+dato misurato da nessuna fonte — si ricava integrando la velocità. Ai
+traguardi di settore invece siamo esatti a ±0,02 s, ed è per questo che ora
+i tempi di settore finiscono in `laps.json`: sono il riferimento con cui
+verificare il grafico.
 
 ## Dove stanno i dati, e cosa succede se si perdono
 

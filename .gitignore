@@ -33,6 +33,10 @@ yarn-error.log*
 # Photoshop, non lo si rigenera con un comando.)
 /public/telemetria-data/
 
+# Cache di FastF1: ~50 MB per sessione. E' la ragione per cui rigenerare un
+# round costa secondi invece di dieci minuti, ma va tenuta sul disco, non qui.
+/scripts/telemetry/.cache-fastf1/
+
 # Cache di Python: la crea da sola ogni esecuzione dello script telemetria.
 __pycache__/
 tsconfig.tsbuildinfo

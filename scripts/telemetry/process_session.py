@@ -1,149 +1,81 @@
-"""Pipeline dati Telemetria — Lastcorner.
+"""Genera i dati della telemetria per un weekend di Formula 1.
 
-Scarica i dati di TUTTE le sessioni di un weekend F1 (libere, qualifiche,
-sprint, gara) dall'API pubblica OpenF1 e li salva come JSON statici in
-public/telemetria-data/, pronti per essere serviti da Vercel senza backend.
+    python scripts\\telemetry\\process_session.py 2026 13
+    python scripts\\telemetry\\process_session.py 2026 monza
+    python scripts\\telemetry\\process_session.py --auto
 
-Perché OpenF1 e non FastF1: l'API di live timing usata da FastF1 blocca gli
-IP dei datacenter, quindi su GitHub Actions ogni richiesta tornava vuota.
-OpenF1 è una REST API aperta, raggiungibile ovunque, con gli stessi dati.
+Scrive in public/telemetria-data/. Serve fastf1:
 
-Uso:
-    python process_session.py 2026 11     # anno + round
-    python process_session.py --auto      # ultimo weekend concluso mancante
+    pip install fastf1
 
-Struttura prodotta:
-    index.json                                   elenco weekend
-    <anno>/<round>/<sessione>/pace.json          tempi sul giro di tutti
-    <anno>/<round>/<sessione>/laps.json          giri con telemetria disponibile
-    <anno>/<round>/<sessione>/tel/<numero>.json  telemetria per pilota
+## Perche' FastF1 e non piu' OpenF1
+
+Le due fonti servono gli stessi campioni di velocita' (allineandoli lo scarto
+scende a 0,17 km/h di deviazione standard), ma OpenF1 data l'inizio del giro
+con un errore diverso per ogni pilota: sul giro di prova a Monza 0,10 s per
+Leclerc e 0,16 s per Russell. Quei 0,06 s di differenza, a 84 m/s sul
+rettilineo del traguardo, sono cinque metri di sfasamento infilati all'inizio
+del giro; e cinque metri alla prima variante, dove le macchine vanno a 20 m/s,
+valgono un quarto di secondo di delta inventato.
+
+Misurato sullo stesso confronto, con i tempi di settore come metro:
+
+    OpenF1     escursione 0,571 s   picco alla Variante -0,562
+    FastF1     escursione 0,404 s   picco alla Variante -0,391
+
+Spostando i tempi OpenF1 di quei 0,06 s si ottiene la curva FastF1 quasi al
+millesimo: la differenza e' tutta li'.
+
+In piu' FastF1 scarica la sessione in poche richieste e la tiene in cache su
+disco, quindi spariscono il tetto di 30 richieste al minuto di OpenF1 e i
+dieci minuti di attesa. Rilanciare un round che era andato storto non costa
+quasi nulla.
+
+## Cosa NON e' cambiato
+
+Il formato dei file e' identico a prima, quindi il sito non va toccato.
+L'unica aggiunta e' il campo "settori" in laps.json.
 """
+
+from __future__ import annotations
 
 import json
 import sys
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
+import warnings
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-API = "https://api.openf1.org/v1"
+import numpy as np
+
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "public" / "telemetria-data"
+CACHE = Path(__file__).resolve().parent / ".cache-fastf1"
 
+# Quanti campioni salvare per giro. La telemetria arriva a circa 4 Hz, quindi
+# un giro di Monza ne ha ~315: il tetto non taglia quasi mai, ma protegge dai
+# circuiti lenti (Monaco, Singapore) dove i giri sono lunghi il doppio.
 TELEMETRY_POINTS = 350
+
 DEFAULT_COLOR = "FF3A3A"
 
-# Limiti dichiarati da OpenF1 per l'uso gratuito: 3 richieste al secondo E 30
-# al minuto. Il secondo e' quello che conta davvero: 30 al minuto significa una
-# richiesta ogni 2 secondi tenuta nel tempo.
+# Sessioni del weekend, nell'ordine in cui si svolgono. La chiave e' il nome
+# con cui FastF1 le elenca nel calendario; "tel" dice quanti giri per pilota
+# salvare con la telemetria completa. Nelle qualifiche il confronto del giro
+# secco e' il cuore dell'analisi, nelle libere bastano pochi riferimenti, in
+# gara e sprint interessa il passo e non il giro singolo.
 #
-# Prima qui c'era una pausa di 0,25 s applicata solo dopo le telemetrie: 4
-# richieste al secondo, otto volte il limite al minuto. Su GitHub passava, dal
-# PC no, e il risultato erano i 429 che facevano perdere in silenzio il giro di
-# quel pilota.
-INTERVALLO_MIN_S = 2.05
-
-# Quanto rallentare stabilmente dopo essere stati limitati: tornare al ritmo
-# di prima significherebbe solo farsi limitare di nuovo.
-INCREMENTO_DOPO_429_S = 0.5
-
-# Attesa quando OpenF1 risponde 429 senza dire quanto aspettare. Un minuto
-# pieno, perche' e' la finestra su cui si azzera il conteggio.
-ATTESA_429_S = 60.0
-
-# Sessioni del weekend, nell'ordine in cui si svolgono. "tel" indica quanti
-# giri per pilota salvare con la telemetria completa: nelle qualifiche il
-# confronto del giro secco è il cuore dell'analisi, nelle libere bastano
-# pochi riferimenti, in gara/sprint interessa il passo più che il giro.
+# "Sprint Shootout" e' il nome che la qualifica sprint aveva nel 2023-2024:
+# sta qui perche' i round vecchi si possano ancora rigenerare.
 SESSION_TYPES = [
-    {"api": "Practice 1", "key": "FP1", "label": "Libere 1", "tel": 3},
-    {"api": "Practice 2", "key": "FP2", "label": "Libere 2", "tel": 3},
-    {"api": "Practice 3", "key": "FP3", "label": "Libere 3", "tel": 3},
-    {"api": "Sprint Qualifying", "key": "SQ", "label": "Qualifica Sprint", "tel": 4},
-    {"api": "Sprint", "key": "SPR", "label": "Sprint", "tel": 0},
-    {"api": "Qualifying", "key": "Q", "label": "Qualifica", "tel": 5},
-    {"api": "Race", "key": "R", "label": "Gara", "tel": 0},
+    {"nome": "Practice 1", "key": "FP1", "label": "Libere 1", "tel": 3},
+    {"nome": "Practice 2", "key": "FP2", "label": "Libere 2", "tel": 3},
+    {"nome": "Practice 3", "key": "FP3", "label": "Libere 3", "tel": 3},
+    {"nome": "Sprint Qualifying", "key": "SQ", "label": "Qualifica Sprint", "tel": 4},
+    {"nome": "Sprint Shootout", "key": "SQ", "label": "Qualifica Sprint", "tel": 4},
+    {"nome": "Sprint", "key": "SPR", "label": "Sprint", "tel": 0},
+    {"nome": "Qualifying", "key": "Q", "label": "Qualifica", "tel": 5},
+    {"nome": "Race", "key": "R", "label": "Gara", "tel": 0},
 ]
-
-
-# Stato del regolatore di ritmo. Vive per tutta l'esecuzione: una volta che
-# OpenF1 ci ha limitato, rallentiamo e restiamo rallentati.
-_ultima_richiesta = 0.0
-_intervallo = INTERVALLO_MIN_S
-_conteggio_429 = 0
-
-
-def _aspetta_il_turno() -> None:
-    """Non parte una richiesta prima che sia passato l'intervallo dalla precedente."""
-    global _ultima_richiesta
-    da_aspettare = _intervallo - (time.monotonic() - _ultima_richiesta)
-    if da_aspettare > 0:
-        time.sleep(da_aspettare)
-    _ultima_richiesta = time.monotonic()
-
-
-def get(endpoint: str, **params) -> list:
-    """GET su OpenF1, rispettando i limiti di frequenza.
-
-    Restituisce [] solo dopo aver davvero esaurito i tentativi: un 429 non e'
-    un errore ma un "rallenta", e trattarlo come fallimento significa buttare
-    via il giro di un pilota senza accorgersene.
-    """
-    global _intervallo, _conteggio_429
-    qs = urllib.parse.urlencode(params, safe="<>=")
-    url = f"{API}/{endpoint}?{qs}" if params else f"{API}/{endpoint}"
-
-    for tentativo in range(6):
-        _aspetta_il_turno()
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "LastcornerTelemetry/1.0"})
-            with urllib.request.urlopen(req, timeout=60) as res:
-                return json.loads(res.read().decode("utf-8"))
-
-        except urllib.error.HTTPError as exc:
-            if exc.code == 429:
-                _conteggio_429 += 1
-                _intervallo += INCREMENTO_DOPO_429_S
-                # Se OpenF1 dice quanto aspettare, gli si da' retta.
-                # "is not None" e non "if exc.headers": un oggetto intestazioni
-                # senza voci e' falsy, e cosi' si perderebbe il Retry-After.
-                intestazione = (
-                    exc.headers.get("Retry-After") if exc.headers is not None else None
-                )
-                try:
-                    attesa = float(intestazione) if intestazione else ATTESA_429_S
-                except (TypeError, ValueError):
-                    attesa = ATTESA_429_S
-                print(
-                    f"    limite raggiunto, aspetto {attesa:.0f}s "
-                    f"(d'ora in poi una richiesta ogni {_intervallo:.2f}s)"
-                )
-                time.sleep(attesa)
-                continue
-            if tentativo == 5:
-                print(f"    ! {endpoint} fallito: {exc}")
-                return []
-            time.sleep(2 * (tentativo + 1))
-
-        except Exception as exc:
-            if tentativo == 5:
-                print(f"    ! {endpoint} fallito: {exc}")
-                return []
-            time.sleep(2 * (tentativo + 1))
-
-    print(f"    ! {endpoint}: tentativi esauriti")
-    return []
-
-
-def parse_dt(value: str) -> datetime | None:
-    if not value:
-        return None
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
 
 
 def save_json(path: Path, data) -> None:
@@ -151,435 +83,449 @@ def save_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
-# --- Anagrafiche -----------------------------------------------------------
-
-def get_meetings(year: int) -> list:
-    """Gran Premi dell'anno, ordinati per data (l'indice+1 è il 'round').
-
-    Vanno esclusi i test pre-stagionali e i GP cancellati: OpenF1 li elenca
-    insieme agli altri, ma non contano nella numerazione ufficiale.
-    """
-    meetings = get("meetings", year=year)
-    meetings = [
-        m
-        for m in meetings
-        if m.get("date_start")
-        and not m.get("is_cancelled")
-        and "testing" not in (m.get("meeting_name") or "").lower()
-    ]
-    meetings.sort(key=lambda m: m["date_start"])
-    return meetings
-
-
-def get_drivers(session_key: int) -> dict:
-    out = {}
-    for d in get("drivers", session_key=session_key):
-        num = d.get("driver_number")
-        if num is None:
-            continue
-        colour = d.get("team_colour") or DEFAULT_COLOR
-        out[num] = {
-            "abbr": d.get("name_acronym") or str(num),
-            "name": d.get("full_name") or d.get("broadcast_name") or str(num),
-            "team": d.get("team_name") or "",
-            "color": f"#{colour.lstrip('#')}",
-        }
-    return out
-
-
-def stint_lookup(session_key: int) -> dict:
-    table = {}
-    for s in get("stints", session_key=session_key):
-        num = s.get("driver_number")
-        start = s.get("lap_start")
-        end = s.get("lap_end")
-        if num is None or start is None or end is None:
-            continue
-        for lap in range(int(start), int(end) + 1):
-            table[(num, lap)] = (s.get("compound"), s.get("stint_number"))
-    return table
-
-
-def final_positions(session_key: int) -> dict:
-    out: dict = {}
-    for p in get("position", session_key=session_key):
-        num = p.get("driver_number")
-        if num is None or p.get("position") is None:
-            continue
-        prev = out.get(num)
-        if prev is None or (p.get("date") or "") > prev[1]:
-            out[num] = (int(p["position"]), p.get("date") or "")
-    return {num: pos for num, (pos, _) in out.items()}
+def secondi(valore) -> float | None:
+    """Timedelta -> secondi. None per i valori mancanti (NaT)."""
+    try:
+        s = float(valore.total_seconds())
+    except (AttributeError, TypeError, ValueError):
+        return None
+    return None if s != s else s
 
 
 # --- Telemetria ------------------------------------------------------------
 
-def resample(points: list, n: int) -> list:
-    if len(points) <= n:
-        return points
-    step = len(points) / n
-    return [points[int(i * step)] for i in range(n)]
+def costruisci_telemetria(velocita, tempi, durata: float) -> tuple[list, list] | None:
+    """Distanza percorsa, ricavata integrando la velocita' nel tempo.
 
+    La distanza non e' un dato misurato: nessuna fonte la espone. Tre
+    accortezze, tutte necessarie perche' il confronto fra due giri abbia senso:
 
-def build_telemetry(session_key: int, driver_number: int, lap: dict) -> dict | None:
-    """Telemetria di un giro, ricampionata, con distanza calcolata.
+    1. La traccia e' ancorata al traguardo a ENTRAMBE le estremita': un punto
+       a t=0 e uno a t=durata. Senza, il primo campione cade fino a 0,27 s
+       dopo la linea e l'ultimo prima, in misura diversa per ogni pilota, e
+       quella differenza si presenta come distacco finale sbagliato.
 
-    OpenF1 non espone la distanza percorsa: la si ricava integrando la
-    velocita' nel tempo. Tre accortezze, tutte necessarie perche' il confronto
-    fra due giri abbia senso:
+    2. L'integrazione usa la velocita' media fra due campioni (trapezio) e non
+       quella finale (rettangolo): a parita' di dati dimezza l'errore. Vale la
+       pena saperlo perche' FastF1, nel suo `add_distance()`, usa il
+       rettangolo — per questo la distanza la calcoliamo qui invece di
+       prendere la sua.
 
-    1. I campioni si fermano alla fine del giro. La finestra richiesta e' piu'
-       larga di un secondo (per non perdere l'ultimo campione a causa degli
-       arrotondamenti dell'API), ma quel secondo in piu' va tagliato: prima
-       restava dentro, in misura diversa per ogni pilota — da 0,57 a 0,83 s sul
-       weekend di prova — e la distanza continuava a crescere oltre il
-       traguardo.
+    3. Si integra su TUTTI i campioni e si dirada dopo. Diradare prima
+       significherebbe integrare su meno punti, cioe' peggio.
 
-    2. Il tempo parte dal passaggio sul traguardo, non dal primo campione.
-       Con campionamento a circa 3,7 Hz il primo campione arriva fino a 0,27 s
-       dopo la linea, e quel ritardo, diverso per ogni pilota, finiva dritto
-       nel delta.
-
-    3. La traccia e' ancorata al traguardo alle DUE estremita': un punto in
-       t=0 e uno in t=durata. Senza, l'ultimo campione cade prima della linea
-       di quanto capita — 0,13 s per un pilota, 0,25 s per un altro — e quella
-       differenza si presenta come distacco finale sbagliato.
-
-    4. L'integrazione usa la velocita' media fra due campioni (trapezio) e non
-       quella finale (rettangolo): a parita' di dati dimezza l'errore.
-
-    Il risultato: entrambi i giri partono e finiscono sulla linea, quindi
-    confrontandoli alla stessa frazione di giro il delta al traguardo coincide
-    con il distacco cronometrato.
+    Restituisce (distanze, indici da tenere) oppure None se i dati non bastano.
     """
-    start = parse_dt(lap.get("date_start"))
-    duration = lap.get("lap_duration")
-    if start is None or not duration:
+    if len(tempi) < 20 or durata is None or durata <= 0:
         return None
 
-    fine_giro = start + timedelta(seconds=float(duration))
-    # Un secondo di margine nella richiesta, per non perdere l'ultimo campione.
-    end = fine_giro + timedelta(seconds=1)
-    rows = get(
-        "car_data",
-        session_key=session_key,
-        driver_number=driver_number,
-        **{"date>": start.isoformat(), "date<": end.isoformat()},
-    )
-    if len(rows) < 20:
+    t = np.concatenate([[0.0], tempi, [durata]])
+    v = np.concatenate([[velocita[0]], velocita, [velocita[-1]]]) / 3.6
+
+    # I punti aggiunti agli estremi possono coincidere con campioni gia'
+    # presenti: un dt nullo non sposta l'integrale ma sporca gli indici.
+    tieni = np.concatenate([[True], np.diff(t) > 1e-9])
+    t, v = t[tieni], v[tieni]
+
+    distanza = np.concatenate([[0.0], np.cumsum((v[:-1] + v[1:]) / 2 * np.diff(t))])
+
+    indici = np.arange(len(t))
+    if len(indici) > TELEMETRY_POINTS:
+        # Il primo e l'ultimo punto sono il traguardo: non si toccano.
+        mezzo = np.linspace(1, len(indici) - 2, TELEMETRY_POINTS - 2).astype(int)
+        indici = np.concatenate([[0], np.unique(mezzo), [len(t) - 1]])
+
+    return t[indici], distanza[indici], indici, tieni
+
+
+def telemetria_del_giro(lap) -> dict | None:
+    """Telemetria di un giro nel formato atteso dal sito."""
+    durata = secondi(lap["LapTime"])
+    if durata is None:
+        return None
+    try:
+        car = lap.get_car_data()
+    except Exception:  # noqa: BLE001 — un giro senza telemetria non e' un errore
+        return None
+    if len(car) < 20:
         return None
 
-    rows = [r for r in rows if r.get("date")]
-    rows.sort(key=lambda r: r["date"])
-
-    # Taglio alla fine del giro vera (punto 1).
-    dentro = []
-    for r in rows:
-        quando = parse_dt(r["date"])
-        if quando is None or quando > fine_giro:
-            break
-        dentro.append(r)
-    if len(dentro) < 20:
+    tempi = car["Time"].dt.total_seconds().to_numpy()
+    vel = car["Speed"].to_numpy(dtype=float)
+    esito = costruisci_telemetria(vel, tempi, durata)
+    if esito is None:
         return None
-    rows = resample(dentro, TELEMETRY_POINTS)
+    t, distanza, indici, tieni = esito
 
-    distance, speed, throttle, brake, gear, times = [], [], [], [], [], []
-    dist = 0.0
-    prev = start
-    spd_prec = float(rows[0].get("speed") or 0)
-
-    def aggiungi(t_rel: float, spd: float, r: dict) -> None:
-        distance.append(round(dist, 1))
-        speed.append(spd)
-        throttle.append(float(r.get("throttle") or 0))
-        brake.append(1 if float(r.get("brake") or 0) > 0 else 0)
-        gear.append(int(r.get("n_gear") or 0))
-        times.append(round(t_rel, 3))
-
-    # Punto sulla linea di partenza: distanza zero, tempo zero.
-    aggiungi(0.0, spd_prec, rows[0])
-
-    for r in rows:
-        now = parse_dt(r["date"])
-        if now is None:
-            continue
-        dt = (now - prev).total_seconds()
-        spd = float(r.get("speed") or 0)
-        dist += ((spd + spd_prec) / 2 / 3.6) * dt  # trapezio (punto 4)
-        prev = now
-        spd_prec = spd
-        aggiungi((now - start).total_seconds(), spd, r)
-
-    # Punto sulla linea d'arrivo: fra l'ultimo campione e il traguardo si tiene
-    # la velocita' dell'ultimo campione. E' il tratto che prima mancava, in
-    # misura diversa per ogni pilota.
-    coda = (fine_giro - prev).total_seconds()
-    if coda > 0:
-        dist += (spd_prec / 3.6) * coda
-        aggiungi(float(duration), spd_prec, rows[-1])
+    def canale(colonna, tipo):
+        grezzo = car[colonna].to_numpy()
+        # Stessa ricostruzione fatta sui tempi: punto iniziale, campioni,
+        # punto finale — poi gli stessi filtri, cosi' gli indici combaciano.
+        pieno = np.concatenate([[grezzo[0]], grezzo, [grezzo[-1]]])[tieni]
+        return [tipo(x) for x in pieno[indici]]
 
     return {
-        "distance": distance,
-        "speed": speed,
-        "throttle": throttle,
-        "brake": brake,
-        "gear": gear,
-        "time": times,
+        "distance": [round(float(x), 1) for x in distanza],
+        "speed": canale("Speed", lambda x: int(round(float(x)))),
+        # Il gas grezzo sfora ogni tanto il 100 (arriva a 104): il grafico lo
+        # disegna come percentuale, quindi si taglia qui invece che li'.
+        "throttle": canale("Throttle", lambda x: max(0, min(100, int(round(float(x)))))),
+        "brake": canale("Brake", lambda x: 1 if bool(x) else 0),
+        "gear": canale("nGear", lambda x: int(x)),
+        "time": [round(float(x), 3) for x in t],
     }
 
 
-# --- Elaborazione di una sessione -----------------------------------------
+# --- Anagrafiche -----------------------------------------------------------
 
-def process_session(session: dict, spec: dict, base: Path) -> dict | None:
-    """Elabora una sessione: sempre il passo (tempi sul giro), e se previsto
-    anche la telemetria dei giri più veloci di ciascun pilota."""
-    session_key = session["session_key"]
-    laps = get("laps", session_key=session_key)
-    if not laps:
+def anagrafica(session) -> dict:
+    """numero pilota -> sigla, nome, squadra, colore."""
+    out: dict = {}
+    try:
+        risultati = session.results
+    except Exception:  # noqa: BLE001
+        return out
+    for _, r in risultati.iterrows():
+        numero = str(r.get("DriverNumber") or "").strip()
+        if not numero:
+            continue
+        colore = str(r.get("TeamColor") or "").strip() or DEFAULT_COLOR
+        out[int(numero)] = {
+            "abbr": r.get("Abbreviation") or numero,
+            "name": r.get("FullName") or numero,
+            "team": r.get("TeamName") or "",
+            "color": f"#{colore.lstrip('#')}",
+        }
+    return out
+
+
+def piazzamenti(session) -> dict:
+    """numero pilota -> posizione finale.
+
+    FastF1 la compila solo per gara, qualifica e sprint. Nelle libere non
+    esiste una classifica ufficiale: la si costruisce dal miglior tempo,
+    che e' poi quello che interessa guardando le libere.
+    """
+    out: dict = {}
+    try:
+        risultati = session.results
+    except Exception:  # noqa: BLE001
+        return out
+    for _, r in risultati.iterrows():
+        numero = str(r.get("DriverNumber") or "").strip()
+        pos = r.get("Position")
+        if not numero or pos is None or pos != pos:
+            continue
+        out[int(numero)] = int(pos)
+    return out
+
+
+# --- Una sessione ----------------------------------------------------------
+
+def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
+    """Scrive pace.json e, dove previsto, laps.json e tel/<numero>.json."""
+    giri = session.laps
+    if giri is None or len(giri) == 0:
         print(f"  [{spec['key']}] nessun giro disponibile")
         return None
 
-    drivers_info = get_drivers(session_key)
-    stints = stint_lookup(session_key)
-    positions = final_positions(session_key)
+    info = anagrafica(session)
+    posizioni = piazzamenti(session)
     out_dir = base / spec["key"]
 
+    def scheda(numero: int) -> dict:
+        return info.get(
+            numero,
+            {"abbr": str(numero), "name": str(numero), "team": "", "color": f"#{DEFAULT_COLOR}"},
+        )
+
     # --- Passo: tutti i giri di tutti i piloti ---
-    by_driver: dict = {}
-    for lap in laps:
-        num = lap.get("driver_number")
-        n = lap.get("lap_number")
-        if num is None or n is None:
+    passo: dict = {}
+    for _, lap in giri.iterrows():
+        numero = str(lap["DriverNumber"] or "").strip()
+        n = lap["LapNumber"]
+        if not numero or n is None or n != n:
             continue
-        compound, stint = stints.get((num, n), (None, None))
-        dur = lap.get("lap_duration")
-        by_driver.setdefault(num, []).append(
+        stint = lap["Stint"]
+        passo.setdefault(int(numero), []).append(
             {
                 "n": int(n),
-                "t": round(float(dur), 3) if dur else None,
-                "compound": compound,
-                "stint": stint,
-                "pit": bool(lap.get("is_pit_out_lap")),
+                "t": (lambda s: round(s, 3) if s is not None else None)(secondi(lap["LapTime"])),
+                "compound": (lambda c: c if isinstance(c, str) and c and c != "nan" else None)(
+                    lap["Compound"]
+                ),
+                "stint": None if stint is None or stint != stint else int(stint),
+                "pit": bool(lap["PitOutTime"] == lap["PitOutTime"]),
             }
         )
 
-    pace_drivers = []
-    for num, lap_list in by_driver.items():
-        info = drivers_info.get(
-            num, {"abbr": str(num), "name": str(num), "team": "", "color": f"#{DEFAULT_COLOR}"}
+    piloti_passo = []
+    for numero, elenco in passo.items():
+        elenco.sort(key=lambda l: l["n"])
+        piloti_passo.append(
+            {
+                **scheda(numero),
+                "number": numero,
+                "position": posizioni.get(numero),
+                "status": "",
+                "laps": elenco,
+            }
         )
-        lap_list.sort(key=lambda l: l["n"])
-        pace_drivers.append(
-            {**info, "number": num, "position": positions.get(num), "status": "", "laps": lap_list}
-        )
-    pace_drivers.sort(key=lambda d: d["position"] if d["position"] is not None else 99)
-
-    if not pace_drivers:
+    if not piloti_passo:
         return None
-    save_json(out_dir / "pace.json", {"session": spec["key"], "drivers": pace_drivers})
-    print(f"  [{spec['key']}] passo: {len(pace_drivers)} piloti")
 
-    result = {"key": spec["key"], "label": spec["label"], "pace": True, "telemetry": False}
+    # Senza classifica ufficiale (le libere) si ordina per miglior tempo.
+    def miglior_tempo(d: dict) -> float:
+        tempi = [l["t"] for l in d["laps"] if l["t"]]
+        return min(tempi) if tempi else float("inf")
 
-    # --- Telemetria: solo per le sessioni dove il giro secco conta ---
-    max_laps = spec["tel"]
-    if max_laps <= 0:
-        return result
+    if any(d["position"] is not None for d in piloti_passo):
+        piloti_passo.sort(key=lambda d: d["position"] if d["position"] is not None else 99)
+    else:
+        piloti_passo.sort(key=miglior_tempo)
+        for i, d in enumerate(piloti_passo, start=1):
+            d["position"] = i
 
-    timed: dict = {}
-    for lap in laps:
-        num = lap.get("driver_number")
-        dur = lap.get("lap_duration")
-        if num is None or not dur or lap.get("is_pit_out_lap"):
+    save_json(out_dir / "pace.json", {"session": spec["key"], "drivers": piloti_passo})
+    print(f"  [{spec['key']}] passo: {len(piloti_passo)} piloti")
+
+    esito = {"key": spec["key"], "label": spec["label"], "pace": True, "telemetry": False}
+
+    # --- Telemetria: solo dove il giro secco conta ---
+    massimo = spec["tel"]
+    if massimo <= 0:
+        return esito
+
+    cronometrati: dict = {}
+    for _, lap in giri.iterrows():
+        numero = str(lap["DriverNumber"] or "").strip()
+        durata = secondi(lap["LapTime"])
+        if not numero or durata is None or lap["PitOutTime"] == lap["PitOutTime"]:
             continue
-        timed.setdefault(num, []).append(lap)
+        cronometrati.setdefault(int(numero), []).append((durata, lap))
 
-    if not timed:
-        return result
+    if not cronometrati:
+        return esito
 
-    ranked = sorted(timed.items(), key=lambda kv: min(l["lap_duration"] for l in kv[1]))
-    giri_persi = 0
-    tel_drivers = []
-    for position, (num, driver_laps) in enumerate(ranked, start=1):
-        info = drivers_info.get(
-            num, {"abbr": str(num), "name": str(num), "team": "", "color": f"#{DEFAULT_COLOR}"}
-        )
-        driver_laps.sort(key=lambda l: l["lap_duration"])
-        lap_meta = []
-        telemetry_by_lap = {}
-        for lap in driver_laps[:max_laps]:
-            n = lap.get("lap_number")
-            tel = build_telemetry(session_key, num, lap)
+    ordinati = sorted(cronometrati.items(), key=lambda kv: min(d for d, _ in kv[1]))
+    persi = 0
+    piloti_tel = []
+    for posizione, (numero, elenco) in enumerate(ordinati, start=1):
+        elenco.sort(key=lambda x: x[0])
+        per_giro: dict = {}
+        schede = []
+        for durata, lap in elenco[:massimo]:
+            tel = telemetria_del_giro(lap)
             if tel is None:
-                giri_persi += 1
+                persi += 1
                 continue
-            compound, _ = stints.get((num, n), (None, None))
-            telemetry_by_lap[str(n)] = tel
-            lap_meta.append(
+            n = int(lap["LapNumber"])
+            per_giro[str(n)] = tel
+            schede.append(
                 {
-                    "lap": int(n) if n is not None else 0,
-                    "time": round(float(lap["lap_duration"]), 3),
-                    "compound": compound,
+                    "lap": n,
+                    "time": round(durata, 3),
+                    "compound": (lambda c: c if isinstance(c, str) and c and c != "nan" else None)(
+                        lap["Compound"]
+                    ),
+                    # I tempi di settore sono l'unico riferimento esatto che
+                    # abbiamo: il delta calcolato puo' essere verificato
+                    # contro di loro invece che a occhio.
+                    "settori": [
+                        (lambda s: round(s, 3) if s is not None else None)(secondi(lap[c]))
+                        for c in ("Sector1Time", "Sector2Time", "Sector3Time")
+                    ],
                 }
             )
-        if not lap_meta:
+        if not schede:
             continue
-        lap_meta.sort(key=lambda l: l["time"])
-        save_json(out_dir / "tel" / f"{num}.json", telemetry_by_lap)
-        tel_drivers.append(
+        schede.sort(key=lambda l: l["time"])
+        save_json(out_dir / "tel" / f"{numero}.json", per_giro)
+        piloti_tel.append(
             {
-                **info,
-                "number": num,
-                "position": position,
-                "lapTime": lap_meta[0]["time"],
-                "compound": lap_meta[0]["compound"],
-                "bestLap": lap_meta[0]["lap"],
-                "laps": lap_meta,
+                **scheda(numero),
+                "number": numero,
+                "position": posizione,
+                "lapTime": schede[0]["time"],
+                "compound": schede[0]["compound"],
+                "bestLap": schede[0]["lap"],
+                "laps": schede,
             }
         )
 
-    if tel_drivers:
-        save_json(out_dir / "laps.json", {"session": spec["key"], "drivers": tel_drivers})
-        result["telemetry"] = True
-        nota = f" ({giri_persi} giri persi)" if giri_persi else ""
-        print(f"  [{spec['key']}] telemetria: {len(tel_drivers)} piloti{nota}")
+    if piloti_tel:
+        save_json(out_dir / "laps.json", {"session": spec["key"], "drivers": piloti_tel})
+        esito["telemetry"] = True
+        nota = f" ({persi} giri persi)" if persi else ""
+        print(f"  [{spec['key']}] telemetria: {len(piloti_tel)} piloti{nota}")
 
-    return result
+    return esito
 
 
-# --- Weekend ---------------------------------------------------------------
+# --- Un weekend ------------------------------------------------------------
 
-def load_index() -> list:
-    index_path = OUT / "index.json"
-    if index_path.exists():
-        return json.loads(index_path.read_text(encoding="utf-8"))
+def carica_indice() -> list:
+    percorso = OUT / "index.json"
+    if percorso.exists():
+        return json.loads(percorso.read_text(encoding="utf-8"))
     return []
 
 
-def process_round(year: int, rnd: int) -> bool:
-    meetings = get_meetings(year)
-    if not meetings:
-        print(f"Nessun calendario disponibile per il {year}.")
+def calendario(anno: int):
+    import fastf1
+
+    return fastf1.get_event_schedule(anno, include_testing=False)
+
+
+def sessioni_del_weekend(evento) -> list:
+    """Le sessioni davvero previste per questo weekend, nell'ordine giusto.
+
+    Il calendario elenca i nomi in Session1..Session5, e il formato cambia
+    (weekend normale, weekend sprint, e la sprint ha cambiato nome nel tempo).
+    Leggere i nomi dichiarati invece di indovinarli dal formato evita di
+    doverli inseguire a ogni cambio di regolamento.
+    """
+    presenti = {
+        str(evento.get(f"Session{i}") or "").strip()
+        for i in range(1, 6)
+    }
+    return [s for s in SESSION_TYPES if s["nome"] in presenti]
+
+
+def elabora_round(anno: int, rnd: int) -> bool:
+    cal = calendario(anno)
+    righe = cal[cal["RoundNumber"] == rnd]
+    if righe.empty:
+        print(f"Round {rnd} non trovato nel calendario {anno}.")
         return False
-    if rnd < 1 or rnd > len(meetings):
-        print(f"Round {rnd} fuori range (il {year} ha {len(meetings)} GP).")
-        return False
+    evento = righe.iloc[0]
+    nome = str(evento["EventName"])
+    print(f"Elaboro {anno} round {rnd}: {nome}")
 
-    meeting = meetings[rnd - 1]
-    name = meeting.get("meeting_name") or f"Round {rnd}"
-    print(f"Elaboro {year} round {rnd}: {name}")
-
-    available = get("sessions", meeting_key=meeting["meeting_key"])
-    by_name = {s.get("session_name"): s for s in available}
-
-    base = OUT / str(year) / str(rnd)
-    sessions = []
-    for spec in SESSION_TYPES:
-        session = by_name.get(spec["api"])
-        if not session:
+    base = OUT / str(anno) / str(rnd)
+    sessioni = []
+    for spec in sessioni_del_weekend(evento):
+        try:
+            session = evento.get_session(spec["nome"])
+            # La telemetria e' il grosso del download: per gara e sprint, dove
+            # serve solo il passo, non la si scarica affatto.
+            session.load(
+                laps=True, telemetry=spec["tel"] > 0, weather=False, messages=False
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"  [{spec['key']}] non disponibile: {exc}")
             continue
-        info = process_session(session, spec, base)
+        info = elabora_sessione(session, spec, base)
         if info:
-            sessions.append(info)
+            sessioni.append(info)
 
-    if not sessions:
+    if not sessioni:
         print("  nessun dato disponibile, salto")
         return False
 
-    index = [e for e in load_index() if not (e["year"] == year and e["round"] == rnd)]
-    index.append(
+    indice = [e for e in carica_indice() if not (e["year"] == anno and e["round"] == rnd)]
+    data = evento.get("EventDate")
+    indice.append(
         {
-            "year": year,
+            "year": anno,
             "round": rnd,
-            "name": name,
-            "circuit": meeting.get("circuit_short_name") or meeting.get("location") or "",
-            "date": (meeting.get("date_start") or "")[:10],
-            "sessions": sessions,
+            "name": nome,
+            "circuit": str(evento.get("Location") or ""),
+            "date": "" if data is None else str(data)[:10],
+            "sessions": sessioni,
         }
     )
-    save_json(OUT / "index.json", index)
-    print(f"  fatto: {len(sessions)} sessioni")
-    if _conteggio_429:
-        print(
-            f"  nota: OpenF1 ha imposto {_conteggio_429} pause per limite di frequenza; "
-            f"ritmo finale una richiesta ogni {_intervallo:.2f}s"
-        )
+    indice.sort(key=lambda e: (e["year"], e["round"]))
+    save_json(OUT / "index.json", indice)
+    print(f"  fatto: {len(sessioni)} sessioni")
     return True
 
 
 def auto() -> None:
     """Elabora l'ultimo weekend concluso non ancora presente nell'indice."""
-    now = datetime.now(timezone.utc)
-    year = now.year
-    meetings = get_meetings(year)
-    if not meetings:
+    adesso = datetime.now(timezone.utc)
+    anno = adesso.year
+    cal = calendario(anno)
+    if cal.empty:
         print("Calendario non disponibile.")
         return
 
-    # Un weekend è "fatto" se ha già la gara elaborata.
-    done = set()
-    for e in load_index():
-        if e.get("year") != year:
+    # Un weekend e' "fatto" se ha gia' la gara elaborata.
+    fatti = set()
+    for e in carica_indice():
+        if e.get("year") != anno:
             continue
-        keys = [s.get("key") if isinstance(s, dict) else s for s in e.get("sessions", [])]
-        if "R" in keys:
-            done.add(e["round"])
+        chiavi = [s.get("key") if isinstance(s, dict) else s for s in e.get("sessions", [])]
+        if "R" in chiavi:
+            fatti.add(e["round"])
 
-    cutoff = now - timedelta(hours=3)
-    candidates = []
-    for i, m in enumerate(meetings, start=1):
-        start = parse_dt(m.get("date_start"))
-        if start is None:
+    limite = adesso.replace(tzinfo=None) - timedelta(hours=3)
+    candidati = []
+    for _, ev in cal.iterrows():
+        data = ev.get("EventDate")
+        if data is None or data != data:
             continue
-        # date_start è il giovedì/venerdì: la gara è ~3 giorni dopo.
-        if start + timedelta(days=3) > cutoff:
+        if data.to_pydatetime().replace(tzinfo=None) > limite:
             continue
-        if i not in done:
-            candidates.append(i)
+        rnd = int(ev["RoundNumber"])
+        if rnd not in fatti:
+            candidati.append(rnd)
 
-    if not candidates:
+    if not candidati:
         print("Nessun weekend nuovo da elaborare.")
         return
-    process_round(year, candidates[-1])
+    elabora_round(anno, candidati[-1])
 
 
-def resolve_round(year: int, value: str) -> int | None:
-    value = value.strip()
-    if value.isdigit():
-        return int(value)
+def risolvi_round(anno: int, valore: str) -> int | None:
+    valore = valore.strip()
+    if valore.isdigit():
+        return int(valore)
 
-    ALIASES = {
+    ALIAS = {
         "australia": "australian", "cina": "chinese", "giappone": "japan",
         "canada": "canadian", "barcellona": "barcelona", "austria": "austrian",
         "gran bretagna": "british", "inghilterra": "british", "belgio": "belgian",
         "ungheria": "hungar", "olanda": "dutch", "paesi bassi": "dutch",
-        "italia": "italian", "spagna": "spanish", "messico": "mexico",
-        "brasile": "brazil", "stati uniti": "united states", "arabia": "saudi",
+        "italia": "italian", "monza": "italian", "spagna": "spanish",
+        "messico": "mexico", "brasile": "brazil", "stati uniti": "united states",
+        "arabia": "saudi",
     }
-    needle = ALIASES.get(value.lower(), value.lower())
+    ago = ALIAS.get(valore.lower(), valore.lower())
 
-    for i, m in enumerate(get_meetings(year), start=1):
-        haystack = " ".join(
-            str(m.get(k, "")) for k in
-            ("meeting_name", "meeting_official_name", "circuit_short_name", "country_name", "location")
+    for _, ev in calendario(anno).iterrows():
+        pagliaio = " ".join(
+            str(ev.get(k, "")) for k in ("EventName", "OfficialEventName", "Location", "Country")
         ).lower()
-        if needle in haystack:
-            return i
+        if ago in pagliaio:
+            return int(ev["RoundNumber"])
 
-    print(f"Non riesco a identificare '{value}' nel calendario {year}.")
+    print(f"Non riesco a identificare '{valore}' nel calendario {anno}.")
     return None
 
 
 def main() -> None:
+    try:
+        import fastf1
+    except ImportError:
+        print("Manca fastf1. Installalo una volta sola con:\n\n    pip install fastf1\n")
+        sys.exit(1)
+
+    CACHE.mkdir(parents=True, exist_ok=True)
+    fastf1.Cache.enable_cache(str(CACHE))
+    # FastF1 avvisa quando un dato e' approssimato: utile in analisi, rumore
+    # qui, dove i giri sospetti li scartiamo gia' noi.
+    warnings.filterwarnings("ignore", module="fastf1")
+
     args = sys.argv[1:]
     if args and args[0] == "--auto":
         auto()
     elif len(args) == 2:
-        year = int(args[0])
-        rnd = resolve_round(year, args[1])
+        anno = int(args[0])
+        rnd = risolvi_round(anno, args[1])
         if rnd is None:
             sys.exit(1)
-        process_round(year, rnd)
+        elabora_round(anno, rnd)
     else:
         print(__doc__)
         sys.exit(1)

@@ -16,6 +16,10 @@ export interface QualiLap {
   lap: number
   time: number
   compound: string | null
+  // Tempi dei tre settori, dal cronometro. Sono l'unico riferimento esatto
+  // che abbiamo: il delta calcolato dalla telemetria si puo' verificare
+  // contro di loro. Assenti nei dati generati prima del passaggio a FastF1.
+  settori?: (number | null)[]
 }
 
 export interface QualiDriver {
