@@ -85,8 +85,17 @@ export const getAllArticles = cache(async (): Promise<Article[]> => {
   try {
     const docs = await sanityClient.fetch<SanityArticleDoc[]>(ARTICLE_QUERY)
     return docs.map(toArticle)
-  } catch {
+  } catch (errore) {
     // Sanity irraggiungibile: lista vuota, le pagine mostrano gli stati "vuoti".
+    //
+    // Il motivo va SEMPRE scritto nei log. Inghiottito in silenzio, un
+    // problema di rete si presentava trenta righe piu' in la' come
+    // "Cannot read properties of undefined (reading 'slug')" dentro una
+    // card, che non dice niente su cosa sia successo davvero.
+    console.error(
+      '[sanity] elenco articoli non recuperato:',
+      (errore as Error)?.message ?? errore
+    )
     return []
   }
 })

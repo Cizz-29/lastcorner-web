@@ -34,6 +34,22 @@ export const revalidate = false
 
 export default async function HomePage() {
   const allArticles = await getAllArticles()
+
+  // Se Sanity non risponde, getAllArticles restituisce una lista vuota. Qui ci
+  // si ferma di proposito, invece di proseguire con heroArticle undefined.
+  //
+  // E non si mostra nemmeno una home vuota, che sarebbe peggio: questa pagina
+  // ha revalidate = false, quindi una versione senza articoli resterebbe
+  // pubblicata fino al webhook successivo. Fallendo, il build si interrompe e
+  // online resta l'ultima versione buona. Il motivo vero e' nella riga
+  // [sanity] stampata subito sopra.
+  if (allArticles.length === 0) {
+    throw new Error(
+      'Nessun articolo restituito da Sanity: la home non viene generata. ' +
+        'Il motivo e\' nella riga di log "[sanity] elenco articoli non recuperato".'
+    )
+  }
+
   const heroArticle = allArticles[0]
   const sideArticles = allArticles.slice(1, 5)
   const latestNewsArticles = allArticles.slice(0, NEWS_COUNT)
