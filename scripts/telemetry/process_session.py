@@ -400,6 +400,41 @@ def elabora_round(anno: int, rnd: int) -> bool:
         return False
     evento = righe.iloc[0]
     nome = str(evento["EventName"])
+
+    data = evento.get("EventDate")
+    quando = "" if data is None else str(data)[:10]
+
+    # I dati generati con OpenF1 numeravano i round contando i weekend in
+    # ordine di data; FastF1 usa il numero ufficiale di calendario. Di norma
+    # coincidono, ma un GP cancellato o rinviato li fa divergere — e allora
+    # si riscriverebbe la cartella di un altro Gran Premio senza accorgersene.
+    #
+    # Il confronto e' sulla DATA e non sul nome: le due fonti chiamano lo
+    # stesso Gran Premio in modi diversi (per OpenF1 il round 7 del 2026 e'
+    # il "Barcelona Grand Prix", per il calendario ufficiale lo "Spanish"),
+    # e un controllo sul nome griderebbe al lupo ogni volta. Le date invece
+    # sono confrontabili, a patto di tollerare qualche giorno: OpenF1 datava
+    # il weekend al venerdi', FastF1 lo data alla gara.
+    precedente = next(
+        (e for e in carica_indice() if e.get("year") == anno and e.get("round") == rnd), None
+    )
+    if precedente and quando and precedente.get("date"):
+        try:
+            scarto = abs(
+                (datetime.fromisoformat(quando) - datetime.fromisoformat(precedente["date"])).days
+            )
+        except ValueError:
+            scarto = 0
+        if scarto > 5:
+            print(f"FERMO: la cartella {anno}/{rnd} contiene "
+                  f"'{precedente.get('name')}' del {precedente['date']},")
+            print(f"       ma nel calendario ufficiale il round {rnd} e' "
+                  f"'{nome}' del {quando}.")
+            print("       La numerazione dei dati vecchi non coincide con quella di FastF1:")
+            print("       rigenerare qui sovrascriverebbe un altro Gran Premio.")
+            print("       Sposta o cancella public/telemetria-data prima di rigenerare.")
+            return False
+
     print(f"Elaboro {anno} round {rnd}: {nome}")
 
     base = OUT / str(anno) / str(rnd)
