@@ -13,6 +13,16 @@ export function famigliaDi(el: Element | null): string {
   return getComputedStyle(el).fontFamily || 'system-ui, sans-serif'
 }
 
+export interface Annotazione {
+  /** Posizione lungo il giro, da 0 (traguardo) a 1 (traguardo successivo). */
+  frazione: number
+  /** Altezza nel grafico, in pixel dell'altezza a schermo. */
+  y: number
+  /** Sopra il punto per i massimi, sotto per i minimi. */
+  sopra: boolean
+  righe: { testo: string; colore: string }[]
+}
+
 export interface VoceLegenda {
   abbr: string
   color: string
@@ -34,6 +44,10 @@ export async function esportaPng(opts: {
   titolo: string
   unita: string
   etichette: { testo: string; y: number }[]
+  /** Etichette sopra il grafico (velocita' minime/massime): x e y sono in
+   *  coordinate del grafico a schermo, quindi vanno riscalate. */
+  annotazioni?: Annotazione[]
+  larghezzaSchermo?: number
   altezzaGrafico: number
   legenda: VoceLegenda[]
   nomeFile: string
@@ -41,6 +55,7 @@ export async function esportaPng(opts: {
   fontTesto: Element | null
 }) {
   const { svg, titolo, unita, etichette, altezzaGrafico, legenda, nomeFile } = opts
+  const annotazioni = opts.annotazioni ?? []
   if (!svg) return
 
   const LARGHEZZA_GRAFICO = 1600
@@ -109,6 +124,33 @@ export async function esportaPng(opts: {
   ctx.strokeRect(xGrafico + 0.5, yGrafico + 0.5, LARGHEZZA_GRAFICO - 1, altezzaGrafico - 1)
 
   ctx.drawImage(img, xGrafico, yGrafico, LARGHEZZA_GRAFICO, altezzaGrafico)
+
+  // Annotazioni (velocita' di punta e minime). Le y arrivano in pixel di
+  // schermo: qui il grafico e' alto uguale ma largo LARGHEZZA_GRAFICO, quindi
+  // la y si usa cosi' com'e' e solo la x va riscalata.
+  if (annotazioni.length > 0) {
+    const ALT_RIGA = 15
+    ctx.textAlign = 'center'
+    for (const a of annotazioni) {
+      const x = xGrafico + a.frazione * LARGHEZZA_GRAFICO
+      const yPunto = yGrafico + a.y
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(x, yPunto)
+      ctx.lineTo(x, yPunto + (a.sopra ? -8 : 8))
+      ctx.stroke()
+      a.righe.forEach((r, i) => {
+        ctx.font = `700 13px ${famigliaTesto}`
+        ctx.fillStyle = r.colore
+        const y = a.sopra
+          ? yPunto - 12 - (a.righe.length - 1 - i) * ALT_RIGA
+          : yPunto + 22 + i * ALT_RIGA
+        ctx.fillText(r.testo, x, y)
+      })
+    }
+    ctx.textAlign = 'left'
+  }
 
   // Etichette dell'asse, alle stesse altezze che hanno sullo schermo.
   ctx.fillStyle = 'rgba(255,255,255,0.45)'

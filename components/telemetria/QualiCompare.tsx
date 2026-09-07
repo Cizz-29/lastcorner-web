@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { esportaPng, type VoceLegenda } from '@/components/telemetria/esportaPng'
+import { esportaPng, type Annotazione, type VoceLegenda } from '@/components/telemetria/esportaPng'
+import { puntiNotevoli } from '@/components/telemetria/puntiNotevoli'
 
 // Confronto giri di qualifica: si scelgono fino a 4 piloti, per ciascuno si
 // sceglie quale tentativo confrontare, e si sovrappongono le tracce
@@ -164,6 +165,7 @@ function Chart({
   zeroLine = false,
   legenda = [],
   nomeFile,
+  annotazioni = [],
 }: {
   title: string
   unit: string
@@ -176,6 +178,7 @@ function Chart({
   zeroLine?: boolean
   legenda?: VoceLegenda[]
   nomeFile: string
+  annotazioni?: Annotazione[]
 }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const titoloRef = useRef<HTMLParagraphElement>(null)
@@ -198,6 +201,7 @@ function Chart({
         unita: unit,
         etichette: values.map((v) => ({ testo: format(v), y: yOf(v, height, lo, hi) })),
         altezzaGrafico: height,
+        annotazioni,
         legenda,
         nomeFile,
         fontTitolo: titoloRef.current,
@@ -242,7 +246,32 @@ function Chart({
           ))}
         </div>
 
-        <div className="flex-1 min-w-0 bg-lc-card border border-white/10 rounded-card-sm overflow-hidden">
+        <div className="relative flex-1 min-w-0 bg-lc-card border border-white/10 rounded-card-sm overflow-hidden">
+          {/* Etichette delle velocita': HTML sovrapposto, non testo dentro
+              l'SVG, che verrebbe stirato da preserveAspectRatio="none". */}
+          {annotazioni.map((a, i) => (
+            <div
+              key={i}
+              className="pointer-events-none absolute z-10 flex flex-col items-center leading-none"
+              style={{
+                left: `${a.frazione * 100}%`,
+                top: a.y,
+                transform: a.sopra ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
+                paddingBottom: a.sopra ? 6 : 0,
+                paddingTop: a.sopra ? 0 : 6,
+              }}
+            >
+              {a.righe.map((r, k) => (
+                <span
+                  key={k}
+                  className="font-montserrat text-[9px] font-bold whitespace-nowrap"
+                  style={{ color: r.colore, textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
+                >
+                  {r.testo}
+                </span>
+              ))}
+            </div>
+          ))}
           <svg
             ref={svgRef}
             viewBox={`0 0 ${W} ${height}`}
@@ -292,6 +321,23 @@ function Chart({
       </div>
     </div>
   )
+}
+
+// Valore di una qualsiasi serie a una data distanza, per interpolazione
+// lineare fra i due campioni che la contengono.
+function valoreAllaDistanza(distance: number[], valori: number[], dist: number): number {
+  if (dist <= distance[0]) return valori[0]
+  if (dist >= distance[distance.length - 1]) return valori[valori.length - 1]
+  let lo = 0
+  let hi = distance.length - 1
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1
+    if (distance[mid] > dist) hi = mid
+    else lo = mid
+  }
+  const span = distance[hi] - distance[lo] || 1
+  const f = (dist - distance[lo]) / span
+  return valori[lo] + f * (valori[hi] - valori[lo])
 }
 
 // Interpola il tempo a una data distanza: i giri hanno campionamenti diversi.
@@ -505,6 +551,46 @@ export default function QualiCompare({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attivi])
 
+  // Velocita' di punta sui rettilinei e minime in curva, sul grafico della
+  // velocita'. I punti si cercano sulla PRIMA traccia (il riferimento) e per
+  // le altre si legge la velocita' nello stesso punto del giro: cosi' le
+  // etichette restano incolonnate invece di sfalsarsi pilota per pilota.
+  const annotazioniVelocita = useMemo<Annotazione[]>(() => {
+    if (attivi.length === 0) return []
+    const rif = attivi[0]
+    const Lrif = rif.tel.distance[rif.tel.distance.length - 1] || 1
+    const tutte = attivi.flatMap((a) => a.tel.speed)
+    const lo = Math.min(...tutte)
+    const hi = Math.max(...tutte)
+    const altezza = alto(ALTEZZE.velocita)
+
+    return puntiNotevoli(rif.tel.speed, rif.tel.distance).map((p) => {
+      const frazione = p.distanza / Lrif
+      const righe = attivi.map((a, i) => {
+        const L = a.tel.distance[a.tel.distance.length - 1] || 1
+        const v = valoreAllaDistanza(a.tel.distance, a.tel.speed, frazione * L)
+        const testo =
+          i === 0
+            ? `${etichettaDi(a)} ${Math.round(v)}`
+            : `${etichettaDi(a)} ${v - p.velocita >= 0 ? '+' : ''}${Math.round(v - p.velocita)}`
+        return { testo, colore: a.style?.color ?? a.driver.color }
+      })
+      // Il massimo di un rettilineo ha spazio sopra, l'apice di una curva
+      // sotto: cosi' l'etichetta non copre mai la linea. Ma il punto piu'
+      // veloce e quello piu' lento di tutto il giro toccano i bordi del
+      // grafico, e li' l'etichetta uscirebbe dal riquadro: in quel caso si
+      // ribalta dall'altro lato.
+      const y = yOf(p.velocita, altezza, lo, hi)
+      const ingombro = righe.length * 11 + 8
+      let sopra = p.tipo === 'rettilineo'
+      if (sopra && y < ingombro) sopra = false
+      else if (!sopra && y > altezza - ingombro) sopra = true
+
+      return { frazione, y, sopra, righe }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attivi, ingrandimento])
+
   return (
     <div>
       <p className="font-akira text-[10px] text-white uppercase tracking-widest mb-3">
@@ -672,7 +758,7 @@ export default function QualiCompare({
                 </>
               )}
 
-              <Chart title="Velocità" unit="km/h" height={alto(ALTEZZE.velocita)} series={serieDa((t) => t.speed)} ticks={5} legenda={legenda} nomeFile={nomeFileDi('velocita')} />
+              <Chart title="Velocità" unit="km/h" height={alto(ALTEZZE.velocita)} series={serieDa((t) => t.speed)} ticks={5} legenda={legenda} nomeFile={nomeFileDi('velocita')} annotazioni={annotazioniVelocita} />
               <Chart title="Acceleratore" unit="%" height={alto(ALTEZZE.acceleratore)} series={serieDa((t) => t.throttle)} yMin={0} yMax={100} ticks={3} legenda={legenda} nomeFile={nomeFileDi('acceleratore')} />
               <Chart title="Freno" unit="on/off" height={alto(ALTEZZE.freno)} series={serieDa((t) => t.brake.map((b) => b * 100))} yMin={0} yMax={100} ticks={2} format={(v) => (v > 50 ? 'ON' : 'OFF')} legenda={legenda} nomeFile={nomeFileDi('freno')} />
               <Chart title="Marcia" unit="n" height={alto(ALTEZZE.marcia)} series={serieDa((t) => t.gear)} yMin={1} yMax={8} ticks={4} legenda={legenda} nomeFile={nomeFileDi('marcia')} />
