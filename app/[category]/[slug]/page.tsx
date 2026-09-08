@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import StandingsWidget from '@/components/StandingsWidget'
@@ -32,6 +32,21 @@ interface ArticlePageProps {
 async function findArticle(category: string, slug: string): Promise<Article | undefined> {
   const articles = await getAllArticles()
   return articles.find((a) => a.slug === `${category}/${slug}`)
+}
+
+/** Lo stesso slug sotto una categoria qualsiasi.
+ *
+ *  Serve al caso in cui un articolo cambia categoria: l'indirizzo vecchio
+ *  smette di esistere e si porta dietro tutto quello che si era guadagnato
+ *  su Google. In Search Console erano 47 URL /altro/... che rispondevano
+ *  404, e almeno due erano pezzi vivi, spostati nel frattempo in "Formula 1"
+ *  e in "WRC".
+ *
+ *  Non costa una query in piu': getAllArticles e' gia' in memoria (la usa la
+ *  riga sopra) e questo controllo scatta solo dove prima c'era un 404. */
+async function findArticleAltrove(slug: string): Promise<Article | undefined> {
+  const articles = await getAllArticles()
+  return articles.find((a) => a.slug.endsWith(`/${slug}`))
 }
 
 // Pre-genera le pagine per tutti gli articoli (Sanity + mock) in fase di build
@@ -109,7 +124,16 @@ function datiStrutturati(article: Article, percorso: string) {
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const article = await findArticle(params.category, params.slug)
-  if (!article) notFound()
+  if (!article) {
+    // Prima di rispondere 404: lo stesso slug vive sotto un'altra categoria?
+    // Se si', l'articolo e' stato spostato e questo e' il suo vecchio
+    // indirizzo — si manda dove sta adesso invece di buttarlo via.
+    const spostato = await findArticleAltrove(params.slug)
+    if (spostato && spostato.slug !== `${params.category}/${params.slug}`) {
+      permanentRedirect(`/${spostato.slug}`)
+    }
+    notFound()
+  }
 
   const hasStandings = getCategoryConfig(params.category)?.hasStandings ?? false
 

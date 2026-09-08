@@ -29,7 +29,10 @@ export async function generateMetadata({ params }: AuthorPageProps): Promise<Met
     : `Tutti gli articoli di ${match.author} su Lastcorner.net.`
 
   return {
-    title: `${match.author} — Lastcorner.net`,
+    // Senza il "— Lastcorner.net": il template di app/layout.tsx aggiunge
+    // gia' " | Lastcorner", e il titolo finiva col nome del sito due volte
+    // ("Francesco Di Blasi — Lastcorner.net | Lastcorner").
+    title: match.author,
     description: descrizione,
     alternates: { canonical: `/autori/${params.slug}` },
   }
