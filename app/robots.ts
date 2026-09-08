@@ -73,6 +73,9 @@ export default function robots(): MetadataRoute.Robots {
         disallow: '/',
       },
     ],
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    // Due sitemap: quella normale con tutto il sito, e quella news con i
+    // soli articoli delle ultime 48 ore, che Googlebot News ricontrolla
+    // molto piu' spesso (vedi app/news-sitemap.xml/route.ts).
+    sitemap: [`${SITE_URL}/sitemap.xml`, `${SITE_URL}/news-sitemap.xml`],
   }
 }

@@ -37,6 +37,13 @@ function percorsiDa(corpo: any): string[] {
   const tipo = corpo?._type
 
   if (tipo === 'article') {
+    // La sitemap news elenca gli articoli delle ultime 48 ore ed e' il modo
+    // in cui Googlebot News si accorge in fretta di un pezzo nuovo: va
+    // rigenerata proprio adesso, che un articolo e' appena cambiato. E'
+    // l'unico momento in cui serve — rigenerarla a tempo costerebbe di piu'
+    // e servirebbe di meno.
+    percorsi.add('/news-sitemap.xml')
+
     const categoria = slugCategoria(corpo?.category)
     const slug = typeof corpo?.slug?.current === 'string' ? corpo.slug.current : null
     if (categoria) {

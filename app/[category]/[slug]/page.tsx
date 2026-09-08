@@ -50,7 +50,17 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const description = article.excerpt ?? `${article.title} — Lastcorner.net`
   const percorso = `/${params.category}/${params.slug}`
   return {
-    title: article.title,
+    // Titolo senza il suffisso " | Lastcorner" che il template di
+    // app/layout.tsx aggiunge alle altre pagine.
+    //
+    // Nei risultati Google il nome del sito compare gia' su una riga sua,
+    // sopra il titolo: il suffisso lo ripete e basta. Ma soprattutto costa
+    // tredici caratteri su un titolo che Google taglia intorno ai sessanta,
+    // e a farne le spese e' la fine del titolo — cioe' esattamente la parola
+    // che la gente ha cercato. "F1 | Gli Orari TV SKY e TV8 del GP di Spagna
+    // 2026 a Madrid" mette "Madrid" al carattere 52: con il suffisso il
+    // taglio se lo mangia, senza resta.
+    title: { absolute: article.title },
     description,
     // Senza questo l'articolo ereditava il canonical della home e diceva a
     // Google di indicizzare quella al posto suo.
