@@ -21,14 +21,22 @@ const LINGUA = 'it'
 const FINESTRA_ORE = 48
 const MASSIMO = 1000
 
-// Non si rigenera a tempo: ci pensa il webhook di Sanity, che alla
-// pubblicazione di un articolo chiede a Next di rifare questo percorso
-// (app/api/revalidate/route.ts). E' lo stesso meccanismo della home, ed e'
-// la ragione per cui li' revalidate e' false: rigenerare a tempo significa
-// rifare il lavoro anche nelle ore in cui non pubblica nessuno, e su questo
-// piano la CPU e' la risorsa scarsa. Alla pubblicazione, invece, la sitemap
-// e' aggiornata entro pochi secondi.
-export const revalidate = false
+// Due meccanismi, e servono entrambi.
+//
+// Il webhook di Sanity rifa' questo percorso appena si pubblica un articolo
+// (app/api/revalidate/route.ts): e' cosi' che la sitemap e' aggiornata in
+// pochi secondi, quando conta.
+//
+// Ma la finestra delle 48 ore si calcola nel momento in cui la sitemap viene
+// generata, non nel momento in cui Google la legge. Con il solo webhook, due
+// giorni senza pubblicare basterebbero a lasciarci dentro articoli ormai
+// vecchi — proprio la cosa che Google dice di non fare, e il modo per farsi
+// ignorare la sitemap. L'ora di scadenza e' quindi un pavimento: garantisce
+// che la finestra non invecchi mai di piu' di un'ora anche in agosto.
+//
+// Costo: al massimo 24 rigenerazioni al giorno. La home, quando aveva
+// revalidate = 60, ne faceva 1.440 ed era la voce principale del consumo.
+export const revalidate = 3600
 
 /** & < > ' " nei titoli spezzerebbero l'XML. */
 function xml(testo: string): string {
