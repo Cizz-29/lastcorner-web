@@ -224,7 +224,16 @@ def piazzamenti(session) -> dict:
 
 def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
     """Scrive pace.json e, dove previsto, laps.json e tel/<numero>.json."""
-    giri = session.laps
+    # Sessione appena conclusa: FastF1 non solleva un errore quando l'archivio
+    # della Formula 1 non e' ancora online, si limita a scrivere dei warning e
+    # a caricare zero piloti. L'eccezione arriva qui, al primo accesso ai
+    # giri — e senza questa rete faceva cadere l'intero round, buttando via
+    # anche le sessioni gia' scaricate.
+    try:
+        giri = session.laps
+    except Exception:  # noqa: BLE001
+        print(f"  [{spec['key']}] dati non ancora pubblicati, salto")
+        return None
     if giri is None or len(giri) == 0:
         print(f"  [{spec['key']}] nessun giro disponibile")
         return None
@@ -456,6 +465,8 @@ def elabora_round(anno: int, rnd: int) -> bool:
 
     if not sessioni:
         print("  nessun dato disponibile, salto")
+        print("  (se la sessione si e' appena conclusa, l'archivio della F1")
+        print("   compare di solito entro un'ora: riprova piu' tardi)")
         return False
 
     indice = [e for e in carica_indice() if not (e["year"] == anno and e["round"] == rnd)]
