@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import StandingsWidget from '@/components/StandingsWidget'
 import SocialCard from '@/components/SocialCard'
+import FontiPreferite from '@/components/FontiPreferite'
 import { StandingsWidgetSkeleton } from '@/components/Skeletons'
 import AdSlot from '@/components/AdSlot'
 import ArticleBody from '@/components/ArticleBody'
@@ -244,6 +245,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               colmato con un annuncio invece di un margine fisso "a occhio". */}
           <aside className="flex flex-col gap-4">
             <SocialCard />
+
+            <FontiPreferite />
 
             <AdSlot height={200} label="300×250" />
 
