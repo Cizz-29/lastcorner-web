@@ -20,6 +20,10 @@ import { CATEGORIES } from '@/lib/categories'
 // Google: una pagina d'errore che risponde "200 va tutto bene" e' il
 // classico soft 404 e finisce per essere indicizzata.
 
+// Il robots qui non e' ridondante: il layout del sito dichiara
+// "index: true" per tutte le pagine, e senza questo override il 404 si
+// porterebbe dietro proprio quello. Con "follow: true" i motori continuano
+// comunque a seguire i collegamenti alle categorie qui sotto.
 export const metadata: Metadata = {
   title: 'Pagina non trovata',
   robots: { index: false, follow: true },
@@ -43,8 +47,9 @@ export default function NotFound() {
         </div>
 
         <p className="font-montserrat text-[15px] text-white/90 leading-relaxed">
-          Questa pagina non esiste, o non esiste più. Può capitare con un
-          indirizzo vecchio, un link copiato a metà o un refuso.
+          Il link che hai seguito non corrisponde a nessuna pagina del sito.
+          Può capitare con un indirizzo vecchio, un link copiato a metà o un
+          refuso.
         </p>
 
         <div className="flex flex-wrap gap-3 mt-8">
