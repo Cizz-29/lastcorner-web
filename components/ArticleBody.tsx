@@ -173,16 +173,28 @@ const components: PortableTextComponents = {
     number: ({ children }) => <li>{children}</li>,
   },
   marks: {
-    link: ({ children, value }) => (
-      <a
-        href={value?.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-lc-red underline hover:no-underline"
-      >
-        {children}
-      </a>
-    ),
+    // I link esterni si aprono in una scheda nuova, quelli interni no.
+    //
+    // Prima ci finivano tutti: cliccando su un altro articolo del sito il
+    // lettore si ritrovava con una scheda in piu' invece di navigare, e la
+    // sessione si spezzava. Un link interno e' scritto come percorso
+    // relativo ("/formula-1/calendario"), quindi basta guardare se comincia
+    // con http per distinguerli; il dominio nostro e' trattato come interno
+    // per i link vecchi scritti per esteso.
+    link: ({ children, value }) => {
+      const href: string = value?.href ?? ''
+      const esterno =
+        /^https?:\/\//i.test(href) && !/^https?:\/\/(www\.)?lastcorner\.net(\/|$)/i.test(href)
+      return (
+        <a
+          href={href}
+          {...(esterno ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+          className="text-lc-red underline hover:no-underline"
+        >
+          {children}
+        </a>
+      )
+    },
   },
   types: {
     image: ImageBlock,

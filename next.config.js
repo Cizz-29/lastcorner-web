@@ -31,6 +31,28 @@ const nextConfig = {
       { protocol: 'https', hostname: 'flagcdn.com' },
     ],
   },
+
+  // Piloti usciti da un roster durante la stagione.
+  //
+  // Le pagine pilota nascono da lib/rosterData.ts: tolto il pilota dal
+  // roster, il suo indirizzo va in 404 anche se la scheda su Sanity resta
+  // al suo posto. Qui la si manda alla pagina del team in cui correva, che
+  // e' la destinazione piu' vicina per chi arriva da Google o da un vecchio
+  // link. Sta in next.config e non nel middleware di proposito: questi
+  // redirect li risolve il router prima di eseguire qualsiasi codice, senza
+  // costare CPU su ogni richiesta del sito.
+  //
+  // Se il pilota rientra in un roster futuro, basta togliere la riga: la
+  // scheda Sanity si riaggancia da sola, perche' e' collegata al driverId.
+  async redirects() {
+    return [
+      {
+        source: '/formula-3/piloti/christian-ho',
+        destination: '/formula-3/team/rodin-motorsport',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

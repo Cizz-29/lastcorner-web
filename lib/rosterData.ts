@@ -99,7 +99,7 @@ const F3_TEAMS: RosterTeamEntry[] = [
   { id: 'rodin-motorsport', name: 'Rodin Motorsport', nationality: 'New Zealander', drivers: [
     { number: '17', givenName: 'Pedro', familyName: 'Clerot', nationality: 'Brazilian' },
     { number: '18', givenName: 'Brando', familyName: 'Badoer', nationality: 'Italian' },
-    { number: '19', givenName: 'Christian', familyName: 'Ho', nationality: 'Singaporean' },
+    { number: '19', givenName: 'Niccolò', familyName: 'Maccagnani', nationality: 'Italian' },
   ]},
   { id: 'prema-racing', name: 'PREMA Racing', nationality: 'Italian', drivers: [
     { number: '20', givenName: 'Louis', familyName: 'Sharp', nationality: 'Australian' },
