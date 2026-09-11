@@ -197,10 +197,16 @@ export default defineType({
         {
           type: 'object',
           name: 'embed',
-          title: 'Embed (X / social)',
+          title: 'Embed (X / Instagram / YouTube)',
           options: { modal: { type: 'dialog' } },
           fields: [
-            { name: 'url', title: 'Link al post (X/Twitter, YouTube, ecc.)', type: 'url' },
+            {
+              name: 'url',
+              title: 'Link al post',
+              type: 'url',
+              description:
+                'X/Twitter, Instagram (post, reel o IGTV) e YouTube diventano anteprime vere. Qualsiasi altro indirizzo resta un link.',
+            },
           ],
           preview: { select: { title: 'url' } },
         },

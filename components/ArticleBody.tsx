@@ -3,6 +3,7 @@ import { PortableText, type PortableTextComponents } from '@portabletext/react'
 import AdSlot from '@/components/AdSlot'
 import TabellaBlock from '@/components/TabellaBlock'
 import XEmbed from '@/components/XEmbed'
+import InstagramEmbed from '@/components/InstagramEmbed'
 import ClassificaF1Block from '@/components/ClassificaF1Block'
 import { urlFor, dimensioniDa } from '@/lib/sanity/image'
 
@@ -107,15 +108,21 @@ function ImageBlock({ value }: { value: any }) {
   )
 }
 
-// Embed X/Twitter/YouTube. I video YouTube vanno in un iframe responsive;
-// i post di X mostrano l'anteprima vera (vedi XEmbed, che carica lo script
-// di X solo col consenso marketing); per tutto il resto resta il link.
+// Embed X/Twitter, Instagram e YouTube. I video YouTube vanno in un iframe
+// responsive; i post di X e di Instagram mostrano l'anteprima vera (vedi
+// XEmbed e InstagramEmbed, che caricano lo script di terze parti solo col
+// consenso marketing); per tutto il resto resta il link.
 function EmbedBlock({ value }: { value: { url?: string } }) {
   const url = value?.url
   if (!url) return null
 
   if (/(^|\/\/)(www\.)?(twitter\.com|x\.com)\//.test(url)) {
     return <XEmbed url={url} />
+  }
+
+  // Post, reel e IGTV: sono le tre forme che l'embed di Instagram accetta.
+  if (/(^|\/\/)(www\.)?instagram\.com\/(p|reel|reels|tv)\//.test(url)) {
+    return <InstagramEmbed url={url} />
   }
 
   const yt = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=|youtube\.com\/embed\/)([\w-]{11})/)
