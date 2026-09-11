@@ -52,6 +52,8 @@ const TRACKING_EM = 0.025
 // Il fondo della foto deve finire dentro la sfumatura scura del template,
 // cosi' l'immagine sfuma senza mostrare lo stacco.
 const FONDO_FOTO = 1850
+// Lato dell'anteprima durante il trascinamento, in frazione di quello vero.
+const ANTEPRIMA = 1 / 3
 const DISSOLVENZA = 200
 
 // Preset Camera Raw di Francesco (Untitled.xmp). Nasce per file raw:
@@ -114,8 +116,13 @@ function sfocatura(sorgente: HTMLCanvasElement, raggio: number) {
   return ctx.getImageData(0, 0, c.width, c.height)
 }
 
-/** Preset Camera Raw applicato alla foto gia' ritagliata. */
-function trattaFoto(canvas: HTMLCanvasElement, forza: number) {
+/** Preset Camera Raw applicato alla foto gia' ritagliata.
+ *
+ *  `scalaRaggi` serve all'anteprima ridotta: le maschere di contrasto hanno
+ *  un raggio in pixel, quindi su una tela piu' piccola vanno rimpicciolite
+ *  in proporzione, altrimenti l'effetto risulta molto piu' marcato di
+ *  quello che si otterra' nel file finale. */
+function trattaFoto(canvas: HTMLCanvasElement, forza: number, scalaRaggi = 1) {
   const ctx = canvas.getContext('2d')!
   const { width: w, height: h } = canvas
   const img = ctx.getImageData(0, 0, w, h)
@@ -152,9 +159,9 @@ function trattaFoto(canvas: HTMLCanvasElement, forza: number) {
   // Chiarezza (contrasto locale, raggio ampio), texture (dettaglio medio) e
   // nitidezza: tutte maschere di contrasto, cambia solo il raggio.
   const passaggi: Array<[number, number]> = [
-    [28, (PRESET.chiarezza / 100) * forza * 1.1],
-    [4, (PRESET.texture / 100) * forza * 1.1],
-    [1, (PRESET.nitidezza / 100) * forza * 0.8],
+    [28 * scalaRaggi, (PRESET.chiarezza / 100) * forza * 1.1],
+    [4 * scalaRaggi, (PRESET.texture / 100) * forza * 1.1],
+    [1 * scalaRaggi, (PRESET.nitidezza / 100) * forza * 0.8],
   ]
   for (const [raggio, quantita] of passaggi) {
     if (quantita <= 0) continue
@@ -267,7 +274,12 @@ function larghRiga(ctx: CanvasRenderingContext2D, riga: Parola[], tracking: numb
 /** corpoFisso a 0 = la dimensione la sceglie il programma; altrimenti si usa
  *  quella indicata. L'interlinea resta sempre legata al corpo dal rapporto
  *  del template, quindi non si puo' sbagliare. */
-function scriviCitazione(ctx: CanvasRenderingContext2D, testo: string, corpoFisso: number) {
+function scriviCitazione(
+  ctx: CanvasRenderingContext2D,
+  testo: string,
+  corpoFisso: number,
+  scostamento: number
+) {
   const altezzaMax = BOX_BOTTOM - BOX_TOP_MIN
 
   // Se il testo contiene degli a-capo, le righe le decide l'autore e
@@ -304,7 +316,9 @@ function scriviCitazione(ctx: CanvasRenderingContext2D, testo: string, corpoFiss
   ctx.font = FONT_TITOLO.replace('__PX__', String(dim))
   const passo = Math.round(dim / RAPPORTO_CORPO_INTERLINEA)
   const spazio = ctx.measureText(' ').width + tracking
-  let y = BOX_BOTTOM - righe.length * passo
+  // Il blocco e' ancorato in basso: lo scostamento lo alza o lo abbassa
+  // in blocco, senza toccare corpo e interlinea.
+  let y = BOX_BOTTOM + scostamento - righe.length * passo
   for (const riga of righe) {
     let larghezza = riga.reduce((s, p) => s + larghParola(ctx, p, tracking), 0)
     larghezza += spazio * (riga.length - 1)
@@ -343,6 +357,7 @@ export default function GeneratoreGrafiche() {
   const [spostaY, setSpostaY] = useState(0)
   const [forza, setForza] = useState(50)
   const [corpo, setCorpo] = useState(0)
+  const [spostaTesto, setSpostaTesto] = useState(0)
   const [pronto, setPronto] = useState(false)
   const [info, setInfo] = useState('')
   const [famiglia, setFamiglia] = useState('sans-serif')
@@ -361,7 +376,14 @@ export default function GeneratoreGrafiche() {
     ]).then(() => setPronto(true))
   }, [])
 
-  const disegna = useCallback(() => {
+  // `qualita` vale 1 per il disegno definitivo e una frazione per
+  // l'anteprima durante il trascinamento di un cursore. Il trattamento
+  // fotografico e' la parte cara — otto passaggi pixel per pixel su quasi
+  // quattro milioni di pixel — e a un terzo di lato costa un nono. Sul PC
+  // non si notava, su un tablet bloccava il thread al punto che i passaggi
+  // intermedi del cursore venivano saltati: si vedeva solo il punto di
+  // partenza e quello di arrivo.
+  const disegna = useCallback((qualita = 1) => {
     const canvas = canvasRef.current
     if (!canvas || !template || !pronto) return
     const ctx = canvas.getContext('2d')!
@@ -369,9 +391,14 @@ export default function GeneratoreGrafiche() {
     ctx.fillRect(0, 0, W, H)
 
     if (foto) {
+      // I fattori si ricavano dalle misure arrotondate della tela, non da
+      // `qualita`: arrotondando prima e scalando poi, l'anteprima scivolava
+      // di qualche pixel rispetto al disegno definitivo.
       const c = document.createElement('canvas')
-      c.width = W
-      c.height = FONDO_FOTO
+      c.width = Math.round(W * qualita)
+      c.height = Math.round(FONDO_FOTO * qualita)
+      const kx = c.width / W
+      const ky = c.height / FONDO_FOTO
       const cx = c.getContext('2d')!
 
       const base = Math.max(W / foto.width, FONDO_FOTO / foto.height)
@@ -383,9 +410,9 @@ export default function GeneratoreGrafiche() {
       // quello spazio in verticale e' zero, e il cursore non muoveva nulla.
       const x = (W - larg) / 2 + spostaX
       const y = (FONDO_FOTO - alt) / 2 + spostaY
-      cx.drawImage(foto, x, y, larg, alt)
+      cx.drawImage(foto, x * kx, y * ky, larg * kx, alt * ky)
 
-      trattaFoto(c, forza / 100)
+      trattaFoto(c, forza / 100, kx)
 
       // Dissolvenza corta sul bordo inferiore: a quell'altezza il template
       // e' gia' quasi opaco, serve solo a non lasciare uno stacco netto.
@@ -393,31 +420,39 @@ export default function GeneratoreGrafiche() {
       // solo verso il bordo inferiore. Con "destination-in" si cancellerebbe
       // invece tutto cio' che sta FUORI dal rettangolo, lasciando visibile
       // la sola striscia in fondo.
-      const sfuma = cx.createLinearGradient(0, FONDO_FOTO - DISSOLVENZA, 0, FONDO_FOTO)
+      const sfuma = cx.createLinearGradient(0, (FONDO_FOTO - DISSOLVENZA) * ky, 0, c.height)
       sfuma.addColorStop(0, 'rgba(0,0,0,0)')
       sfuma.addColorStop(1, 'rgba(0,0,0,1)')
       cx.globalCompositeOperation = 'destination-out'
       cx.fillStyle = sfuma
-      cx.fillRect(0, FONDO_FOTO - DISSOLVENZA, W, DISSOLVENZA)
+      cx.fillRect(0, (FONDO_FOTO - DISSOLVENZA) * ky, c.width, DISSOLVENZA * ky)
       cx.globalCompositeOperation = 'source-over'
 
-      ctx.drawImage(c, 0, 0)
+      ctx.drawImage(c, 0, 0, W, FONDO_FOTO)
     }
 
     ctx.drawImage(template, 0, 0, W, H)
 
     ctx.textBaseline = 'top'
     ctx.textAlign = 'left'
-    const esito = scriviCitazione(ctx, citazione, corpo)
+    const esito = scriviCitazione(ctx, citazione, corpo, spostaTesto)
     scriviAttribuzione(ctx, attribuzione, famiglia)
     setInfo(
       `corpo ${esito.dim}px · ${esito.righe} righe` +
         (esito.righe > MAX_RIGHE ? ` — oltre il limite di ${MAX_RIGHE}` : '')
     )
-  }, [foto, template, pronto, citazione, attribuzione, zoom, spostaX, spostaY, forza, corpo, famiglia])
+  }, [foto, template, pronto, citazione, attribuzione, zoom, spostaX, spostaY, forza, corpo, spostaTesto, famiglia])
 
+  // Due disegni per ogni modifica: l'anteprima ridotta al fotogramma
+  // successivo, cosi' il cursore risponde; quello a piena qualita' dopo una
+  // breve pausa, cioe' quando si e' smesso di trascinare.
   useEffect(() => {
-    disegna()
+    const frame = requestAnimationFrame(() => disegna(ANTEPRIMA))
+    const attesa = setTimeout(() => disegna(1), 160)
+    return () => {
+      cancelAnimationFrame(frame)
+      clearTimeout(attesa)
+    }
   }, [disegna])
 
   function scegliFoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -431,6 +466,9 @@ export default function GeneratoreGrafiche() {
   function scarica() {
     const canvas = canvasRef.current
     if (!canvas) return
+    // Se si scarica subito dopo aver mosso un cursore, sulla tela potrebbe
+    // esserci ancora l'anteprima ridotta: si ridisegna prima di salvare.
+    disegna(1)
     canvas.toBlob(
       (blob) => {
         if (!blob) return
@@ -500,6 +538,25 @@ export default function GeneratoreGrafiche() {
             />
             <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
               A zero la calcolo io. L&apos;interlinea segue sempre il corpo.
+            </p>
+          </div>
+
+          <div>
+            <label className={etichetta}>
+              Posizione testo — {spostaTesto === 0 ? 'standard' : `${spostaTesto > 0 ? '+' : ''}${spostaTesto}px`}
+            </label>
+            <input
+              type="range"
+              min={-400}
+              max={60}
+              step={5}
+              value={spostaTesto}
+              onChange={(e) => setSpostaTesto(Number(e.target.value))}
+              className="w-full mt-2 accent-lc-red"
+            />
+            <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
+              Alza o abbassa tutto il blocco della citazione. Verso destra si
+              avvicina alla linea bianca, verso sinistra se ne allontana.
             </p>
           </div>
 
