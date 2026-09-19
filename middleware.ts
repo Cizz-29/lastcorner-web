@@ -248,10 +248,23 @@ export async function middleware(req: NextRequest) {
 
 // Su quali indirizzi far girare il middleware.
 //
-// Prima l'elenco escludeva solo tre cose, quindi il middleware — con dentro
-// i redirect WordPress, il controllo password e un calcolo di hash — girava
-// anche sui font, su icon.png, su robots.txt e sugli altri file statici, che
-// di redirect non hanno alcun bisogno. Era circa un terzo della CPU consumata.
+// Questo elenco e' la voce di spesa piu' importante del sito, e vale la pena
+// capire perche'. Una pagina gia' in cache la serve la CDN e non costa nulla:
+// nessuna funzione viene eseguita. Il middleware no — gira su OGNI richiesta
+// che il matcher non esclude, anche quando la pagina e' in cache e anche
+// quando non ha niente da fare. Quindi il suo costo cresce col traffico
+// totale, non con le pagine da ricalcolare: sul mese misurato era il 41,7%
+// della CPU consumata, 2h02m su 4h54m.
+//
+// Se ne esclude percio' tutto cio' che non puo' MAI essere un vecchio
+// indirizzo WordPress da reindirizzare:
+//   - /studio  : lo Studio di Sanity e' un'applicazione a pagina singola e
+//                genera decine di richieste per ogni sessione di scrittura.
+//                Era la fonte di traffico piu' sottovalutata.
+//   - /api     : chiamate interne, compreso il webhook di Sanity a ogni
+//                pubblicazione.
+//   - /telemetria e i suoi dati: pagine dello strumento locale.
+//   - le due sitemap e i file statici alla radice.
 //
 // Restano DENTRO, e devono restarci: /grafiche e il template che sta sotto
 // di esso, che e' un file in public/ ma va protetto dalla stessa password.
@@ -259,6 +272,6 @@ export async function middleware(req: NextRequest) {
 // e' un'immagine, ma va protetta.
 export const config = {
   matcher: [
-    '/((?!_next/|images/|fonts/|favicon\\.ico|icon\\.png|apple-icon|opengraph-image|robots\\.txt|sitemap\\.xml|ads\\.txt|google[0-9a-f]+\\.html).*)',
+    '/((?!_next/|api/|studio/|studio$|telemetria/|telemetria-data/|images/|fonts/|favicon\\.ico|icon\\.png|apple-icon|opengraph-image|robots\\.txt|sitemap\\.xml|news-sitemap\\.xml|manifest\\.webmanifest|\\.well-known/|ads\\.txt|google[0-9a-f]+\\.html).*)',
   ],
 }

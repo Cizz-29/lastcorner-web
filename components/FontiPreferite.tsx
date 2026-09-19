@@ -45,11 +45,15 @@ export default function FontiPreferite() {
         compariranno più spesso fra le notizie in cima ai risultati di ricerca.
       </p>
 
+      {/* Il testo va a capo su due righe nella colonna stretta della sidebar.
+          Con il solo flex+justify-center si centra il blocco di testo, non le
+          righe dentro di esso: servono text-center e un padding orizzontale,
+          altrimenti la seconda riga resta appoggiata a sinistra. */}
       <a
         href={LINK}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 flex items-center justify-center gap-2 bg-lc-red text-white font-akira text-[11px] uppercase tracking-widest py-3 rounded-card-sm hover:opacity-90 transition-opacity"
+        className="mt-4 block text-center bg-lc-red text-white font-akira text-[11px] uppercase tracking-widest leading-snug px-4 py-3 rounded-card-sm hover:opacity-90 transition-opacity"
       >
         Aggiungi alle fonti preferite
       </a>
