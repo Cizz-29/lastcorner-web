@@ -19,7 +19,23 @@ const ROSSO = '#FF4242'
 const BIANCO = '#FFFFFF'
 
 const TEMPLATE = '/grafiche/template-intervista.webp'
-const FONT_TITOLO = '800 __PX__px "Akira Expanded"'
+const VIRGOLETTE = '/grafiche/virgolette.png'
+
+// I due pesi disponibili, con i nomi che hanno nel menu di Photoshop.
+//
+// Attenzione ai nomi dei file, che mentono: AkiraExpanded-Bold.woff2
+// contiene in realta' "Akira Expanded Regular" (peso interno 400) e
+// AkiraExpanded-SuperBold.woff2 contiene "Akira Expanded Bold" (700).
+// globals.css li dichiara come 700 e 800 della stessa famiglia, quindi qui
+// si chiede 800 per il Bold e 700 per il Regular. Sono due file veri: il
+// browser non sta sintetizzando nulla, e il Regular non e' un Bold
+// smagrito.
+const PESO_BOLD = 800
+const PESO_REGULAR = 700
+
+function fontTitolo(dim: number, peso: number) {
+  return `${peso} ${dim}px "Akira Expanded"`
+}
 
 /** Nome reale della famiglia Montserrat caricata da next/font: e' generato
  *  a ogni build (tipo "__Montserrat_a1b2c3"), quindi non si puo' scrivere a
@@ -52,6 +68,17 @@ const TRACKING_EM = 0.025
 // Il fondo della foto deve finire dentro la sfumatura scura del template,
 // cosi' l'immagine sfuma senza mostrare lo stacco.
 const FONDO_FOTO = 1850
+// Il segno di virgolette aperte: un PNG bianco gia' semitrasparente (alpha
+// massima 107 su 255), quindi si disegna tale e quale, senza toccare
+// l'opacita' del contesto. Le misure sono quelle dell'originale, 380x298,
+// riportate in scala su questa tela: 380 * 2080/2688 = 294.
+const VIRG_W = 294
+const VIRG_H = Math.round((VIRG_W * 298) / 380)
+// Posizione verticale di partenza, misurata su una grafica gia' fatta: il
+// segno sta appena sopra la prima riga di una citazione lunga. Con le
+// citazioni corte il testo scende, quindi serve il cursore.
+const VIRG_Y = 1575
+
 // Lato dell'anteprima durante il trascinamento, in frazione di quello vero.
 const ANTEPRIMA = 1 / 3
 const DISSOLVENZA = 200
@@ -278,7 +305,8 @@ function scriviCitazione(
   ctx: CanvasRenderingContext2D,
   testo: string,
   corpoFisso: number,
-  scostamento: number
+  scostamento: number,
+  peso: number
 ) {
   const altezzaMax = BOX_BOTTOM - BOX_TOP_MIN
 
@@ -293,7 +321,7 @@ function scriviCitazione(
   let tracking = 0
   const partenza = corpoFisso || 150
   for (dim = partenza; dim >= 40; dim -= 2) {
-    ctx.font = FONT_TITOLO.replace('__PX__', String(dim))
+    ctx.font = fontTitolo(dim, peso)
     tracking = dim * TRACKING_EM
     const passo = Math.round(dim / RAPPORTO_CORPO_INTERLINEA)
 
@@ -313,7 +341,7 @@ function scriviCitazione(
     }
   }
 
-  ctx.font = FONT_TITOLO.replace('__PX__', String(dim))
+  ctx.font = fontTitolo(dim, peso)
   const passo = Math.round(dim / RAPPORTO_CORPO_INTERLINEA)
   const spazio = ctx.measureText(' ').width + tracking
   // Il blocco e' ancorato in basso: lo scostamento lo alza o lo abbassa
@@ -348,6 +376,7 @@ export default function GeneratoreGrafiche() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [foto, setFoto] = useState<HTMLImageElement | null>(null)
   const [template, setTemplate] = useState<HTMLImageElement | null>(null)
+  const [segno, setSegno] = useState<HTMLImageElement | null>(null)
   const [citazione, setCitazione] = useState(
     'Abbiamo portato *due grossi pacchetti di aggiornamenti*, ed *entrambi hanno funzionato*'
   )
@@ -358,6 +387,9 @@ export default function GeneratoreGrafiche() {
   const [forza, setForza] = useState(50)
   const [corpo, setCorpo] = useState(0)
   const [spostaTesto, setSpostaTesto] = useState(0)
+  const [virgolette, setVirgolette] = useState(false)
+  const [spostaVirgolette, setSpostaVirgolette] = useState(0)
+  const [peso, setPeso] = useState(PESO_BOLD)
   const [pronto, setPronto] = useState(false)
   const [info, setInfo] = useState('')
   const [famiglia, setFamiglia] = useState('sans-serif')
@@ -368,10 +400,17 @@ export default function GeneratoreGrafiche() {
     const img = new Image()
     img.onload = () => setTemplate(img)
     img.src = TEMPLATE
+    const virg = new Image()
+    virg.onload = () => setSegno(virg)
+    virg.src = VIRGOLETTE
     const montserrat = famigliaMontserrat()
     setFamiglia(montserrat)
+    // Vanno caricati tutti e due i pesi: chiederne uno solo e poi cambiare
+    // idea lascerebbe il canvas a disegnare con un carattere di ripiego,
+    // senza segnalarlo in nessun modo.
     Promise.all([
-      document.fonts.load('800 100px "Akira Expanded"'),
+      document.fonts.load(`${PESO_BOLD} 100px "Akira Expanded"`),
+      document.fonts.load(`${PESO_REGULAR} 100px "Akira Expanded"`),
       document.fonts.load(`500 ${ATTR_DIM}px ${montserrat}`),
     ]).then(() => setPronto(true))
   }, [])
@@ -433,15 +472,22 @@ export default function GeneratoreGrafiche() {
 
     ctx.drawImage(template, 0, 0, W, H)
 
+    // Sopra al template e sotto al testo: il segno fa da sfondo alla
+    // citazione, come nelle grafiche fatte a mano. Il PNG e' gia' scolorito
+    // alla giusta trasparenza, qui non si tocca nulla.
+    if (virgolette && segno) {
+      ctx.drawImage(segno, (W - VIRG_W) / 2, VIRG_Y + spostaVirgolette, VIRG_W, VIRG_H)
+    }
+
     ctx.textBaseline = 'top'
     ctx.textAlign = 'left'
-    const esito = scriviCitazione(ctx, citazione, corpo, spostaTesto)
+    const esito = scriviCitazione(ctx, citazione, corpo, spostaTesto, peso)
     scriviAttribuzione(ctx, attribuzione, famiglia)
     setInfo(
       `corpo ${esito.dim}px · ${esito.righe} righe` +
         (esito.righe > MAX_RIGHE ? ` — oltre il limite di ${MAX_RIGHE}` : '')
     )
-  }, [foto, template, pronto, citazione, attribuzione, zoom, spostaX, spostaY, forza, corpo, spostaTesto, famiglia])
+  }, [foto, template, segno, pronto, citazione, attribuzione, zoom, spostaX, spostaY, forza, corpo, spostaTesto, virgolette, spostaVirgolette, peso, famiglia])
 
   // Due disegni per ogni modifica: l'anteprima ridotta al fotogramma
   // successivo, cosi' il cursore risponde; quello a piena qualita' dopo una
@@ -512,6 +558,72 @@ export default function GeneratoreGrafiche() {
               Metti fra asterischi le parti da evidenziare in rosso: *così*. Vai a capo per
               decidere tu la divisione in righe, altrimenti la calcolo io. Massimo cinque.
             </p>
+          </div>
+
+          <div>
+            <label className={etichetta}>Carattere</label>
+            {/* Il Regular serve alle slide successive della stessa serie,
+                dove il virgolettato e' lungo. E' una scelta di stile, non di
+                spazio: misurato qui, il Regular e' del 2% piu' largo del
+                Bold, quindi non fa entrare piu' testo nella riga. */}
+            <div className="flex gap-2 mt-2">
+              {([
+                ['Bold', PESO_BOLD],
+                ['Regular', PESO_REGULAR],
+              ] as Array<[string, number]>).map(([nome, valore]) => (
+                <button
+                  key={valore}
+                  type="button"
+                  onClick={() => setPeso(valore)}
+                  className={`flex-1 font-akira text-[11px] uppercase tracking-widest py-2 rounded-card-sm border transition-colors ${
+                    peso === valore
+                      ? 'bg-lc-red text-white border-lc-red'
+                      : 'bg-lc-card text-lc-subtle border-white/10 hover:border-white/40'
+                  }`}
+                  style={{ fontWeight: valore }}
+                >
+                  {nome}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={etichetta}>Virgolette</label>
+            <label className="flex items-center gap-3 mt-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={virgolette}
+                onChange={(e) => setVirgolette(e.target.checked)}
+                className="accent-lc-red w-4 h-4"
+              />
+              <span className="font-montserrat text-[13px] text-white">
+                Mostra il segno sopra la citazione
+              </span>
+            </label>
+            {virgolette && (
+              <div className="mt-3">
+                <label className={etichetta}>
+                  Altezza virgolette —{' '}
+                  {spostaVirgolette === 0
+                    ? 'standard'
+                    : `${spostaVirgolette > 0 ? '+' : ''}${spostaVirgolette}px`}
+                </label>
+                <input
+                  type="range"
+                  min={-900}
+                  max={400}
+                  step={5}
+                  value={spostaVirgolette}
+                  onChange={(e) => setSpostaVirgolette(Number(e.target.value))}
+                  className="w-full mt-2 accent-lc-red"
+                />
+                <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
+                  Orizzontalmente resta sempre al centro: si regola solo
+                  l&apos;altezza.
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
