@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 // Generatore delle grafiche citazione per i social.
 //
@@ -372,6 +372,40 @@ function scriviAttribuzione(ctx: CanvasRenderingContext2D, testo: string, famigl
 
 // ----------------------------------------------------------------- pagina
 
+/** Sezione richiudibile dei controlli.
+ *
+ *  E' un <details> del browser, non uno stato di React: aprire e chiudere
+ *  non fa ridisegnare nulla, e i cursori dentro continuano a funzionare
+ *  anche mentre sono nascosti, perche' il loro valore vive nello stato della
+ *  pagina e non nel DOM.
+ *
+ *  Nascono chiusi apposta. Su tablet il pannello era piu' alto dello
+ *  schermo e i cursori della foto finivano sotto il bordo, irraggiungibili
+ *  senza scorrere alla cieca: con le sezioni chiuse ci sta tutto, e ognuna
+ *  e' a un tocco di distanza. */
+function Gruppo({ titolo, children }: { titolo: string; children: ReactNode }) {
+  return (
+    <details className="group border border-white/10 rounded-card-sm">
+      <summary className="flex items-center justify-between cursor-pointer select-none list-none px-4 py-3 font-montserrat text-[11px] uppercase tracking-widest text-lc-subtle [&::-webkit-details-marker]:hidden">
+        {titolo}
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          className="text-white/40 transition-transform group-open:rotate-180"
+          aria-hidden="true"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </summary>
+      <div className="flex flex-col gap-5 px-4 pb-5 pt-1">{children}</div>
+    </details>
+  )
+}
+
 export default function GeneratoreGrafiche() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [foto, setFoto] = useState<HTMLImageElement | null>(null)
@@ -540,7 +574,7 @@ export default function GeneratoreGrafiche() {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 max-w-[1400px]">
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           <div>
             <label className={etichetta}>Foto</label>
             <input type="file" accept="image/*" onChange={scegliFoto} className={`${campo} mt-2`} />
@@ -549,81 +583,15 @@ export default function GeneratoreGrafiche() {
           <div>
             <label className={etichetta}>Citazione</label>
             <textarea
-              rows={4}
+              rows={3}
               value={citazione}
               onChange={(e) => setCitazione(e.target.value)}
               className={`${campo} mt-2 resize-y`}
             />
             <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
-              Metti fra asterischi le parti da evidenziare in rosso: *così*. Vai a capo per
-              decidere tu la divisione in righe, altrimenti la calcolo io. Massimo cinque.
+              *Fra asterischi* va in rosso. Vai a capo per dividere le righe a
+              mano, altrimenti la calcolo io: massimo cinque.
             </p>
-          </div>
-
-          <div>
-            <label className={etichetta}>Carattere</label>
-            {/* Il Regular serve alle slide successive della stessa serie,
-                dove il virgolettato e' lungo. E' una scelta di stile, non di
-                spazio: misurato qui, il Regular e' del 2% piu' largo del
-                Bold, quindi non fa entrare piu' testo nella riga. */}
-            <div className="flex gap-2 mt-2">
-              {([
-                ['Bold', PESO_BOLD],
-                ['Regular', PESO_REGULAR],
-              ] as Array<[string, number]>).map(([nome, valore]) => (
-                <button
-                  key={valore}
-                  type="button"
-                  onClick={() => setPeso(valore)}
-                  className={`flex-1 font-akira text-[11px] uppercase tracking-widest py-2 rounded-card-sm border transition-colors ${
-                    peso === valore
-                      ? 'bg-lc-red text-white border-lc-red'
-                      : 'bg-lc-card text-lc-subtle border-white/10 hover:border-white/40'
-                  }`}
-                  style={{ fontWeight: valore }}
-                >
-                  {nome}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className={etichetta}>Virgolette</label>
-            <label className="flex items-center gap-3 mt-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={virgolette}
-                onChange={(e) => setVirgolette(e.target.checked)}
-                className="accent-lc-red w-4 h-4"
-              />
-              <span className="font-montserrat text-[13px] text-white">
-                Mostra il segno sopra la citazione
-              </span>
-            </label>
-            {virgolette && (
-              <div className="mt-3">
-                <label className={etichetta}>
-                  Altezza virgolette —{' '}
-                  {spostaVirgolette === 0
-                    ? 'standard'
-                    : `${spostaVirgolette > 0 ? '+' : ''}${spostaVirgolette}px`}
-                </label>
-                <input
-                  type="range"
-                  min={-900}
-                  max={400}
-                  step={5}
-                  value={spostaVirgolette}
-                  onChange={(e) => setSpostaVirgolette(Number(e.target.value))}
-                  className="w-full mt-2 accent-lc-red"
-                />
-                <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
-                  Orizzontalmente resta sempre al centro: si regola solo
-                  l&apos;altezza.
-                </p>
-              </div>
-            )}
           </div>
 
           <div>
@@ -635,65 +603,136 @@ export default function GeneratoreGrafiche() {
             />
           </div>
 
-          <div>
-            <label className={etichetta}>
-              Dimensione testo — {corpo === 0 ? 'automatica' : `${corpo}px`}
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={150}
-              step={2}
-              value={corpo}
-              onChange={(e) => setCorpo(Number(e.target.value))}
-              className="w-full mt-2 accent-lc-red"
-            />
-            <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
-              A zero la calcolo io. L&apos;interlinea segue sempre il corpo.
-            </p>
-          </div>
-
-          <div>
-            <label className={etichetta}>
-              Posizione testo — {spostaTesto === 0 ? 'standard' : `${spostaTesto > 0 ? '+' : ''}${spostaTesto}px`}
-            </label>
-            <input
-              type="range"
-              min={-400}
-              max={60}
-              step={5}
-              value={spostaTesto}
-              onChange={(e) => setSpostaTesto(Number(e.target.value))}
-              className="w-full mt-2 accent-lc-red"
-            />
-            <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
-              Alza o abbassa tutto il blocco della citazione. Verso destra si
-              avvicina alla linea bianca, verso sinistra se ne allontana.
-            </p>
-          </div>
-
-          {([
-            ['Ingrandimento', zoom, setZoom, 100, 300],
-            ['Sposta orizzontale', spostaX, setSpostaX, -800, 800],
-            ['Sposta verticale', spostaY, setSpostaY, -800, 800],
-            ['Forza trattamento', forza, setForza, 0, 100],
-          ] as Array<[string, number, (v: number) => void, number, number]>).map(
-            ([nome, valore, imposta, min, max]) => (
-              <div key={nome}>
-                <label className={etichetta}>
-                  {nome} — {valore}
-                </label>
-                <input
-                  type="range"
-                  min={min}
-                  max={max}
-                  value={valore}
-                  onChange={(e) => imposta(Number(e.target.value))}
-                  className="w-full mt-2 accent-lc-red"
-                />
+          <Gruppo titolo="Testo">
+            <div>
+              <label className={etichetta}>Carattere</label>
+              {/* Il Regular serve alle slide successive della stessa serie,
+                  dove il virgolettato e' lungo. E' una scelta di stile, non
+                  di spazio: misurato qui, il Regular e' del 2% piu' largo
+                  del Bold, quindi non fa entrare piu' testo nella riga. */}
+              <div className="flex gap-2 mt-2">
+                {([
+                  ['Bold', PESO_BOLD],
+                  ['Regular', PESO_REGULAR],
+                ] as Array<[string, number]>).map(([nome, valore]) => (
+                  <button
+                    key={valore}
+                    type="button"
+                    onClick={() => setPeso(valore)}
+                    className={`flex-1 font-akira text-[11px] uppercase tracking-widest py-2 rounded-card-sm border transition-colors ${
+                      peso === valore
+                        ? 'bg-lc-red text-white border-lc-red'
+                        : 'bg-lc-card text-lc-subtle border-white/10 hover:border-white/40'
+                    }`}
+                    style={{ fontWeight: valore }}
+                  >
+                    {nome}
+                  </button>
+                ))}
               </div>
-            )
-          )}
+            </div>
+
+            <div>
+              <label className={etichetta}>
+                Dimensione — {corpo === 0 ? 'automatica' : `${corpo}px`}
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={150}
+                step={2}
+                value={corpo}
+                onChange={(e) => setCorpo(Number(e.target.value))}
+                className="w-full mt-2 accent-lc-red"
+              />
+              <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
+                A zero la calcolo io. L&apos;interlinea segue sempre il corpo.
+              </p>
+            </div>
+
+            <div>
+              <label className={etichetta}>
+                Posizione — {spostaTesto === 0 ? 'standard' : `${spostaTesto > 0 ? '+' : ''}${spostaTesto}px`}
+              </label>
+              <input
+                type="range"
+                min={-400}
+                max={60}
+                step={5}
+                value={spostaTesto}
+                onChange={(e) => setSpostaTesto(Number(e.target.value))}
+                className="w-full mt-2 accent-lc-red"
+              />
+              <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
+                Alza o abbassa tutto il blocco della citazione. Verso destra si
+                avvicina alla linea bianca, verso sinistra se ne allontana.
+              </p>
+            </div>
+          </Gruppo>
+
+          <Gruppo titolo="Virgolette">
+            <div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={virgolette}
+                  onChange={(e) => setVirgolette(e.target.checked)}
+                  className="accent-lc-red w-4 h-4"
+                />
+                <span className="font-montserrat text-[13px] text-white">
+                  Mostra il segno sopra la citazione
+                </span>
+              </label>
+              {virgolette && (
+                <div className="mt-4">
+                  <label className={etichetta}>
+                    Altezza —{' '}
+                    {spostaVirgolette === 0
+                      ? 'standard'
+                      : `${spostaVirgolette > 0 ? '+' : ''}${spostaVirgolette}px`}
+                  </label>
+                  <input
+                    type="range"
+                    min={-900}
+                    max={400}
+                    step={5}
+                    value={spostaVirgolette}
+                    onChange={(e) => setSpostaVirgolette(Number(e.target.value))}
+                    className="w-full mt-2 accent-lc-red"
+                  />
+                  <p className="font-montserrat text-[11px] text-lc-subtle mt-1">
+                    Orizzontalmente resta sempre al centro: si regola solo
+                    l&apos;altezza.
+                  </p>
+                </div>
+              )}
+            </div>
+          </Gruppo>
+
+          <Gruppo titolo="Immagine">
+            {([
+              ['Ingrandimento', zoom, setZoom, 100, 300],
+              ['Sposta orizzontale', spostaX, setSpostaX, -800, 800],
+              ['Sposta verticale', spostaY, setSpostaY, -800, 800],
+              ['Forza trattamento', forza, setForza, 0, 100],
+            ] as Array<[string, number, (v: number) => void, number, number]>).map(
+              ([nome, valore, imposta, min, max]) => (
+                <div key={nome}>
+                  <label className={etichetta}>
+                    {nome} — {valore}
+                  </label>
+                  <input
+                    type="range"
+                    min={min}
+                    max={max}
+                    value={valore}
+                    onChange={(e) => imposta(Number(e.target.value))}
+                    className="w-full mt-2 accent-lc-red"
+                  />
+                </div>
+              )
+            )}
+          </Gruppo>
 
           <button
             onClick={scarica}
@@ -706,7 +745,7 @@ export default function GeneratoreGrafiche() {
           </p>
         </div>
 
-        <div>
+        <div className="lg:sticky lg:top-8 lg:self-start">
           <canvas
             ref={canvasRef}
             width={W}
