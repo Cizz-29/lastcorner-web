@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { hasConsent, CONSENT_CHANGED_EVENT } from '@/lib/cookieConsent'
+import { useEffect, useRef } from 'react'
 
 // Stesso publisher ID di components/AdsenseScript.tsx (che carica lo script
 // base adsbygoogle.js). Le 3 unità sotto sono tutte "Responsive" create nel
@@ -23,32 +22,33 @@ function slotForHeight(height: number): string {
 interface AdSlotProps {
   /** Altezza in px dello spazio riservato (usata anche per scegliere l'unità AdSense giusta) */
   height: number
-  /** Etichetta dimensione mostrata nel placeholder finché manca il consenso marketing */
+  /** Non più usata: restava dal periodo in cui qui compariva un segnaposto. */
   label?: string
   className?: string
 }
 
-export default function AdSlot({ height, label, className = '' }: AdSlotProps) {
-  const [allowed, setAllowed] = useState(false)
+// Il consenso non si controlla più qui.
+//
+// Prima questo componente mostrava un riquadro grigio "Spazio pubblicitario"
+// finché il banner di casa non riceveva un "Accetta tutti", e solo dopo
+// inseriva l'annuncio. Ma il consenso che conta per la pubblicità lo
+// raccoglie la CMP certificata di Google, dentro adsbygoogle.js: vedi la
+// nota lunga in AdsenseScript.tsx. Tenere un secondo cancello qui
+// significava solo azzerare le impressioni di chiunque non avesse risposto
+// al primo banner.
+export default function AdSlot({ height, className = '' }: AdSlotProps) {
   const pushedRef = useRef(false)
 
-  useEffect(() => {
-    setAllowed(hasConsent('marketing'))
-    const onChange = () => setAllowed(hasConsent('marketing'))
-    window.addEventListener(CONSENT_CHANGED_EVENT, onChange)
-    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, onChange)
-  }, [])
-
-  // Registra l'annuncio presso adsbygoogle una sola volta, quando compare
-  // (dopo il consenso). Il push in coda è sicuro anche se lo script base
-  // non ha ancora finito di caricarsi: è lui a processarla appena pronto.
+  // Registra l'annuncio presso adsbygoogle una sola volta. Il push in coda è
+  // sicuro anche se lo script base non ha ancora finito di caricarsi: è lui
+  // a processarla appena pronto.
   //
   // L'attesa di un frame serve a garantire che il contenitore sia già stato
   // disposto: le unità responsive calcolano il formato dalla larghezza
   // disponibile, e se al momento del push valesse ancora zero l'annuncio
   // non verrebbe riempito.
   useEffect(() => {
-    if (!allowed || pushedRef.current) return
+    if (pushedRef.current) return
     const id = requestAnimationFrame(() => {
       if (pushedRef.current) return
       try {
@@ -57,25 +57,11 @@ export default function AdSlot({ height, label, className = '' }: AdSlotProps) {
         ;(window as unknown as { adsbygoogle: unknown[] }).adsbygoogle.push({})
         pushedRef.current = true
       } catch {
-        // Se fallisce (raro), resta il placeholder al prossimo giro di consenso.
+        // Se fallisce (raro), lo spazio resta vuoto e non succede altro.
       }
     })
     return () => cancelAnimationFrame(id)
-  }, [allowed])
-
-  if (!allowed) {
-    return (
-      <div
-        className={`w-full bg-lc-card rounded-card border border-white/10 flex items-center justify-center ${className}`}
-        style={{ height }}
-      >
-        <span className="font-montserrat text-[11px] text-lc-subtle text-center px-4">
-          Spazio pubblicitario
-          {label && <><br />{label}</>}
-        </span>
-      </div>
-    )
-  }
+  }, [])
 
   return (
     <div className={`w-full overflow-hidden ${className}`} style={{ minHeight: height }}>
