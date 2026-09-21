@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <StaticPageLayout title="Privacy Policy" updatedAt="13 luglio 2026">
+    <StaticPageLayout title="Privacy Policy" updatedAt="21 settembre 2026">
       <p className="font-montserrat text-[14px] text-white/85 leading-relaxed">
         La presente informativa descrive le modalità di trattamento dei dati personali degli
         utenti che consultano Lastcorner.net (di seguito, il &ldquo;Sito&rdquo;), in conformità
@@ -60,12 +60,51 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="Servizi di terze parti">
+        <p>
+          Il Sito si avvale di servizi forniti da soggetti terzi, che trattano dati in qualità di
+          titolari autonomi secondo le rispettive informative:
+        </p>
+        <ul className="list-disc pl-5 flex flex-col gap-1">
+          <li>
+            <strong className="text-white">Google AdSense</strong> (Google Ireland Limited), per
+            la pubblicità presente sul Sito. Il consenso per gli annunci è raccolto direttamente
+            da Google tramite il proprio messaggio certificato sulle normative europee, non dal
+            banner del Sito. Dettagli nella{' '}
+            <a href="/cookie" className="text-white hover:text-lc-red transition-colors duration-200">
+              Cookie Policy
+            </a>
+            .
+          </li>
+          <li>
+            <strong className="text-white">X Corp.</strong> e{' '}
+            <strong className="text-white">Meta Platforms Ireland Limited</strong>, per i post di
+            X e Instagram incorporati negli articoli, caricati solo previo consenso espresso
+            tramite il banner del Sito.
+          </li>
+          <li>
+            <strong className="text-white">Vercel Inc.</strong>, per l&rsquo;hosting e per le
+            statistiche aggregate di utilizzo (Web Analytics e Speed Insights), che non
+            installano cookie né identificano il singolo visitatore.
+          </li>
+        </ul>
+      </LegalSection>
+
       <LegalSection title="Finalità e base giuridica del trattamento">
         <p>
           I dati sono trattati per: garantire il corretto funzionamento tecnico del Sito
-          (esecuzione di misure precontrattuali/legittimo interesse); rispondere alle richieste
-          inviate volontariamente via email (esecuzione di richieste dell&rsquo;interessato);
-          adempiere a eventuali obblighi di legge.
+          (legittimo interesse); rispondere alle richieste inviate volontariamente via email
+          (esecuzione di richieste dell&rsquo;interessato); adempiere a eventuali obblighi di
+          legge.
+        </p>
+        <p>
+          Per la pubblicità e per i contenuti incorporati da X e Instagram la base giuridica è il{' '}
+          <strong className="text-white">consenso</strong> dell&rsquo;interessato, revocabile in
+          qualsiasi momento con le modalità indicate nella{' '}
+          <a href="/cookie" className="text-white hover:text-lc-red transition-colors duration-200">
+            Cookie Policy
+          </a>
+          . La revoca non pregiudica la liceità del trattamento effettuato prima di essa.
         </p>
       </LegalSection>
 
@@ -81,8 +120,10 @@ export default function PrivacyPage() {
       <LegalSection title="Trasferimento dei dati extra-UE">
         <p>
           Il Sito è ospitato su infrastruttura di Vercel Inc., società con sede negli Stati
-          Uniti. Il trasferimento dei dati verso paesi extra-UE avviene sulla base delle
-          clausole contrattuali standard approvate dalla Commissione Europea o di altre garanzie
+          Uniti, e utilizza servizi di Google, X e Meta che possono comportare il trasferimento
+          di dati al di fuori dell&rsquo;Unione Europea. Tali trasferimenti avvengono sulla base
+          delle clausole contrattuali standard approvate dalla Commissione Europea, della
+          decisione di adeguatezza relativa al EU-U.S. Data Privacy Framework o di altre garanzie
           equivalenti previste dal GDPR.
         </p>
       </LegalSection>
@@ -104,7 +145,7 @@ export default function PrivacyPage() {
       <LegalSection title="Modifiche alla presente informativa">
         <p>
           Questa informativa può essere aggiornata nel tempo, ad esempio in seguito
-          all&rsquo;introduzione di nuovi servizi (pubblicità, statistiche di utilizzo). La data
+          all&rsquo;introduzione di nuovi servizi o alla modifica di quelli esistenti. La data
           di ultimo aggiornamento è indicata in cima alla pagina.
         </p>
       </LegalSection>
