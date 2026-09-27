@@ -248,30 +248,64 @@ export async function middleware(req: NextRequest) {
 
 // Su quali indirizzi far girare il middleware.
 //
-// Questo elenco e' la voce di spesa piu' importante del sito, e vale la pena
-// capire perche'. Una pagina gia' in cache la serve la CDN e non costa nulla:
-// nessuna funzione viene eseguita. Il middleware no — gira su OGNI richiesta
-// che il matcher non esclude, anche quando la pagina e' in cache e anche
-// quando non ha niente da fare. Quindi il suo costo cresce col traffico
-// totale, non con le pagine da ricalcolare: sul mese misurato era il 41,7%
-// della CPU consumata, 2h02m su 4h54m.
+// Il middleware gira PRIMA della cache: anche una pagina che la CDN servirebbe
+// gratis lo paga, a ogni singola richiesta. Era il 39% della CPU del mese.
 //
-// Se ne esclude percio' tutto cio' che non puo' MAI essere un vecchio
-// indirizzo WordPress da reindirizzare:
-//   - /studio  : lo Studio di Sanity e' un'applicazione a pagina singola e
-//                genera decine di richieste per ogni sessione di scrittura.
-//                Era la fonte di traffico piu' sottovalutata.
-//   - /api     : chiamate interne, compreso il webhook di Sanity a ogni
-//                pubblicazione.
-//   - /telemetria e i suoi dati: pagine dello strumento locale.
-//   - le due sitemap e i file statici alla radice.
+// Prima qui c'era una lista di ESCLUSIONI (_next, api, studio, file statici).
+// Misurata a una settimana di distanza non ha spostato niente — 2h02m prima,
+// 1h58m dopo — perche' toglieva richieste che pesavano poco e lasciava dentro
+// quelle che contano: ogni articolo, ogni pagina categoria, la home.
 //
-// Restano DENTRO, e devono restarci: /grafiche e il template che sta sotto
-// di esso, che e' un file in public/ ma va protetto dalla stessa password.
-// Per questo non si esclude per estensione: /grafiche/template-intervista.webp
-// e' un'immagine, ma va protetta.
+// Ora e' una lista di INCLUSIONI: il middleware parte solo sugli indirizzi su
+// cui puo' fare qualcosa. Su /formula-1/{articolo}, /formula-1/piloti/... e
+// sulla home non ha niente da fare, e non parte piu'.
+//
+// ATTENZIONE: se aggiungi un comportamento al middleware, aggiungi qui il suo
+// indirizzo. Un percorso che manca da questa lista non arriva mai alla
+// funzione, e il redirect smette di funzionare senza nessun errore.
+//
+// Conseguenza da sapere: la modalita' "prossimamente" (SITE_COMING_SOON)
+// coprirebbe solo gli indirizzi qui sotto, non piu' tutto il sito. Oggi la
+// variabile su Vercel non esiste, quindi non cambia nulla; se un giorno
+// servisse chiudere il sito, va fatto dalla protezione di Vercel.
 export const config = {
   matcher: [
-    '/((?!_next/|api/|studio/|studio$|telemetria/|telemetria-data/|images/|fonts/|favicon\\.ico|icon\\.png|apple-icon|opengraph-image|robots\\.txt|sitemap\\.xml|news-sitemap\\.xml|manifest\\.webmanifest|\\.well-known/|ads\\.txt|google[0-9a-f]+\\.html).*)',
+    // Generatore di grafiche, protetto da password.
+    '/grafiche',
+    '/grafiche/:path*',
+
+    // Vecchie pagine tag di WordPress.
+    '/tag/:path*',
+
+    // Vecchia categoria Formula E, con tutto quello che le stava sotto.
+    '/formula-e/:path*',
+
+    // Vecchia sotto-categoria "news" (/formula-1/news).
+    '/:categoria/news',
+
+    // Indirizzi a un solo segmento: i vecchi articoli WordPress piatti, le due
+    // pagine statiche rinominate, /formula-e. Restano fuori:
+    //   - le sei categorie, che sono fra le pagine piu' visitate e su cui il
+    //     middleware non avrebbe nulla da fare (tenere allineato con
+    //     lib/categories.ts: qui una costante non si puo' importare, Next
+    //     vuole il testo scritto per esteso);
+    //   - i nomi con un punto (/robots.txt, /ads.txt, /wp-login.php): uno slug
+    //     non ne contiene mai, quindi non possono essere vecchi articoli.
+    '/:segmento((?!(?:formula-1|formula-2|formula-3|f1-academy|wrc|altro)$)[^/.]+)',
+
+    // Vecchia paginazione nei parametri (/formula-1?page=2,
+    // /formula-1/editoriali?page=2, /autori/nome?page=2): solo quando il
+    // parametro c'e'.
+    //
+    // I parametri hanno una regex esplicita per un motivo preciso: in una voce
+    // con "has", Next compila male un parametro semplice in ultima posizione —
+    // "/:primo/:secondo" diventava una regex a UN segmento, e le pagine a due
+    // segmenti non venivano piu' reindirizzate. Verificato sul manifest della
+    // build: con ([^/.]+) la regex esce giusta.
+    { source: '/:primo([^/.]+)', has: [{ type: 'query', key: 'page' }] },
+    { source: '/:primo([^/.]+)/:secondo([^/.]+)', has: [{ type: 'query', key: 'page' }] },
+
+    // Vecchie pagine WordPress con ?page_id= (cookie, contatti).
+    { source: '/', has: [{ type: 'query', key: 'page_id' }] },
   ],
 }

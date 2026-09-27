@@ -5,7 +5,13 @@ import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import { getAllArticles } from '@/lib/sanity/articles'
 import { paginaDaSegmento, paginePerGenerazioneStatica } from '@/lib/paginazione'
 
-export const revalidate = false
+// Aggiornamento a tempo, una volta l'ora al massimo e solo se qualcuno apre
+// la pagina. Quando esce un articolo nuovo tutte le pagine dell'elenco
+// scorrono di un posto, ma il webhook di Sanity non puo' invalidarle: con
+// dynamicParams = false (qui sotto) in Next 14 una rotta invalidata su
+// richiesta si rigenera come 404. A tempo invece funziona. Per la Formula 1
+// e' lo stesso ritmo di prima, quando lo imponeva il widget classifica.
+export const revalidate = 3600
 
 // Solo le pagine generate qui sotto esistono. Senza questa riga un indirizzo
 // inventato come /formula-1/page/842 farebbe partire una funzione che scarica

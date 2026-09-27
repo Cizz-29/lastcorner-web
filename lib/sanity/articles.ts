@@ -46,8 +46,10 @@ interface SanityArticleDoc {
 // Sanity a ogni build. Senza il corpo la stessa risposta sta in poche
 // centinaia di kilobyte. Il testo dell'articolo serve a una pagina sola, e
 // quella se lo va a prendere da se' con getArticleBody().
+const CAMPI_ELENCO = `_id, title, slug, category, subcategory, author, publishedAt, mainImage, excerpt, breaking, tags`
+
 const ARTICLE_QUERY = `*[_type == "article" && defined(slug.current)] | order(publishedAt desc){
-  _id, title, slug, category, subcategory, author, publishedAt, mainImage, excerpt, breaking, tags
+  ${CAMPI_ELENCO}
 }`
 
 function toArticle(doc: SanityArticleDoc): Article {
@@ -111,3 +113,95 @@ export const getArticleBody = cache(async (id: string): Promise<any[] | undefine
     return undefined
   }
 })
+
+// ---------------------------------------------------------------------------
+// Query mirate.
+//
+// getAllArticles() scarica tutto il catalogo — oltre seicento articoli, piu' di
+// 400 KB — e resta giusta per gli elenchi e le sitemap, che il catalogo lo
+// mostrano davvero. Le pagine che di articoli ne mostrano uno o sei, invece,
+// chiedono a Sanity solo quelli: meno dati da scaricare, da interpretare e da
+// trasformare a ogni rendering.
+// ---------------------------------------------------------------------------
+
+/** Le forme sotto cui uno slug puo' arrivare dall'indirizzo.
+ *
+ *  Lo slug su Sanity e' scritto in un modo solo, ma quello che arriva nella
+ *  richiesta puo' essere ancora codificato (%C3%A0 al posto di "a" accentata)
+ *  o in una forma Unicode diversa (la "a" accentata come un carattere solo,
+ *  oppure come "a" piu' accento). Si cercano tutte: e' successo con
+ *  "penalita" scritto con l'accento, rimasto in 404 pur essendo pubblicato. */
+function formeDelloSlug(slug: string): string[] {
+  const forme = new Set<string>([slug])
+  try {
+    forme.add(decodeURIComponent(slug))
+  } catch {
+    // Codifica malformata: si tiene lo slug com'e'.
+  }
+  for (const f of Array.from(forme)) {
+    forme.add(f.normalize('NFC'))
+    forme.add(f.normalize('NFD'))
+  }
+  return Array.from(forme)
+}
+
+/** Un articolo dal suo slug, in qualsiasi categoria stia.
+ *
+ *  La categoria non entra nella query di proposito: se l'articolo e' stato
+ *  spostato, chi arriva dal vecchio indirizzo va reindirizzato, e per farlo
+ *  serve sapere dove sta adesso. Lo decide la pagina confrontando la categoria. */
+export const getArticleBySlug = cache(async (slug: string): Promise<Article | undefined> => {
+  try {
+    const doc = await sanityClient.fetch<SanityArticleDoc | null>(
+      `*[_type == "article" && slug.current in $forme] | order(publishedAt desc)[0]{ ${CAMPI_ELENCO} }`,
+      { forme: formeDelloSlug(slug) }
+    )
+    return doc ? toArticle(doc) : undefined
+  } catch (errore) {
+    console.error('[sanity] articolo non recuperato:', (errore as Error)?.message ?? errore)
+    return undefined
+  }
+})
+
+/** Gli ultimi n articoli pubblicati, escluso uno (quello che si sta leggendo). */
+export const getUltimiArticoli = cache(async (n: number, escludiId?: string): Promise<Article[]> => {
+  try {
+    const docs = await sanityClient.fetch<SanityArticleDoc[]>(
+      `*[_type == "article" && defined(slug.current) && _id != $escludi] | order(publishedAt desc)[0...$n]{ ${CAMPI_ELENCO} }`,
+      { n, escludi: escludiId ?? '' }
+    )
+    return docs.map(toArticle)
+  } catch (errore) {
+    console.error('[sanity] ultimi articoli non recuperati:', (errore as Error)?.message ?? errore)
+    return []
+  }
+})
+
+/** Gli ultimi n articoli con un certo tag (pilota o team), senza badare a
+ *  maiuscole e minuscole: nello Studio i tag si scrivono a mano. */
+export const getArticoliConTag = cache(async (tag: string, n: number): Promise<Article[]> => {
+  try {
+    const docs = await sanityClient.fetch<SanityArticleDoc[]>(
+      `*[_type == "article" && defined(slug.current) && count(tags[lower(@) == $cercato]) > 0] | order(publishedAt desc)[0...$n]{ ${CAMPI_ELENCO} }`,
+      { cercato: tag.toLowerCase(), n }
+    )
+    return docs.map(toArticle)
+  } catch (errore) {
+    console.error('[sanity] articoli per tag non recuperati:', (errore as Error)?.message ?? errore)
+    return []
+  }
+})
+
+/** Solo categoria e slug di ogni articolo: quanto basta per sapere quali
+ *  pagine generare in fase di build, senza scaricare titoli, immagini e tag. */
+export async function getPercorsiArticoli(): Promise<{ category: string; slug: string }[]> {
+  try {
+    const docs = await sanityClient.fetch<{ category: string; slug: string }[]>(
+      `*[_type == "article" && defined(slug.current)]{ category, "slug": slug.current }`
+    )
+    return docs.map((d) => ({ category: categoryLabelToSlug(d.category), slug: d.slug }))
+  } catch (errore) {
+    console.error('[sanity] percorsi articoli non recuperati:', (errore as Error)?.message ?? errore)
+    return []
+  }
+}

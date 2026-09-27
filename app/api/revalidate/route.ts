@@ -48,11 +48,31 @@ function percorsiDa(corpo: any): string[] {
     const slug = typeof corpo?.slug?.current === 'string' ? corpo.slug.current : null
     if (categoria) {
       percorsi.add(`/${categoria}`)
-      if (slug) percorsi.add(`/${categoria}/${slug}`)
+      if (slug) {
+        percorsi.add(`/${categoria}/${slug}`)
+        // Uno slug con caratteri fuori dall'ASCII (un accento) esiste nella
+        // cache sotto la forma codificata, %C3%A0 al posto della "a" accentata:
+        // invalidando solo quella scritta per esteso, la pagina restava
+        // com'era. Si invalidano entrambe.
+        const codificato = encodeURIComponent(slug)
+        if (codificato !== slug) percorsi.add(`/${categoria}/${codificato}`)
+      }
       const sotto = corpo?.subcategory
       if (typeof sotto === 'string' && SOTTOCATEGORIE_CON_PAGINA.has(sotto)) {
         percorsi.add(`/${categoria}/${sotto}`)
       }
+    }
+
+    // La scheda dell'autore elenca i suoi articoli: anche lei cambia.
+    //
+    // Le pagine 2-9 degli elenchi (/formula-1/page/2, /autori/nome/page/2)
+    // qui NON si invalidano, di proposito: hanno dynamicParams = false, e in
+    // Next 14 una rotta cosi', invalidata su richiesta, si rigenera come 404.
+    // Provato con next start: dopo una pubblicazione simulata /formula-1/page/2
+    // rispondeva 404 e restava 404. Si aggiornano a tempo, vedi
+    // app/[category]/page/[n]/page.tsx.
+    if (typeof corpo?.author === 'string' && corpo.author.trim()) {
+      percorsi.add(`/autori/${authorSlug(corpo.author)}`)
     }
     return Array.from(percorsi)
   }

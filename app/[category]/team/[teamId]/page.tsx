@@ -14,7 +14,7 @@ import { getTeamColor } from '@/lib/teamColors'
 import { getFlagUrl } from '@/lib/nationalityFlags'
 import { getTeamBio } from '@/lib/teamBios'
 import { getCategoryConfig } from '@/lib/categories'
-import { getAllArticles } from '@/lib/sanity/articles'
+import { getArticoliConTag } from '@/lib/sanity/articles'
 import type { RosterTeam, RosterDriver } from '@/lib/rosterTypes'
 
 // Rigenera la pagina al massimo ogni 60s per non restare bloccati sul
@@ -89,10 +89,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
   const color = getTeamColor(team.name)
   const flagUrl = team.nationality ? getFlagUrl(team.nationality) : null
 
-  const allArticles = await getAllArticles()
-  const relatedNews = allArticles.filter((a) =>
-    a.tags?.some((t) => t.toLowerCase() === params.teamId.toLowerCase())
-  ).slice(0, 6)
+  const relatedNews = await getArticoliConTag(params.teamId, 6)
   const bio = await getTeamBio(team.constructorId)
 
   return (

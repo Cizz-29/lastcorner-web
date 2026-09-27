@@ -4,9 +4,9 @@ import Footer from '@/components/Footer'
 import { ArticleCardGrid } from '@/components/ArticleCard'
 import { getAllArticles } from '@/lib/sanity/articles'
 
-// Rigenera la pagina al massimo ogni 60s per non restare bloccati sul
-// contenuto articoli dell'ultimo deploy (vedi nota in app/page.tsx).
-export const revalidate = false
+// Questa pagina e' dinamica per natura: legge ?q= dall'indirizzo, e in Next
+// una pagina che legge i parametri si calcola a ogni richiesta. Un
+// "revalidate" qui non avrebbe effetto, per questo non c'e'.
 
 interface SearchPageProps {
   searchParams: { q?: string }
@@ -14,7 +14,13 @@ interface SearchPageProps {
 
 export function generateMetadata({ searchParams }: SearchPageProps): Metadata {
   const q = searchParams.q?.trim()
-  return { title: q ? `Risultati per "${q}"` : 'Cerca' }
+  return {
+    title: q ? `Risultati per "${q}"` : 'Cerca',
+    // I risultati di ricerca non vanno nell'indice di Google: sono doppioni
+    // degli articoli, e ci arrivano anche i crawler rimandati qui dai vecchi
+    // tag WordPress non mappati (vedi middleware.ts).
+    robots: { index: false, follow: true },
+  }
 }
 
 // Ricerca lato server sui titoli degli articoli (Sanity + mock). Nessuna

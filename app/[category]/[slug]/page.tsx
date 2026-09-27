@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -8,59 +7,59 @@ import Footer from '@/components/Footer'
 import StandingsWidget from '@/components/StandingsWidget'
 import SocialCard from '@/components/SocialCard'
 import FontiPreferite from '@/components/FontiPreferite'
-import { StandingsWidgetSkeleton } from '@/components/Skeletons'
 import AdSlot from '@/components/AdSlot'
 import ArticleBody from '@/components/ArticleBody'
 import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
-import { getAllArticles, getArticleBody } from '@/lib/sanity/articles'
+import {
+  getArticleBody,
+  getArticleBySlug,
+  getPercorsiArticoli,
+  getUltimiArticoli,
+} from '@/lib/sanity/articles'
 import { getCategoryConfig } from '@/lib/categories'
 import { authorSlug } from '@/lib/authors'
 
 // Quanti articoli mostrare nella sidebar (ridotti rispetto alla vecchia lista)
 const OTHER_ARTICLES_COUNT = 5
 
-// Rigenera la pagina al massimo ogni 60s: senza questo, un articolo appena
-// pubblicato su Sanity non comparirebbe finché non si rifà il deploy
-// (i nuovi slug non presenti in generateStaticParams al momento del build
-// vengono comunque generati "on demand" alla prima richiesta grazie a
-// dynamicParams, ma la richiesta deve poter leggere dati freschi).
+// Pagina statica: si genera una volta e si aggiorna solo quando Sanity chiama
+// /api/revalidate. Un articolo pubblicato dopo l'ultimo deploy non e' fra le
+// pagine generate in build, e viene creato alla prima richiesta (dynamicParams
+// e' attivo di default).
+//
+// Perche' "false" valga davvero, nessun fetch della pagina puo' avere una
+// cache a tempo: in Next 14 vincerebbe lui. E' per questo che il widget della
+// classifica si carica dal browser — vedi components/StandingsWidget.tsx.
 export const revalidate = false
 
 interface ArticlePageProps {
   params: { category: string; slug: string }
 }
 
-async function findArticle(category: string, slug: string): Promise<Article | undefined> {
-  const articles = await getAllArticles()
-  return articles.find((a) => a.slug === `${category}/${slug}`)
+/** L'articolo e dove sta davvero.
+ *
+ *  Si cerca per slug in tutte le categorie, con una sola query. Se sta in
+ *  un'altra categoria l'articolo e' stato spostato, e questo e' il suo vecchio
+ *  indirizzo: la pagina lo reindirizza invece di rispondere 404. In Search
+ *  Console erano 47 URL /altro/... in 404, e almeno due erano pezzi vivi
+ *  spostati in "Formula 1" e in "WRC". */
+async function trovaArticolo(category: string, slug: string) {
+  const article = await getArticleBySlug(slug)
+  if (!article) return { article: undefined, spostatoIn: undefined }
+  const categoriaVera = article.slug.split('/')[0]
+  return categoriaVera === category
+    ? { article, spostatoIn: undefined }
+    : { article: undefined, spostatoIn: article.slug }
 }
 
-/** Lo stesso slug sotto una categoria qualsiasi.
- *
- *  Serve al caso in cui un articolo cambia categoria: l'indirizzo vecchio
- *  smette di esistere e si porta dietro tutto quello che si era guadagnato
- *  su Google. In Search Console erano 47 URL /altro/... che rispondevano
- *  404, e almeno due erano pezzi vivi, spostati nel frattempo in "Formula 1"
- *  e in "WRC".
- *
- *  Non costa una query in piu': getAllArticles e' gia' in memoria (la usa la
- *  riga sopra) e questo controllo scatta solo dove prima c'era un 404. */
-async function findArticleAltrove(slug: string): Promise<Article | undefined> {
-  const articles = await getAllArticles()
-  return articles.find((a) => a.slug.endsWith(`/${slug}`))
-}
-
-// Pre-genera le pagine per tutti gli articoli (Sanity + mock) in fase di build
+// Pre-genera in build le pagine di tutti gli articoli. Serve solo sapere
+// categoria e slug di ciascuno, non il resto.
 export async function generateStaticParams() {
-  const articles = await getAllArticles()
-  return articles.map((a) => {
-    const [category, slug] = a.slug.split('/')
-    return { category, slug }
-  })
+  return getPercorsiArticoli()
 }
 
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
-  const article = await findArticle(params.category, params.slug)
+  const { article } = await trovaArticolo(params.category, params.slug)
   if (!article) return { title: 'Articolo non trovato' }
 
   const description = article.excerpt ?? `${article.title} — Lastcorner.net`
@@ -124,27 +123,19 @@ function datiStrutturati(article: Article, percorso: string) {
 }
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
-  const article = await findArticle(params.category, params.slug)
-  if (!article) {
-    // Prima di rispondere 404: lo stesso slug vive sotto un'altra categoria?
-    // Se si', l'articolo e' stato spostato e questo e' il suo vecchio
-    // indirizzo — si manda dove sta adesso invece di buttarlo via.
-    const spostato = await findArticleAltrove(params.slug)
-    if (spostato && spostato.slug !== `${params.category}/${params.slug}`) {
-      permanentRedirect(`/${spostato.slug}`)
-    }
-    notFound()
-  }
+  const { article, spostatoIn } = await trovaArticolo(params.category, params.slug)
+  if (spostatoIn) permanentRedirect(`/${spostatoIn}`)
+  if (!article) notFound()
 
   const hasStandings = getCategoryConfig(params.category)?.hasStandings ?? false
 
-  const allArticles = await getAllArticles()
-  // Il testo dell'articolo viaggia separato dall'elenco: vedi la nota su
-  // ARTICLE_QUERY in lib/sanity/articles.ts.
-  const corpo = await getArticleBody(article.id)
-  const otherArticles = allArticles
-    .filter((a) => a.id !== article.id)
-    .slice(0, OTHER_ARTICLES_COUNT)
+  // Il testo dell'articolo viaggia separato: vedi la nota su ARTICLE_QUERY in
+  // lib/sanity/articles.ts. Le due richieste sono indipendenti, quindi partono
+  // insieme.
+  const [corpo, otherArticles] = await Promise.all([
+    getArticleBody(article.id),
+    getUltimiArticoli(OTHER_ARTICLES_COUNT, article.id),
+  ])
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -251,9 +242,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             <AdSlot height={200} label="300×250" />
 
             {hasStandings ? (
-              <Suspense fallback={<StandingsWidgetSkeleton />}>
-                <StandingsWidget />
-              </Suspense>
+              <StandingsWidget />
             ) : (
               <AdSlot height={250} label="300×250" />
             )}

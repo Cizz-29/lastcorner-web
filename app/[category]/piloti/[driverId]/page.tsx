@@ -14,7 +14,7 @@ import { getTeamColor } from '@/lib/teamColors'
 import { getFlagUrl } from '@/lib/nationalityFlags'
 import { getDriverBio } from '@/lib/driverBios'
 import { getCategoryConfig } from '@/lib/categories'
-import { getAllArticles } from '@/lib/sanity/articles'
+import { getArticoliConTag } from '@/lib/sanity/articles'
 import type { RosterDriver } from '@/lib/rosterTypes'
 
 // Rigenera la pagina al massimo ogni 60s per non restare bloccati sul
@@ -80,15 +80,13 @@ export default async function DriverPage({ params }: DriverPageProps) {
   const flagUrl = driver.nationality ? getFlagUrl(driver.nationality) : null
   const fullName = `${driver.givenName} ${driver.familyName}`
 
-  const allArticles = await getAllArticles()
   // Solo gli articoli che citano davvero il pilota. In passato si
   // includevano anche quelli del suo team, per riempire la sezione quando i
   // tag erano pochi; ora che sono diffusi produceva l'effetto opposto —
   // sulla pagina di Hamilton comparivano notizie su Leclerc solo perché
-  // entrambe taggate Ferrari.
-  const relatedNews = allArticles
-    .filter((a) => a.tags?.some((t) => t.toLowerCase() === driver.driverId.toLowerCase()))
-    .slice(0, 6)
+  // entrambe taggate Ferrari. Sanity restituisce direttamente i sei piu'
+  // recenti, invece di scaricare tutto il catalogo per sceglierli qui.
+  const relatedNews = await getArticoliConTag(driver.driverId, 6)
   const bio = await getDriverBio(driver.driverId)
 
   return (

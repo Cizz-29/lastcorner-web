@@ -1,9 +1,7 @@
-import { Suspense } from 'react'
 import { type Article } from './ArticleCard'
 import NewsGrid from './NewsGrid'
 import StandingsWidget from './StandingsWidget'
 import InstagramCTA from './InstagramCTA'
-import { StandingsWidgetSkeleton } from './Skeletons'
 import AdSlot from './AdSlot'
 
 interface LatestNewsSectionProps {
@@ -30,10 +28,8 @@ export default function LatestNewsSection({ articles, adSlot }: LatestNewsSectio
 
         {/* Sidebar */}
         <aside className="flex flex-col gap-4">
-          {/* Widget classifica — in streaming, non blocca il resto della pagina */}
-          <Suspense fallback={<StandingsWidgetSkeleton />}>
-            <StandingsWidget />
-          </Suspense>
+          {/* Widget classifica — si carica nel browser, vedi components/StandingsWidget.tsx */}
+          <StandingsWidget />
 
           {/* CTA Instagram */}
           <InstagramCTA />

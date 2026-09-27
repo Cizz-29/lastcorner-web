@@ -1,10 +1,9 @@
-import { Suspense, Fragment } from 'react'
+import { Fragment } from 'react'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SocialCard from '@/components/SocialCard'
 import StandingsWidget from '@/components/StandingsWidget'
-import { StandingsWidgetSkeleton } from '@/components/Skeletons'
 import AdSlot from '@/components/AdSlot'
 import Pagination from '@/components/Pagination'
 import { ArticleCardGrid, ArticleCardSmall } from '@/components/ArticleCard'
@@ -89,9 +88,7 @@ export default async function CategoryListing({ categorySlug, pagina }: Category
           {/* Sidebar */}
           <aside className="flex flex-col gap-4">
             {config.hasStandings && (
-              <Suspense fallback={<StandingsWidgetSkeleton />}>
-                <StandingsWidget />
-              </Suspense>
+              <StandingsWidget />
             )}
 
             <SocialCard />

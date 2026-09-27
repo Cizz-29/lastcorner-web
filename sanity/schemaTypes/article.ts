@@ -41,9 +41,34 @@ export default defineType({
       name: 'slug',
       title: 'Slug',
       type: 'slug',
-      description: 'Parte finale del link, es. "camara-haas-ocon". Generato dal titolo, modificabile.',
-      options: { source: 'title', maxLength: 96 },
-      validation: (Rule) => Rule.required(),
+      description: 'Parte finale del link, es. "camara-haas-ocon". Generato dal titolo, modificabile. Niente accenti.',
+      // Lo slug di default di Sanity toglie gli spazi ma tiene gli accenti:
+      // "penalità" restava "penalità", e l'articolo e' finito in 404 pur
+      // essendo pubblicato. Qui gli accenti si sciolgono (à -> a) e resta
+      // solo quello che in un indirizzo non da' mai problemi.
+      options: {
+        source: 'title',
+        maxLength: 96,
+        slugify: (testo: string) =>
+          testo
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, ' ')
+            .trim()
+            .replace(/[\s-]+/g, '-')
+            .slice(0, 96)
+            .replace(/-+$/, ''),
+      },
+      // E se lo slug si scrive a mano, lo Studio non lascia pubblicare con
+      // un accento o un carattere speciale dentro, e dice perche'.
+      validation: (Rule) =>
+        Rule.required().custom((valore?: { current?: string }) => {
+          const slug = valore?.current ?? ''
+          return /^[A-Za-z0-9-]*$/.test(slug)
+            ? true
+            : 'Solo lettere senza accenti, numeri e trattini: "penalità" va scritto "penalita".'
+        }),
     }),
     defineField({
       name: 'category',
