@@ -9,7 +9,8 @@ import SocialCard from '@/components/SocialCard'
 import FontiPreferite from '@/components/FontiPreferite'
 import AdSlot from '@/components/AdSlot'
 import ArticleBody from '@/components/ArticleBody'
-import { ArticleCardSmall, type Article } from '@/components/ArticleCard'
+import AltriArticoli from '@/components/AltriArticoli'
+import type { Article } from '@/components/ArticleCard'
 import {
   getArticleBody,
   getArticleBySlug,
@@ -19,8 +20,7 @@ import {
 import { getCategoryConfig } from '@/lib/categories'
 import { authorSlug } from '@/lib/authors'
 
-// Quanti articoli mostrare nella sidebar (ridotti rispetto alla vecchia lista)
-const OTHER_ARTICLES_COUNT = 5
+import { ALTRI_ARTICOLI } from '@/lib/altriArticoli'
 
 // Pagina statica: si genera una volta e si aggiorna solo quando Sanity chiama
 // /api/revalidate. Un articolo pubblicato dopo l'ultimo deploy non e' fra le
@@ -134,7 +134,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   // insieme.
   const [corpo, otherArticles] = await Promise.all([
     getArticleBody(article.id),
-    getUltimiArticoli(OTHER_ARTICLES_COUNT, article.id),
+    getUltimiArticoli(ALTRI_ARTICOLI, article.id),
   ])
 
   return (
@@ -247,18 +247,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <AdSlot height={250} label="300×250" />
             )}
 
-            {otherArticles.length > 0 && (
-              <div>
-                <p className="font-akira text-[11px] text-white uppercase tracking-widest mb-3">
-                  Altri articoli
-                </p>
-                <div className="flex flex-col gap-[3px]">
-                  {otherArticles.map((a) => (
-                    <ArticleCardSmall key={a.id} article={a} />
-                  ))}
-                </div>
-              </div>
-            )}
+            <AltriArticoli iniziali={otherArticles} escludiId={article.id} />
 
             <AdSlot height={600} label="300×600" />
           </aside>
