@@ -305,6 +305,18 @@ export default defineType({
         },
       ],
     }),
+    // Note lasciate dal revisore (Claude) quando corregge un articolo in bozza:
+    // cosa ha cambiato e perche', cosi' chi pubblica lo legge nello Studio
+    // accanto al confronto delle modifiche. Non compare mai sul sito: le query
+    // del sito elencano i campi uno per uno e questo non c'e'.
+    // Dopo aver letto le note si puo' svuotare il campo prima di pubblicare.
+    defineField({
+      name: 'noteRevisione',
+      title: 'Note di revisione',
+      type: 'text',
+      rows: 8,
+      description: 'Cosa è stato modificato in revisione e perché. Non compare sul sito.',
+    }),
   ],
   preview: {
     select: { title: 'title', subtitle: 'category', media: 'mainImage' },
