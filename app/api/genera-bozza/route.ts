@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto'
 import { NextResponse } from 'next/server'
 import { sanityClient } from '@/lib/sanity/client'
 import { sanityWriteClient } from '@/lib/sanity/writeClient'
@@ -13,6 +14,27 @@ import { parseDraft } from '@/lib/ai/parseDraft'
 // Richiede la variabile d'ambiente ANTHROPIC_API_KEY su Vercel.
 
 export const dynamic = 'force-dynamic'
+
+// Chi puo' chiamare questa route.
+//
+// Era aperta a chiunque: bastava una richiesta con del testo per spendere
+// credito sulla chiave Anthropic e creare una bozza nel dataset con il token
+// di scrittura. Il middleware non la copre (esclude tutto /api). Ora serve la
+// password della redazione, la stessa che protegge /grafiche
+// (GRAFICHE_PASSWORD su Vercel), inviata nell'intestazione x-lastcorner-chiave
+// dallo strumento "Genera Bozza IA" dello Studio.
+//
+// Se la variabile non e' configurata la route rifiuta tutto: a differenza di
+// /grafiche, qui restare aperti costa soldi.
+function accessoConsentito(req: Request): 'si' | 'no' | 'non-configurata' {
+  const attesa = process.env.GRAFICHE_PASSWORD
+  if (!attesa) return 'non-configurata'
+  const fornita = Buffer.from(req.headers.get('x-lastcorner-chiave') ?? '')
+  const giusta = Buffer.from(attesa)
+  // Confronto a tempo costante: la durata non rivela quanti caratteri
+  // iniziali sono corretti.
+  return fornita.length === giusta.length && timingSafeEqual(fornita, giusta) ? 'si' : 'no'
+}
 
 const MODEL = 'claude-sonnet-5'
 // Quanti articoli reali allegare come esempio di stile. Tre bastano a
@@ -111,6 +133,17 @@ function slugFromTitle(title: string): string {
 }
 
 export async function POST(req: Request) {
+  const accesso = accessoConsentito(req)
+  if (accesso === 'non-configurata') {
+    return NextResponse.json(
+      { error: 'Password della redazione non configurata su Vercel (GRAFICHE_PASSWORD).' },
+      { status: 503 }
+    )
+  }
+  if (accesso === 'no') {
+    return NextResponse.json({ error: 'Password della redazione mancante o errata.' }, { status: 401 })
+  }
+
   try {
     const { fonte, descrizione, categoria, autore } = (await req.json()) as {
       fonte?: string

@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import CookieConsent from '@/components/CookieConsent'
 import AdsenseScript from '@/components/AdsenseScript'
 import './globals.css'
+import { jsonLd as serializzaJsonLd } from '@/lib/jsonLd'
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -115,7 +116,7 @@ export default function RootLayout({
         <AdsenseScript />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializzaJsonLd(jsonLd) }}
         />
         {/* Vercel Web Analytics + Speed Insights: nessun cookie, nessun
             banner di consenso necessario (dati aggregati, non tracciano

@@ -77,9 +77,7 @@ function toArticle(doc: SanityArticleDoc): Article {
   }
 }
 
-// Articoli reali da Sanity. I mock di sviluppo (lib/mockData.ts) non vengono
-// più inclusi: il catalogo reale migrato da WordPress è completo, quindi i
-// contenuti fittizi online sarebbero solo fuorvianti. Se Sanity non risponde
+// Articoli reali da Sanity. Se Sanity non risponde
 // si restituisce una lista vuota invece di rompere il rendering delle pagine.
 // cache() di React deduplica le chiamate all'interno dello stesso render
 // (più pagine/componenti possono richiamarla senza richieste ripetute).

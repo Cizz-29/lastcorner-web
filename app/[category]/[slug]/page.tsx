@@ -19,6 +19,7 @@ import {
 } from '@/lib/sanity/articles'
 import { getCategoryConfig } from '@/lib/categories'
 import { authorSlug } from '@/lib/authors'
+import { jsonLd } from '@/lib/jsonLd'
 
 import { ALTRI_ARTICOLI } from '@/lib/altriArticoli'
 
@@ -145,9 +146,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            datiStrutturati(article, `/${params.category}/${params.slug}`)
-          ),
+          __html: jsonLd(datiStrutturati(article, `/${params.category}/${params.slug}`)),
         }}
       />
 

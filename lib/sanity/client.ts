@@ -6,8 +6,8 @@ import { projectId, dataset } from '@/lib/sanity/env'
 // duplicati) possono restare visibili in cache per un po' anche dopo un
 // nuovo deploy, mostrando dati vecchi (articoli duplicati "fantasma").
 // Query dirette all'API sono leggermente più lente ma sempre aggiornate;
-// il livello ISR (revalidate 60s) delle pagine resta comunque la cache
-// principale, quindi l'impatto sulle performance è minimo.
+// la cache vera è quella delle pagine statiche (vedi le note su revalidate
+// nelle singole route), quindi l'impatto sulle prestazioni è minimo.
 export const sanityClient = createClient({
   projectId,
   dataset,

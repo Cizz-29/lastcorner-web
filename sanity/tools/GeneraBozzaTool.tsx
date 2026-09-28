@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Button, Card, Flex, Select, Stack, Text, TextArea, TextInput } from '@sanity/ui'
 
 const CATEGORIE = ['Formula 1', 'Formula 2', 'Formula 3', 'F1 Academy', 'WRC', 'Altro']
@@ -15,14 +15,41 @@ const CATEGORIE = ['Formula 1', 'Formula 2', 'Formula 3', 'F1 Academy', 'WRC', '
 
 type Status = 'idle' | 'loading' | 'done' | 'error'
 
+// La route che genera la bozza chiede la password della redazione (la stessa
+// di /grafiche). La si scrive una volta: il browser la ricorda. Se il browser
+// non lascia salvare (navigazione privata), si riscrive a ogni visita.
+const CHIAVE_SALVATA = 'lc-password-redazione'
+
+function leggiPassword(): string {
+  try {
+    return window.localStorage.getItem(CHIAVE_SALVATA) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function salvaPassword(valore: string) {
+  try {
+    if (valore) window.localStorage.setItem(CHIAVE_SALVATA, valore)
+    else window.localStorage.removeItem(CHIAVE_SALVATA)
+  } catch {
+    // Salvataggio non consentito: pazienza, resta valida per questa visita.
+  }
+}
+
 export default function GeneraBozzaTool() {
   const [fonte, setFonte] = useState('')
   const [descrizione, setDescrizione] = useState('')
   const [categoria, setCategoria] = useState('Formula 1')
   const [autore, setAutore] = useState('')
+  const [password, setPassword] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [errore, setErrore] = useState('')
   const [risultato, setRisultato] = useState<{ title: string; studioUrl: string } | null>(null)
+
+  useEffect(() => {
+    setPassword(leggiPassword())
+  }, [])
 
   async function handleGenera() {
     setStatus('loading')
@@ -31,15 +58,17 @@ export default function GeneraBozzaTool() {
     try {
       const res = await fetch('/api/genera-bozza', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-lastcorner-chiave': password },
         body: JSON.stringify({ fonte, descrizione, categoria, autore }),
       })
       const data = await res.json()
+      if (res.status === 401) salvaPassword('')
       if (!res.ok) {
         setStatus('error')
         setErrore(data.error || 'Errore sconosciuto')
         return
       }
+      salvaPassword(password)
       setRisultato({ title: data.title, studioUrl: data.studioUrl })
       setStatus('done')
     } catch (err) {
@@ -91,6 +120,18 @@ export default function GeneraBozzaTool() {
 
         <Stack space={2}>
           <Text size={1} weight="semibold">
+            Password redazione *
+          </Text>
+          <TextInput
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.currentTarget.value)}
+            placeholder="La stessa del generatore di grafiche"
+          />
+        </Stack>
+
+        <Stack space={2}>
+          <Text size={1} weight="semibold">
             Descrizione (opzionale)
           </Text>
           <TextInput
@@ -116,7 +157,7 @@ export default function GeneraBozzaTool() {
           <Button
             text={status === 'loading' ? 'Generazione in corso...' : 'Genera bozza'}
             tone="primary"
-            disabled={status === 'loading' || !fonte.trim()}
+            disabled={status === 'loading' || !fonte.trim() || !password}
             onClick={handleGenera}
           />
         </Flex>

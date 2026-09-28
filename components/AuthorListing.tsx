@@ -11,6 +11,7 @@ import { getAllArticles } from '@/lib/sanity/articles'
 import { getSchedaAutore } from '@/lib/sanity/authors'
 import { authorSlug } from '@/lib/authors'
 import { ANNUNCIO_OGNI_N_CARD, fettaElenco } from '@/lib/paginazione'
+import { jsonLd } from '@/lib/jsonLd'
 
 const SITO = 'https://lastcorner.net'
 
@@ -53,7 +54,7 @@ export default async function AuthorListing({ slug, pagina }: AuthorListingProps
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(datiStrutturati(scheda.nome, slug, scheda.ruolo, scheda.social)),
+            __html: jsonLd(datiStrutturati(scheda.nome, slug, scheda.ruolo, scheda.social)),
           }}
         />
       )}

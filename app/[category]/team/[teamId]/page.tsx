@@ -17,8 +17,12 @@ import { getCategoryConfig } from '@/lib/categories'
 import { getArticoliConTag } from '@/lib/sanity/articles'
 import type { RosterTeam, RosterDriver } from '@/lib/rosterTypes'
 
-// Rigenera la pagina al massimo ogni 60s per non restare bloccati sul
-// contenuto articoli dell'ultimo deploy (vedi nota in app/page.tsx).
+// Nessuna scadenza dichiarata qui. Per la Formula 1 pero' la pagina si
+// rigenera ogni ora: legge i dati F1 da Jolpica con revalidate 3600, e in
+// Next 14 vale la frequenza piu' alta fra quella della pagina e quella dei
+// suoi fetch (verificabile in .next/prerender-manifest.json). Per le altre
+// categorie, che leggono il roster statico, si aggiorna al deploy o quando
+// il webhook di Sanity la invalida.
 export const revalidate = false
 
 interface TeamPageProps {
