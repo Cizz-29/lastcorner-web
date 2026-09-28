@@ -8,17 +8,20 @@ const SITE_URL = 'https://lastcorner.net'
 // pesa sulla banda inclusa nel piano. Google-Extended e Applebot-Extended
 // riguardano SOLO l'uso per l'addestramento: bloccarli non toglie nulla
 // alla presenza su Google o su Safari.
+//
+// NON stanno in questa lista, di proposito, i bot con cui gli assistenti
+// cercano le pagine da citare nelle risposte: OAI-SearchBot e ChatGPT-User
+// (ChatGPT), PerplexityBot, Claude-Web. Non addestrano niente: leggono una
+// pagina quando qualcuno fa una domanda e la citano con il link. Bloccarli
+// toglieva il sito dalle fonti di quelle ricerche (decisione di Francesco,
+// 28 settembre 2026).
 const BOT_IA = [
   'GPTBot',
-  'ChatGPT-User',
-  'OAI-SearchBot',
   'ClaudeBot',
-  'Claude-Web',
   'anthropic-ai',
   'CCBot',
   'Google-Extended',
   'Applebot-Extended',
-  'PerplexityBot',
   'Bytespider',
   'Amazonbot',
   'Meta-ExternalAgent',
