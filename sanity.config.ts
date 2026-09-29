@@ -5,6 +5,7 @@ import { schemaTypes } from './sanity/schemaTypes'
 import { projectId, dataset } from './lib/sanity/env'
 import GeneraBozzaTool from './sanity/tools/GeneraBozzaTool'
 import CategorieInBloccoTool from './sanity/tools/CategorieInBloccoTool'
+import ClassificaAutoriTool from './sanity/tools/ClassificaAutoriTool'
 import { structure } from './sanity/structure'
 import { ricercaImmagini } from './sanity/studio/personalizzazioni'
 
@@ -41,6 +42,11 @@ export default defineConfig({
       name: 'categorie-in-blocco',
       title: 'Categorie in blocco',
       component: CategorieInBloccoTool,
+    },
+    {
+      name: 'classifica-autori',
+      title: 'Classifica autori',
+      component: ClassificaAutoriTool,
     },
   ],
 })
