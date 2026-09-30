@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 const W = 2080
 const H = 2600
 
-const ROSSO = '#FF4242'
+const ROSSO = '#FF0226'
 const BIANCO = '#FFFFFF'
 
 const TEMPLATE = '/grafiche/template-intervista.webp'
