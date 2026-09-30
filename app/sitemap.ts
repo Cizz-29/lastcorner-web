@@ -3,6 +3,8 @@ import { CATEGORIES } from '@/lib/categories'
 import { getAllArticles } from '@/lib/sanity/articles'
 import { getDriverStandings, getConstructorStandings } from '@/lib/f1api'
 import { getRosterDrivers, getRosterTeams, hasStaticRoster } from '@/lib/rosterData'
+import { getSubcategoryPagesForCategory } from '@/lib/subcategories'
+import { authorSlug } from '@/lib/authors'
 
 const SITE_URL = 'https://lastcorner.net'
 
@@ -12,10 +14,23 @@ const SITE_URL = 'https://lastcorner.net'
 // roster statico). WEC/WRC non hanno pagine pilota/team individuali
 // (nessuna fonte dati affidabile), quindi non vengono incluse.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const articles = await getAllArticles()
+
+  // Data vera dell'ultima modifica, presa da Sanity (_updatedAt). Prima ogni
+  // articolo aveva "new Date()": tutti e 627 risultavano modificati nello
+  // stesso secondo, quello in cui si generava la sitemap. Google se ne
+  // accorge e smette di fidarsi del campo, anche per i pezzi aggiornati davvero.
+  const dataDi = (a: { updatedAt?: string; publishedAt?: string }) => {
+    const iso = a.updatedAt ?? a.publishedAt
+    const d = iso ? new Date(iso) : undefined
+    return d && !Number.isNaN(d.getTime()) ? d : undefined
+  }
+  const ultimaModifica = articles.map(dataDi).filter(Boolean).sort((x, y) => y!.getTime() - x!.getTime())[0]
+
   const entries: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
-      lastModified: new Date(),
+      lastModified: ultimaModifica,
       changeFrequency: 'hourly',
       priority: 1,
     },
@@ -57,6 +72,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     if (cat.slug === 'altro') continue
 
+    // Sotto-categorie (editoriali, analisi tecnica, guide, rubriche): pagine
+    // vere, nel menu, ma fino a settembre 2026 assenti dalla sitemap.
+    for (const sotto of getSubcategoryPagesForCategory(cat.slug)) {
+      entries.push({
+        url: `${SITE_URL}/${cat.slug}/${sotto.slug}`,
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      })
+    }
+
     if (cat.hasPiloti ?? true) {
       entries.push({
         url: `${SITE_URL}/${cat.slug}/piloti`,
@@ -86,13 +111,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // Articoli (Sanity + mock residui).
-  const articles = await getAllArticles()
   for (const article of articles) {
     entries.push({
       url: `${SITE_URL}/${article.slug}`,
-      lastModified: new Date(),
+      lastModified: dataDi(article),
       changeFrequency: 'monthly',
       priority: 0.8,
+    })
+  }
+
+  // Pagine autore: una per firma, con la data del suo ultimo pezzo.
+  const autori = new Map<string, Date | undefined>()
+  for (const article of articles) {
+    if (!article.author?.trim()) continue
+    const slug = authorSlug(article.author)
+    if (!slug || autori.has(slug)) continue // l'elenco e' gia' dal piu' recente
+    autori.set(slug, dataDi(article))
+  }
+  for (const [slug, data] of Array.from(autori)) {
+    entries.push({
+      url: `${SITE_URL}/autori/${slug}`,
+      lastModified: data,
+      changeFrequency: 'weekly',
+      priority: 0.4,
     })
   }
 

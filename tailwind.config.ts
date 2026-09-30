@@ -23,7 +23,8 @@ const config: Config = {
         // Akira Expanded per titoli e nav
         'akira': ['Akira Expanded', 'sans-serif'],
         // Montserrat per metadata e testi
-        'montserrat': ['Montserrat', 'sans-serif'],
+        // Attraverso la variabile di next/font: vedi la nota in app/globals.css.
+        'montserrat': ['var(--font-montserrat)', 'Montserrat', 'sans-serif'],
       },
       borderRadius: {
         'card': '27px',

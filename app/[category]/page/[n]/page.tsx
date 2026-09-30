@@ -4,6 +4,7 @@ import CategoryListing from '@/components/CategoryListing'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import { getAllArticles } from '@/lib/sanity/articles'
 import { paginaDaSegmento, paginePerGenerazioneStatica } from '@/lib/paginazione'
+import { metadatiCategoria } from '@/lib/seo'
 
 // Aggiornamento a tempo, una volta l'ora al massimo e solo se qualcuno apre
 // la pagina. Quando esce un articolo nuovo tutte le pagine dell'elenco
@@ -38,13 +39,11 @@ export async function generateStaticParams() {
 export function generateMetadata({ params }: PageProps): Metadata {
   const config = getCategoryConfig(params.category)
   if (!config) return { title: 'Categoria non trovata' }
-  return {
-    title: `${config.label} — pagina ${params.n}`,
-    // Le pagine oltre la prima non aggiungono nulla all'indice: sono le stesse
-    // notizie, piu' vecchie. Restano navigabili dai lettori e percorribili dai
-    // crawler (follow), ma fuori dai risultati.
-    robots: { index: false, follow: true },
-  }
+  // Pagine indicizzabili, con canonical su se stesse. Fino a settembre 2026
+  // erano in noindex: col tempo Google smette di seguire i link delle pagine
+  // escluse dall'indice, e gli articoli piu' vecchi perdevano l'unico
+  // percorso di scansione che li collegava al sito.
+  return metadatiCategoria(config, Number(params.n))
 }
 
 export default function CategoryPaginaPage({ params }: PageProps) {

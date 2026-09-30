@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import CategoryListing from '@/components/CategoryListing'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
+import { metadatiCategoria } from '@/lib/seo'
 
 // Pagina statica: si aggiorna solo quando Sanity chiama /api/revalidate.
 //
@@ -23,7 +24,7 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: CategoryPageProps): Metadata {
   const config = getCategoryConfig(params.category)
   if (!config) return { title: 'Categoria non trovata' }
-  return { title: config.label }
+  return metadatiCategoria(config)
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {

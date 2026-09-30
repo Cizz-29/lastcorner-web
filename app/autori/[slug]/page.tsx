@@ -3,6 +3,7 @@ import AuthorListing from '@/components/AuthorListing'
 import { getAllArticles } from '@/lib/sanity/articles'
 import { getSchedaAutore } from '@/lib/sanity/authors'
 import { authorSlug } from '@/lib/authors'
+import { metadati } from '@/lib/seo'
 
 // Statica: prima leggeva ?page=... e quello bastava a renderla dinamica per
 // sempre. Le pagine successive stanno in page/[n] qui accanto.
@@ -28,14 +29,15 @@ export async function generateMetadata({ params }: AuthorPageProps): Promise<Met
     ? `${match.author}, ${scheda.ruolo} di Lastcorner.net. Tutti gli articoli firmati.`
     : `Tutti gli articoli di ${match.author} su Lastcorner.net.`
 
-  return {
-    // Senza il "— Lastcorner.net": il template di app/layout.tsx aggiunge
-    // gia' " | Lastcorner", e il titolo finiva col nome del sito due volte
-    // ("Francesco Di Blasi — Lastcorner.net | Lastcorner").
-    title: match.author,
-    description: descrizione,
-    alternates: { canonical: `/autori/${params.slug}` },
-  }
+  // Senza il "— Lastcorner.net": il template di app/layout.tsx aggiunge
+  // gia' " | Lastcorner", e il titolo finiva col nome del sito due volte
+  // ("Francesco Di Blasi — Lastcorner.net | Lastcorner").
+  return metadati({
+    titolo: match.author,
+    descrizione: descrizione,
+    percorso: `/autori/${params.slug}`,
+    tipo: 'profile',
+  })
 }
 
 export default function AuthorPage({ params }: AuthorPageProps) {

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
+import { metadati } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Contatti',
-  description: 'Come contattare la redazione di Lastcorner.net.',
-  alternates: { canonical: '/contatti' },
-}
+export const metadata: Metadata = metadati({
+  titolo: 'Contatti',
+  descrizione: 'Come contattare la redazione di Lastcorner.net.',
+  percorso: '/contatti',
+})
 
 const SOCIAL_LINKS = [
   { label: 'Instagram', href: 'https://www.instagram.com/lastcorner_net/' },

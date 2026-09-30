@@ -43,6 +43,9 @@ function percorsiDa(corpo: any): string[] {
     // l'unico momento in cui serve — rigenerarla a tempo costerebbe di piu'
     // e servirebbe di meno.
     percorsi.add('/news-sitemap.xml')
+    // Anche la sitemap completa e il feed RSS elencano l'articolo.
+    percorsi.add('/sitemap.xml')
+    percorsi.add('/feed.xml')
 
     const categoria = slugCategoria(corpo?.category)
     const slug = typeof corpo?.slug?.current === 'string' ? corpo.slug.current : null

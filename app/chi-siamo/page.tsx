@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
+import { metadati } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Chi siamo',
-  description: 'La storia di Lastcorner.net: da pagina Instagram nata nel 2019 a risorsa di news e analisi sul motorsport.',
-  alternates: { canonical: '/chi-siamo' },
-}
+export const metadata: Metadata = metadati({
+  titolo: 'Chi siamo',
+  descrizione: 'La storia di Lastcorner.net: da pagina Instagram nata nel 2019 a risorsa di news e analisi sul motorsport.',
+  percorso: '/chi-siamo',
+})
 
 const SOCIAL_LINKS = [
   { label: 'Instagram', handle: '@lastcorner_net', href: 'https://www.instagram.com/lastcorner_net/' },

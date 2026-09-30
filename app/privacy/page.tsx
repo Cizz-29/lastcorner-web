@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
+import { metadati } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy',
-  description: 'Informativa sul trattamento dei dati personali di Lastcorner.net.',
-  alternates: { canonical: '/privacy' },
-}
+export const metadata: Metadata = metadati({
+  titolo: 'Privacy Policy',
+  descrizione: 'Informativa sul trattamento dei dati personali di Lastcorner.net.',
+  percorso: '/privacy',
+})
 
 export default function PrivacyPage() {
   return (

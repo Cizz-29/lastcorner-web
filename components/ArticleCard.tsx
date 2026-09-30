@@ -12,7 +12,15 @@ export interface Article {
   /** Data originale in formato ISO: serve ai dati strutturati, dove Google
    *  vuole una data leggibile da una macchina e non da una persona. */
   publishedAt?: string
+  /** Ultima modifica tecnica su Sanity (_updatedAt): qualsiasi ritocco la
+   *  sposta. Serve alla sitemap. */
+  updatedAt?: string
+  /** Aggiornamento vero, messo a mano dalla redazione: si mostra al lettore
+   *  e va nei dati strutturati come dateModified. */
+  aggiornatoIl?: string
   imageUrl: string
+  /** Testo alternativo scritto nello Studio per l'immagine principale. */
+  imageAlt?: string
   /** Stessa foto ritagliata 3:2, usata solo dall'immagine grande in cima
    *  all'articolo. Assente per gli articoli mock. */
   heroImageUrl?: string

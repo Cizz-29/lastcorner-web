@@ -63,8 +63,23 @@ export default function AdSlot({ height, className = '' }: AdSlotProps) {
     return () => cancelAnimationFrame(id)
   }, [])
 
+  // Spazio riservato: pieno da desktop in su, al massimo 250px sotto.
+  //
+  // Riservare l'altezza evita che il testo salti quando l'annuncio arriva.
+  // Ma su mobile la barra laterale finisce in fondo alla pagina, e un
+  // riquadro "300x600" ci lasciava 250-300px vuoti ogni volta che AdSense lo
+  // riempiva con un formato piu' basso. Sotto i 1024px gli annunci
+  // responsive restano intorno ai 250px, e quello si riserva.
+  const stile = {
+    '--altezza-mobile': `${Math.min(height, 250)}px`,
+    '--altezza-desktop': `${height}px`,
+  } as React.CSSProperties
+
   return (
-    <div className={`w-full overflow-hidden ${className}`} style={{ minHeight: height }}>
+    <div
+      className={`w-full overflow-hidden min-h-[var(--altezza-mobile)] lg:min-h-[var(--altezza-desktop)] ${className}`}
+      style={stile}
+    >
       <ins
         className="adsbygoogle"
         style={{ display: 'block' }}

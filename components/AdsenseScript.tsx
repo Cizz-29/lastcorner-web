@@ -60,9 +60,29 @@ export default function AdsenseScript() {
   const pathname = usePathname()
   const areaInterna = PERCORSI_SENZA_ANNUNCI.some((p) => pathname?.startsWith(p))
 
+  // Lo script parte a pagina caricata, quando il browser e' libero.
+  //
+  // Misurato il 30 settembre 2026 su un articolo, con CPU da telefono medio:
+  // 728 ms di thread principale bloccato con AdSense, 18 ms senza. Caricato
+  // subito, quel lavoro cade proprio mentre il lettore prova a scorrere o a
+  // toccare qualcosa. Rimandato di un attimo, gli annunci arrivano comunque
+  // prima che si raggiunga il primo spazio pubblicitario, e il messaggio di
+  // consenso di Google compare lo stesso.
   useEffect(() => {
     if (areaInterna) return
-    injectScript()
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+    }
+    const avvia = () => {
+      if (w.requestIdleCallback) w.requestIdleCallback(injectScript, { timeout: 2000 })
+      else setTimeout(injectScript, 200)
+    }
+    if (document.readyState === 'complete') {
+      avvia()
+      return
+    }
+    window.addEventListener('load', avvia, { once: true })
+    return () => window.removeEventListener('load', avvia)
   }, [areaInterna])
 
   return null

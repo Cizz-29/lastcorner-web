@@ -9,6 +9,7 @@ import StandingsToggle from '@/components/StandingsToggle'
 import { getAllStandings } from '@/lib/f1api'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import { getAllArticles } from '@/lib/sanity/articles'
+import { metadati } from '@/lib/seo'
 
 // Nessuna scadenza dichiarata qui. Per la Formula 1 pero' la pagina si
 // rigenera ogni ora: legge i dati F1 da Jolpica con revalidate 3600, e in
@@ -33,7 +34,19 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: PageProps): Metadata {
   const config = getCategoryConfig(params.category)
   if (!config) return { title: 'Classifica non disponibile' }
-  return { title: `Classifica ${config.label}` }
+  const anno = new Date().getFullYear()
+  if (config.slug === 'formula-1') {
+    return metadati({
+      titolo: `Classifica Mondiale F1 ${anno}: piloti e costruttori`,
+      descrizione: `La classifica aggiornata del Mondiale di Formula 1 ${anno}: punti di piloti e costruttori dopo ogni Gran Premio, con vittorie e distacchi.`,
+      percorso: '/formula-1/classifica',
+    })
+  }
+  return metadati({
+    titolo: `Classifica ${config.label} ${anno}`,
+    descrizione: `Le classifiche di ${config.label} ${anno} dopo ogni round: piloti e team, con i risultati commentati da Lastcorner.`,
+    percorso: `/${config.slug}/classifica`,
+  })
 }
 
 export default async function ClassificaPage({ params }: PageProps) {

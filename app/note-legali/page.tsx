@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
+import { metadati } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Note Legali',
-  description: 'Informazioni legali su Lastcorner.net: natura del sito, proprietà intellettuale, responsabilità.',
-  alternates: { canonical: '/note-legali' },
-}
+export const metadata: Metadata = metadati({
+  titolo: 'Note Legali',
+  descrizione: 'Informazioni legali su Lastcorner.net: natura del sito, proprietà intellettuale, responsabilità.',
+  percorso: '/note-legali',
+})
 
 export default function NoteLegaliPage() {
   return (

@@ -19,7 +19,11 @@
   font-display: swap;
 }
 
-/* Montserrat da Google Fonts (caricato via layout.tsx) */
+/* Montserrat arriva da next/font (app/layout.tsx), che la registra con un
+   nome interno generato a ogni build ("__Montserrat_xxxx") e lo espone solo
+   nella variabile --font-montserrat. Chiederla per nome ('Montserrat') non
+   trova nulla: fino al 30 settembre 2026 il testo del sito usciva nel font di
+   sistema, e il file del font veniva precaricato senza essere mai usato. */
 
 /* ─── Reset e base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,9 +33,14 @@ html { scroll-behavior: smooth; }
 body {
   background-color: #131318;
   color: #ffffff;
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--font-montserrat), 'Montserrat', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Nessuno scorrimento laterale, anche se un iframe pubblicitario si allarga
+     oltre lo schermo (successo sulla pagina Ferrari: 1920px su 1440).
+     "clip" e non "hidden": non crea un contenitore di scorrimento, quindi
+     gli elementi "sticky" continuano a funzionare. */
+  overflow-x: clip;
 }
 
 /* ─── Variabili CSS ────────────────────────────────────────── */

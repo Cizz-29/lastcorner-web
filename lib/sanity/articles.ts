@@ -31,6 +31,8 @@ interface SanityArticleDoc {
   subcategory?: string
   author: string
   publishedAt: string
+  _updatedAt?: string
+  aggiornatoIl?: string
   mainImage?: { asset?: any; alt?: string }
   excerpt?: string
   breaking?: boolean
@@ -46,7 +48,13 @@ interface SanityArticleDoc {
 // Sanity a ogni build. Senza il corpo la stessa risposta sta in poche
 // centinaia di kilobyte. Il testo dell'articolo serve a una pagina sola, e
 // quella se lo va a prendere da se' con getArticleBody().
-const CAMPI_ELENCO = `_id, title, slug, category, subcategory, author, publishedAt, mainImage, excerpt, breaking, tags`
+//
+// _updatedAt e aggiornatoIl sono due date diverse, e servono a due cose
+// diverse. _updatedAt la scrive Sanity a ogni modifica, anche un refuso o una
+// pulizia dei link: e' giusta per la sitemap, che dice a Google quando
+// ripassare. aggiornatoIl la mette la redazione solo per gli aggiornamenti
+// veri: e' quella che si mostra al lettore e che finisce nei dati strutturati.
+const CAMPI_ELENCO = `_id, _updatedAt, title, slug, category, subcategory, author, publishedAt, aggiornatoIl, mainImage, excerpt, breaking, tags`
 
 const ARTICLE_QUERY = `*[_type == "article" && defined(slug.current)] | order(publishedAt desc){
   ${CAMPI_ELENCO}
@@ -62,6 +70,8 @@ function toArticle(doc: SanityArticleDoc): Article {
     author: doc.author,
     date: formatDate(doc.publishedAt),
     publishedAt: doc.publishedAt,
+    updatedAt: doc._updatedAt,
+    aggiornatoIl: doc.aggiornatoIl,
     // 16:9 — formato delle card, dell'anteprima social e dei dati strutturati.
     imageUrl: doc.mainImage ? urlFor(doc.mainImage).width(1200).height(675).fit('crop').url() : FALLBACK_IMAGE,
     // 3:2 — solo per l'immagine grande in cima all'articolo, dove il 16:9
@@ -70,6 +80,7 @@ function toArticle(doc: SanityArticleDoc): Article {
     // in piu' viene fatta. Il punto di interesse scelto nello Studio (hotspot)
     // vale per entrambi i formati.
     heroImageUrl: doc.mainImage ? urlFor(doc.mainImage).width(1200).height(800).fit('crop').url() : FALLBACK_IMAGE,
+    imageAlt: doc.mainImage?.alt?.trim() || undefined,
     excerpt: doc.excerpt,
     breaking: doc.breaking,
     tags: doc.tags,
@@ -154,7 +165,18 @@ export const getArticleBySlug = cache(async (slug: string): Promise<Article | un
       `*[_type == "article" && slug.current in $forme] | order(publishedAt desc)[0]{ ${CAMPI_ELENCO} }`,
       { forme: formeDelloSlug(slug) }
     )
-    return doc ? toArticle(doc) : undefined
+    if (doc) return toArticle(doc)
+
+    // Seconda prova, senza badare a maiuscole e minuscole. Quattordici
+    // articoli hanno maiuscole nello slug ("F1-Vasseur-Horner-cambio-Ferrari"):
+    // chi li scrive o li linka in minuscolo trovava un 404. Qui l'articolo si
+    // trova, e la pagina reindirizza all'indirizzo scritto come su Sanity.
+    // Parte solo quando la prima ricerca fallisce, quindi quasi mai.
+    const minuscolo = await sanityClient.fetch<SanityArticleDoc | null>(
+      `*[_type == "article" && lower(slug.current) in $forme] | order(publishedAt desc)[0]{ ${CAMPI_ELENCO} }`,
+      { forme: formeDelloSlug(slug).map((f) => f.toLowerCase()) }
+    )
+    return minuscolo ? toArticle(minuscolo) : undefined
   } catch (errore) {
     console.error('[sanity] articolo non recuperato:', (errore as Error)?.message ?? errore)
     return undefined
@@ -203,3 +225,36 @@ export async function getPercorsiArticoli(): Promise<{ category: string; slug: s
     return []
   }
 }
+
+/** Articoli collegati a quello che si sta leggendo, per il fondo pagina.
+ *
+ *  Prima quelli che condividono almeno un tag (lo stesso pilota o team), dal
+ *  piu' recente. Se non bastano, si completa con gli ultimi della stessa
+ *  categoria. Una sola richiesta a Sanity: i due gruppi arrivano insieme. */
+export const getCorrelati = cache(async (article: Article, n: number): Promise<Article[]> => {
+  const tags = (article.tags ?? []).map((t) => t.toLowerCase()).filter(Boolean)
+  try {
+    const { perTag, perCategoria } = await sanityClient.fetch<{
+      perTag: SanityArticleDoc[]
+      perCategoria: SanityArticleDoc[]
+    }>(
+      `{
+        "perTag": *[_type == "article" && defined(slug.current) && _id != $id && count(tags[lower(@) in $tags]) > 0] | order(publishedAt desc)[0...$n]{ ${CAMPI_ELENCO} },
+        "perCategoria": *[_type == "article" && defined(slug.current) && _id != $id && category == $categoria] | order(publishedAt desc)[0...$n]{ ${CAMPI_ELENCO} }
+      }`,
+      { id: article.id, tags, categoria: article.category, n }
+    )
+    const visti = new Set<string>()
+    const risultato: Article[] = []
+    for (const doc of [...perTag, ...perCategoria]) {
+      if (visti.has(doc._id) || !doc.slug?.current) continue
+      visti.add(doc._id)
+      risultato.push(toArticle(doc))
+      if (risultato.length === n) break
+    }
+    return risultato
+  } catch (errore) {
+    console.error('[sanity] articoli correlati non recuperati:', (errore as Error)?.message ?? errore)
+    return []
+  }
+})

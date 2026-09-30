@@ -10,18 +10,28 @@ import FontiPreferite from '@/components/FontiPreferite'
 import AdSlot from '@/components/AdSlot'
 import ArticleBody from '@/components/ArticleBody'
 import AltriArticoli from '@/components/AltriArticoli'
-import type { Article } from '@/components/ArticleCard'
+import CondividiArticolo from '@/components/CondividiArticolo'
+import { ArticleCardGrid, type Article } from '@/components/ArticleCard'
 import {
   getArticleBody,
   getArticleBySlug,
+  getCorrelati,
   getPercorsiArticoli,
   getUltimiArticoli,
 } from '@/lib/sanity/articles'
+import { getSchedaAutore } from '@/lib/sanity/authors'
+import { urlFor } from '@/lib/sanity/image'
 import { getCategoryConfig } from '@/lib/categories'
 import { authorSlug } from '@/lib/authors'
 import { jsonLd } from '@/lib/jsonLd'
+import { metadati, SITE_URL } from '@/lib/seo'
+import { dataOraItaliana, minutiDiLettura } from '@/lib/date'
 
 import { ALTRI_ARTICOLI } from '@/lib/altriArticoli'
+
+// Articoli in fondo alla pagina ("Continua a leggere"). Se ne chiede uno in
+// piu' a Sanity: il primo va nel riquadro "Leggi anche" dentro il testo.
+const CORRELATI = 4
 
 // Pagina statica: si genera una volta e si aggiorna solo quando Sanity chiama
 // /api/revalidate. Un articolo pubblicato dopo l'ultimo deploy non e' fra le
@@ -47,8 +57,14 @@ interface ArticlePageProps {
 async function trovaArticolo(category: string, slug: string) {
   const article = await getArticleBySlug(slug)
   if (!article) return { article: undefined, spostatoIn: undefined }
-  const categoriaVera = article.slug.split('/')[0]
-  return categoriaVera === category
+  const [categoriaVera, ...resto] = article.slug.split('/')
+  const slugVero = resto.join('/')
+  // Stesso slug ma con maiuscole diverse (vedi getArticleBySlug): si manda
+  // all'indirizzo scritto come su Sanity, che e' quello nella sitemap.
+  // Il confronto e' solo sulle maiuscole, non sulla codifica degli accenti,
+  // cosi' non si innesca mai un giro di redirect.
+  const soloMaiuscole = slug !== slugVero && slug.toLowerCase() === slugVero.toLowerCase()
+  return categoriaVera === category && !soloMaiuscole
     ? { article, spostatoIn: undefined }
     : { article: undefined, spostatoIn: article.slug }
 }
@@ -63,33 +79,25 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const { article } = await trovaArticolo(params.category, params.slug)
   if (!article) return { title: 'Articolo non trovato' }
 
-  const description = article.excerpt ?? `${article.title} — Lastcorner.net`
-  const percorso = `/${params.category}/${params.slug}`
-  return {
-    // Titolo senza il suffisso " | Lastcorner" che il template di
-    // app/layout.tsx aggiunge alle altre pagine.
-    //
-    // Nei risultati Google il nome del sito compare gia' su una riga sua,
-    // sopra il titolo: il suffisso lo ripete e basta. Ma soprattutto costa
-    // tredici caratteri su un titolo che Google taglia intorno ai sessanta,
-    // e a farne le spese e' la fine del titolo — cioe' esattamente la parola
-    // che la gente ha cercato. "F1 | Gli Orari TV SKY e TV8 del GP di Spagna
-    // 2026 a Madrid" mette "Madrid" al carattere 52: con il suffisso il
-    // taglio se lo mangia, senza resta.
-    title: { absolute: article.title },
-    description,
-    // Senza questo l'articolo ereditava il canonical della home e diceva a
-    // Google di indicizzare quella al posto suo.
-    alternates: { canonical: percorso },
-    openGraph: {
-      title: article.title,
-      description,
-      url: percorso,
-      images: [article.imageUrl],
-      type: 'article',
+  // Titolo senza il suffisso " | Lastcorner" che il template di app/layout.tsx
+  // aggiunge alle altre pagine. Nei risultati Google il nome del sito compare
+  // gia' su una riga sua, e il suffisso costerebbe tredici caratteri su un
+  // titolo che Google taglia intorno ai sessanta: a farne le spese sarebbe la
+  // fine del titolo, cioe' spesso la parola che la gente ha cercato.
+  return metadati({
+    titolo: article.title,
+    titoloAssoluto: true,
+    descrizione: article.excerpt ?? `${article.title} — Lastcorner.net`,
+    percorso: `/${params.category}/${params.slug}`,
+    tipo: 'article',
+    immagine: { url: article.imageUrl, width: 1200, height: 675, alt: article.imageAlt ?? article.title },
+    openGraphExtra: {
       publishedTime: article.publishedAt,
+      ...(article.aggiornatoIl ? { modifiedTime: article.aggiornatoIl } : {}),
+      section: article.category,
+      authors: article.author ? [`${SITE_URL}/autori/${authorSlug(article.author)}`] : undefined,
     },
-  }
+  })
 }
 
 const SITO = 'https://lastcorner.net'
@@ -97,15 +105,19 @@ const SITO = 'https://lastcorner.net'
 /** Dati strutturati dell'articolo. Servono a dire a Google che questa pagina
  *  e' una notizia, di che data, e chi l'ha scritta: senza, il pezzo parte
  *  svantaggiato rispetto a chi li dichiara — cioe' tutte le testate. */
-function datiStrutturati(article: Article, percorso: string) {
-  return {
-    '@context': 'https://schema.org',
+function datiStrutturati(article: Article, percorso: string, categorySlug: string) {
+  const notizia = {
     '@type': 'NewsArticle',
     headline: article.title,
     description: article.excerpt,
     image: article.imageUrl ? [article.imageUrl] : undefined,
     datePublished: article.publishedAt ?? undefined,
-    dateModified: article.publishedAt ?? undefined,
+    // L'aggiornamento dichiarato dalla redazione (campo "Aggiornato il"), non
+    // l'ultima modifica tecnica: Google chiede che dateModified segnali i
+    // cambiamenti di contenuto, e un refuso corretto non lo e'. Prima qui c'era
+    // sempre la data di pubblicazione, quindi un pezzo aggiornato non lo
+    // diceva mai.
+    dateModified: article.aggiornatoIl ?? article.publishedAt ?? undefined,
     articleSection: article.category,
     author: article.author
       ? {
@@ -121,6 +133,18 @@ function datiStrutturati(article: Article, percorso: string) {
     },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITO}${percorso}` },
   }
+  // Il percorso Home > Categoria > Articolo, lo stesso delle briciole in
+  // cima alla pagina: Google lo usa per mostrare il risultato con la
+  // gerarchia al posto dell'indirizzo nudo.
+  const briciole = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITO },
+      { '@type': 'ListItem', position: 2, name: article.category, item: `${SITO}/${categorySlug}` },
+      { '@type': 'ListItem', position: 3, name: article.title, item: `${SITO}${percorso}` },
+    ],
+  }
+  return { '@context': 'https://schema.org', '@graph': [notizia, briciole] }
 }
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
@@ -133,10 +157,24 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   // Il testo dell'articolo viaggia separato: vedi la nota su ARTICLE_QUERY in
   // lib/sanity/articles.ts. Le due richieste sono indipendenti, quindi partono
   // insieme.
-  const [corpo, otherArticles] = await Promise.all([
+  const [corpo, otherArticles, correlati, scheda] = await Promise.all([
     getArticleBody(article.id),
     getUltimiArticoli(ALTRI_ARTICOLI, article.id),
+    getCorrelati(article, CORRELATI + 1),
+    article.author ? getSchedaAutore(authorSlug(article.author)) : Promise.resolve(null),
   ])
+
+  const urlAssoluto = `${SITO}/${params.category}/${params.slug}`
+  const pubblicato = dataOraItaliana(article.publishedAt)
+  const aggiornato = dataOraItaliana(article.aggiornatoIl)
+  const minuti = minutiDiLettura(corpo)
+  // Il primo correlato va nel riquadro "Leggi anche" dentro il testo, gli
+  // altri in fondo: cosi' nessun titolo compare due volte.
+  const [inTesto, ...altri] = correlati
+  // In fondo le card vanno su due colonne: un numero pari evita la card
+  // sola in fondo alla griglia.
+  const inFondo = altri.length > 1 ? altri.slice(0, altri.length - (altri.length % 2)) : altri
+  const fotoAutore = scheda?.foto?.asset?._ref ? urlFor(scheda.foto).width(112).height(112).fit('crop').url() : null
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -146,7 +184,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: jsonLd(datiStrutturati(article, `/${params.category}/${params.slug}`)),
+          __html: jsonLd(datiStrutturati(article, `/${params.category}/${params.slug}`, params.category)),
         }}
       />
 
@@ -175,25 +213,50 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </span>
 
             {/* Titolo — variante più pesante di Akira (SuperBold, 800) */}
-            <h1 className="font-akira font-extrabold text-[28px] lg:text-[38px] text-white leading-[1.1] mb-4">
+            {/* 24px su mobile: a 28 un titolo medio andava su sei righe e da
+                solo riempiva il primo schermo del telefono. */}
+            <h1 className="font-akira font-extrabold text-[24px] sm:text-[28px] lg:text-[38px] text-white leading-[1.12] mb-4 [text-wrap:balance]">
               {article.title}
             </h1>
 
             {article.excerpt && (
-              <p className="font-montserrat text-[15px] text-lc-subtle leading-relaxed mb-5">
+              <p className="font-montserrat text-[17px] lg:text-[18px] text-lc-muted leading-relaxed mb-5 max-w-[68ch]">
                 {article.excerpt}
               </p>
             )}
 
-            <div className="flex items-center gap-3 text-[12px] font-montserrat text-lc-subtle mb-6">
-              <span>{article.date}</span>
-              <span className="opacity-60">|</span>
+            {/* Data con l'ora, l'eventuale aggiornamento, l'autore e i minuti
+                di lettura. Prima c'era solo "29 settembre": niente ora, niente
+                <time> leggibile dalle macchine, nessun segno degli
+                aggiornamenti. */}
+            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[13px] font-montserrat text-lc-subtle mb-5">
+              {pubblicato && article.publishedAt ? (
+                <time dateTime={article.publishedAt}>{pubblicato}</time>
+              ) : (
+                <span>{article.date}</span>
+              )}
+              <span className="opacity-50" aria-hidden="true">·</span>
               <Link
                 href={`/autori/${authorSlug(article.author)}`}
-                className="hover:text-lc-red transition-colors duration-200"
+                className="text-white hover:text-lc-red transition-colors duration-200"
               >
                 {article.author}
               </Link>
+              {minuti && (
+                <>
+                  <span className="opacity-50" aria-hidden="true">·</span>
+                  <span>{minuti} min di lettura</span>
+                </>
+              )}
+              {aggiornato && article.aggiornatoIl && (
+                <span className="basis-full text-lc-muted">
+                  Aggiornato il <time dateTime={article.aggiornatoIl}>{aggiornato}</time>
+                </span>
+              )}
+            </div>
+
+            <div className="mb-6">
+              <CondividiArticolo titolo={article.title} url={urlAssoluto} />
             </div>
 
             {/* Riquadro a proporzioni fisse, non libere come per le immagini nel
@@ -212,7 +275,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             <div className="relative w-full aspect-[3/2] rounded-card overflow-hidden mb-8 border-b-2 border-lc-red">
               <Image
                 src={article.heroImageUrl ?? article.imageUrl}
-                alt={article.title}
+                alt={article.imageAlt ?? article.title}
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 800px"
@@ -221,12 +284,72 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </div>
 
             {corpo && corpo.length > 0 ? (
-              <ArticleBody blocks={corpo} />
+              <ArticleBody
+                blocks={corpo}
+                leggiAnche={inTesto ? { titolo: inTesto.title, href: `/${inTesto.slug}` } : undefined}
+              />
             ) : (
               <p className="font-montserrat text-[14px] text-lc-subtle italic">
                 Contenuto in arrivo.
               </p>
             )}
+
+            {/* Fondo articolo: condivisione, chi l'ha scritto, cosa leggere
+                dopo. Prima l'articolo finiva nel vuoto, e su mobile gli altri
+                pezzi stavano solo nella barra laterale, sotto social e annunci. */}
+            <div className="mt-10 pt-8 border-t border-white/10 flex flex-col gap-8">
+              <CondividiArticolo titolo={article.title} url={urlAssoluto} variante="esteso" />
+
+              {article.author && (
+                <Link
+                  href={`/autori/${authorSlug(article.author)}`}
+                  className="group flex items-center gap-4 bg-lc-card border border-white/10 rounded-card-sm p-4 hover:border-white/25 transition-colors duration-200"
+                >
+                  {fotoAutore ? (
+                    <Image
+                      src={fotoAutore}
+                      alt={article.author}
+                      width={56}
+                      height={56}
+                      className="rounded-full shrink-0 object-cover"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="w-14 h-14 rounded-full shrink-0 bg-lc-red/15 border border-lc-red/40 flex items-center justify-center font-akira font-bold text-[16px] text-white"
+                    >
+                      {article.author.trim().charAt(0)}
+                    </span>
+                  )}
+                  <span className="flex flex-col min-w-0">
+                    <span className="font-montserrat text-[11px] uppercase tracking-widest text-lc-subtle">Scritto da</span>
+                    <span className="font-montserrat font-bold text-[16px] text-white">{article.author}</span>
+                    {scheda?.ruolo && (
+                      <span className="font-montserrat text-[13px] text-lc-subtle">{scheda.ruolo}</span>
+                    )}
+                    <span className="font-montserrat text-[13px] text-lc-red mt-1 group-hover:underline">
+                      Tutti i suoi articoli →
+                    </span>
+                  </span>
+                </Link>
+              )}
+
+              {inFondo.length > 0 && (
+                <section aria-labelledby="correlati-heading">
+                  <div className="flex items-center gap-3 mb-5">
+                    <h2 id="correlati-heading" className="font-akira font-extrabold text-[18px] text-white whitespace-nowrap">
+                      CONTINUA A <span className="text-lc-red">LEGGERE</span>
+                    </h2>
+                    <div className="flex-1 h-[3px] bg-gradient-to-r from-lc-red to-transparent rounded-full" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {inFondo.map((a) => (
+                      <ArticleCardGrid key={a.id} article={a} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
           </article>
 
           {/* Sidebar — il widget social è il primo elemento; il resto (classifica in

@@ -16,6 +16,7 @@ import { getDriverBio } from '@/lib/driverBios'
 import { getCategoryConfig } from '@/lib/categories'
 import { getArticoliConTag } from '@/lib/sanity/articles'
 import type { RosterDriver } from '@/lib/rosterTypes'
+import { metadati, sigla } from '@/lib/seo'
 
 // Nessuna scadenza dichiarata qui. Per la Formula 1 pero' la pagina si
 // rigenera ogni ora: legge i dati F1 da Jolpica con revalidate 3600, e in
@@ -54,11 +55,22 @@ async function findDriver(category: string, driverId: string): Promise<RosterDri
 
 export async function generateMetadata({ params }: DriverPageProps): Promise<Metadata> {
   const driver = await findDriver(params.category, params.driverId)
-  if (!driver) return { title: 'Pilota non trovato' }
-  return {
-    title: `${driver.givenName} ${driver.familyName}`,
-    alternates: { canonical: `/${params.category}/piloti/${params.driverId}` },
-  }
+  const config = getCategoryConfig(params.category)
+  if (!driver || !config) return { title: 'Pilota non trovato' }
+  const nome = `${driver.givenName} ${driver.familyName}`
+  const anno = new Date().getFullYear()
+  // La posizione nel mondiale c'e' solo per la F1 (dati Jolpica): per le altre
+  // serie la description resta descrittiva.
+  const classifica =
+    driver.position && driver.points
+      ? ` ${driver.position}° nel Mondiale ${anno} con ${driver.points} punti.`
+      : ''
+  return metadati({
+    titolo: `${nome}: biografia, carriera e news ${sigla(config)}`,
+    descrizione: `${nome}, pilota ${driver.teamName} in ${config.label}: biografia, carriera e ultime notizie.${classifica}`,
+    percorso: `/${params.category}/piloti/${params.driverId}`,
+    tipo: 'profile',
+  })
 }
 
 function StatTile({ label, value }: { label: string; value: string | number }) {

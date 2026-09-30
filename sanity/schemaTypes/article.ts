@@ -62,13 +62,23 @@ export default defineType({
       },
       // E se lo slug si scrive a mano, lo Studio non lascia pubblicare con
       // un accento o un carattere speciale dentro, e dice perche'.
-      validation: (Rule) =>
+      validation: (Rule) => [
         Rule.required().custom((valore?: { current?: string }) => {
           const slug = valore?.current ?? ''
           return /^[A-Za-z0-9-]*$/.test(slug)
             ? true
             : 'Solo lettere senza accenti, numeri e trattini: "penalità" va scritto "penalita".'
         }),
+        // Avviso, non errore: 14 articoli pubblicati hanno maiuscole nello
+        // slug e devono restare modificabili. Il sito li trova anche scritti
+        // in minuscolo (vedi getArticleBySlug), ma un indirizzo tutto
+        // minuscolo resta il piu' sicuro da condividere e da linkare.
+        Rule.custom((valore?: { current?: string }) =>
+          /[A-Z]/.test(valore?.current ?? '')
+            ? 'Meglio tutto minuscolo: usa "Genera" per ricrearlo dal titolo.'
+            : true
+        ).warning(),
+      ],
     }),
     defineField({
       name: 'category',
@@ -105,6 +115,21 @@ export default defineType({
       title: 'Data pubblicazione',
       type: 'datetime',
       validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'aggiornatoIl',
+      title: 'Aggiornato il',
+      type: 'datetime',
+      description:
+        "Solo per aggiornamenti veri del contenuto (fatti nuovi, correzioni importanti). Compare sotto il titolo come \"Aggiornato\" e dice a Google che il pezzo e' cambiato. Non serve per refusi o ritocchi.",
+      validation: (Rule) =>
+        Rule.custom((valore, contesto) => {
+          const pubblicato = (contesto.document as { publishedAt?: string } | undefined)?.publishedAt
+          if (valore && pubblicato && new Date(valore as string) < new Date(pubblicato)) {
+            return "L'aggiornamento non puo' essere precedente alla pubblicazione"
+          }
+          return true
+        }),
     }),
     defineField({
       name: 'mainImage',

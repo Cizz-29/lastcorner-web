@@ -16,6 +16,7 @@ import { getTeamBio } from '@/lib/teamBios'
 import { getCategoryConfig } from '@/lib/categories'
 import { getArticoliConTag } from '@/lib/sanity/articles'
 import type { RosterTeam, RosterDriver } from '@/lib/rosterTypes'
+import { metadati, sigla } from '@/lib/seo'
 
 // Nessuna scadenza dichiarata qui. Per la Formula 1 pero' la pagina si
 // rigenera ogni ora: legge i dati F1 da Jolpica con revalidate 3600, e in
@@ -61,11 +62,18 @@ async function findLineup(category: string, teamId: string): Promise<RosterDrive
 
 export async function generateMetadata({ params }: TeamPageProps): Promise<Metadata> {
   const team = await findTeam(params.category, params.teamId)
-  if (!team) return { title: 'Team non trovato' }
-  return {
-    title: team.name,
-    alternates: { canonical: `/${params.category}/team/${params.teamId}` },
-  }
+  const config = getCategoryConfig(params.category)
+  if (!team || !config) return { title: 'Team non trovato' }
+  const anno = new Date().getFullYear()
+  const classifica =
+    team.position && team.points
+      ? ` ${team.position}° nel Mondiale Costruttori ${anno} con ${team.points} punti.`
+      : ''
+  return metadati({
+    titolo: `${team.name}: piloti, risultati e news ${sigla(config)}`,
+    descrizione: `${team.name} in ${config.label}: la formazione ${anno}, i risultati e tutte le ultime notizie sul team.${classifica}`,
+    percorso: `/${params.category}/team/${params.teamId}`,
+  })
 }
 
 function StatTile({ label, value }: { label: string; value: string | number }) {

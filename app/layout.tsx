@@ -6,6 +6,7 @@ import CookieConsent from '@/components/CookieConsent'
 import AdsenseScript from '@/components/AdsenseScript'
 import './globals.css'
 import { jsonLd as serializzaJsonLd } from '@/lib/jsonLd'
+import { FEED_RSS } from '@/lib/seo'
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -19,10 +20,10 @@ const SITE_URL = 'https://lastcorner.net'
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Lastcorner | Next Gen Motorsport Coverage',
+    default: 'Lastcorner | Notizie di Formula 1, risultati e motorsport',
     template: '%s | Lastcorner',
   },
-  description: 'Next Gen Motorsport Coverage — news, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, F1 Academy, WRC e tutto il motorsport.',
+  description: 'Notizie di Formula 1 ogni giorno: risultati, mercato piloti, analisi tecniche e approfondimenti, più Formula 2, Formula 3, F1 Academy e WRC.',
   keywords: ['Formula 1', 'F1', 'motorsport', 'WEC', 'WRC', 'Formula 2', 'Formula 3'],
   authors: [{ name: 'Lastcorner' }],
   // NIENTE "alternates.canonical" qui.
@@ -34,19 +35,22 @@ export const metadata: Metadata = {
   // indicizzarle. Il canonical va messo pagina per pagina (vedi app/page.tsx
   // per la home e generateMetadata nelle pagine dinamiche). Dove manca, Google
   // usa l'URL stesso, che e' il comportamento corretto.
+  // Qui solo cio' che vale per tutte le pagine. Titolo, description, url e
+  // immagine delle anteprime social li scrive ogni pagina (lib/seo.ts): fissati
+  // qui, finivano identici ovunque, e la scheda di un pilota condivisa su
+  // WhatsApp mostrava l'anteprima della home.
   openGraph: {
-    title: 'Lastcorner | Next Gen Motorsport Coverage',
-    description: 'Next Gen Motorsport Coverage — news, analisi e approfondimenti su Formula 1, Formula 2, Formula 3, F1 Academy, WRC e tutto il motorsport.',
-    url: SITE_URL,
     siteName: 'Lastcorner',
     locale: 'it_IT',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Lastcorner',
-    description: 'Next Gen Motorsport Coverage',
+    site: '@Lastcorner_F1',
   },
+  // Il feed RSS, annunciato a browser, aggregatori e alla funzione "Segui"
+  // di Chrome. Lo genera app/feed.xml/route.ts.
+  alternates: { types: FEED_RSS },
   robots: {
     index: true,
     follow: true,

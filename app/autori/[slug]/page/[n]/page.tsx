@@ -4,6 +4,7 @@ import AuthorListing from '@/components/AuthorListing'
 import { getAllArticles } from '@/lib/sanity/articles'
 import { authorSlug } from '@/lib/authors'
 import { paginaDaSegmento, paginePerGenerazioneStatica } from '@/lib/paginazione'
+import { metadati } from '@/lib/seo'
 
 export const revalidate = false
 
@@ -35,11 +36,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const articles = await getAllArticles()
   const match = articles.find((a) => authorSlug(a.author) === params.slug)
   if (!match) return { title: 'Autore non trovato' }
-  return {
-    title: `${match.author} — pagina ${params.n}`,
-    alternates: { canonical: `/autori/${params.slug}/page/${params.n}` },
-    robots: { index: false, follow: true },
-  }
+  return metadati({
+    titolo: `${match.author}, pagina ${params.n}`,
+    descrizione: `Gli articoli di ${match.author} su Lastcorner.net, pagina ${params.n}.`,
+    percorso: `/autori/${params.slug}/page/${params.n}`,
+    tipo: 'profile',
+  })
 }
 
 export default function AuthorPaginaPage({ params }: PageProps) {

@@ -8,6 +8,7 @@ import AdSlot from '@/components/AdSlot'
 import { getCurrentSchedule } from '@/lib/f1api'
 import { getCategoryConfig } from '@/lib/categories'
 import { FLAG_CODES, COUNTRY_COLORS } from '@/components/NextEventSection'
+import { metadati } from '@/lib/seo'
 
 const AD_EVERY_N_ROUNDS = 6
 
@@ -23,7 +24,12 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: PageProps): Metadata {
   if (params.category !== 'formula-1') return { title: 'Calendario non disponibile' }
-  return { title: `Calendario Formula 1 ${new Date().getFullYear()}` }
+  const anno = new Date().getFullYear()
+  return metadati({
+    titolo: `Calendario F1 ${anno}: date, orari e circuiti`,
+    descrizione: `Il calendario completo della Formula 1 ${anno}: tutti i Gran Premi con date, circuiti e orari delle sessioni in ora italiana.`,
+    percorso: '/formula-1/calendario',
+  })
 }
 
 function formatDateRange(firstPractice: string | undefined, raceDate: string): string {

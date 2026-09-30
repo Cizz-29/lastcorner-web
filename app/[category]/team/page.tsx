@@ -10,6 +10,7 @@ import { getConstructorStandings, toRosterTeam } from '@/lib/f1api'
 import { getRosterTeams } from '@/lib/rosterData'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import type { RosterTeam } from '@/lib/rosterTypes'
+import { metadati } from '@/lib/seo'
 
 const CARDS_PER_AD_BLOCK = 6 // ogni 3 righe da 2 card (grid-cols-2)
 
@@ -23,8 +24,13 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: PageProps): Metadata {
   const config = getCategoryConfig(params.category)
-  if (!config) return { title: 'Team non trovata' }
-  return { title: `Team ${config.label}` }
+  if (!config) return { title: 'Team non trovato' }
+  const anno = new Date().getFullYear()
+  return metadati({
+    titolo: `Team ${config.label} ${anno}: scuderie e piloti`,
+    descrizione: `Tutte le scuderie di ${config.label} ${anno}: formazioni, risultati e schede con le ultime notizie su ogni team.`,
+    percorso: `/${config.slug}/team`,
+  })
 }
 
 // La F1 ha dati live (Jolpica); F2/F3 usano un roster statico raccolto dai

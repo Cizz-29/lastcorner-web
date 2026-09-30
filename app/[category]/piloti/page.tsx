@@ -10,6 +10,7 @@ import { getDriverStandings, toRosterDriver } from '@/lib/f1api'
 import { getRosterDrivers } from '@/lib/rosterData'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import type { RosterDriver } from '@/lib/rosterTypes'
+import { metadati } from '@/lib/seo'
 
 const AD_EVERY_N_ROWS = 3 // ogni 3 righe da 3 card (grid-cols-3 su desktop)
 const CARDS_PER_AD_BLOCK = AD_EVERY_N_ROWS * 3
@@ -25,7 +26,13 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: PageProps): Metadata {
   const config = getCategoryConfig(params.category)
   if (!config) return { title: 'Categoria non trovata' }
-  return { title: `${config.etichettaPiloti ?? 'Piloti'} ${config.label}` }
+  const anno = new Date().getFullYear()
+  const etichetta = config.etichettaPiloti ?? 'Piloti'
+  return metadati({
+    titolo: `${etichetta} ${config.label} ${anno}: schede e team`,
+    descrizione: `Tutti ${etichetta === 'Pilote' ? 'le pilote' : 'i piloti'} di ${config.label} ${anno}: numeri, team, nazionalità e schede con biografia e ultime notizie.`,
+    percorso: `/${config.slug}/piloti`,
+  })
 }
 
 // La F1 ha dati live (Jolpica); F2/F3 usano un roster statico raccolto dai

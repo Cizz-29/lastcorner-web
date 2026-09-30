@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import { PortableText, type PortableTextComponents } from '@portabletext/react'
 import AdSlot from '@/components/AdSlot'
 import TabellaBlock from '@/components/TabellaBlock'
@@ -10,24 +11,48 @@ import { urlFor, dimensioniDa } from '@/lib/sanity/image'
 // Ogni quanti paragrafi consecutivi inserire uno slot pubblicitario nel corpo.
 const AD_EVERY_N_PARAGRAPHS = 3
 
+// Dopo quale paragrafo proporre il riquadro "Leggi anche", e da quanti
+// paragrafi in su: in un pezzo corto interromperebbe la lettura per niente.
+const LEGGI_ANCHE_DOPO = 4
+const LEGGI_ANCHE_MINIMO = 6
+
+export interface LeggiAnche {
+  titolo: string
+  href: string
+}
+
+function isParagrafo(block: any): boolean {
+  return block?._type === 'block' && !block.listItem && (block.style ?? 'normal') === 'normal'
+}
+
 // Inserisce un blocco "adSlot" sintetico ogni N paragrafi normali (le
-// immagini, gli embed e i titoli non contano ai fini del conteggio).
-function withAdsInjected(blocks: any[]): any[] {
+// immagini, gli embed e i titoli non contano ai fini del conteggio), e un
+// "Leggi anche" dopo il quarto paragrafo dei pezzi abbastanza lunghi.
+function withAdsInjected(blocks: any[], leggiAnche?: LeggiAnche): any[] {
+  const paragrafi = blocks.filter(isParagrafo).length
   let count = 0
   const result: any[] = []
   blocks.forEach((block, i) => {
     result.push(block)
-    const isParagraph = block._type === 'block' && !block.listItem && (block.style ?? 'normal') === 'normal'
-    if (isParagraph) {
+    if (isParagrafo(block)) {
       count++
       const isLast = i === blocks.length - 1
       if (count % AD_EVERY_N_PARAGRAPHS === 0 && !isLast) {
         result.push({ _type: 'adSlot', _key: `ad-${block._key ?? i}` })
       }
+      if (leggiAnche && count === LEGGI_ANCHE_DOPO && paragrafi >= LEGGI_ANCHE_MINIMO && !isLast) {
+        result.push({ _type: 'leggiAnche', _key: 'leggi-anche', ...leggiAnche })
+      }
     }
   })
   return result
 }
+
+// Il testo corrente sta in una colonna di circa 68 caratteri: sopra i 90-100
+// l'occhio fatica a ritrovare l'inizio della riga successiva, e la colonna
+// dell'articolo su desktop arriva a 744px. Immagini, tabelle ed embed restano
+// invece a tutta larghezza.
+const COLONNA_TESTO = 'max-w-[68ch]'
 
 // Immagine nel corpo articolo.
 //
@@ -155,24 +180,27 @@ function EmbedBlock({ value }: { value: { url?: string } }) {
 const components: PortableTextComponents = {
   block: {
     h2: ({ children }) => (
-      <h2 className="font-akira text-[18px] lg:text-[20px] text-white font-bold mt-8 mb-4">{children}</h2>
+      <h2 className={`font-akira text-[18px] lg:text-[20px] text-white font-bold mt-9 mb-4 ${COLONNA_TESTO}`}>{children}</h2>
     ),
     h3: ({ children }) => (
-      <h3 className="font-akira text-[16px] lg:text-[18px] text-white font-bold mt-6 mb-3">{children}</h3>
+      <h3 className={`font-akira text-[16px] lg:text-[18px] text-white font-bold mt-7 mb-3 ${COLONNA_TESTO}`}>{children}</h3>
     ),
+    // 17px su mobile e 18 su desktop, interlinea 1,7. Prima erano 15px: sotto
+    // la soglia di lettura comoda su telefono, dove arriva l'86% del traffico
+    // da Google.
     normal: ({ children }) => (
-      <p className="font-montserrat text-[15px] text-white/90 leading-relaxed mb-5">{children}</p>
+      <p className={`font-montserrat text-[17px] lg:text-[18px] text-white/90 leading-[1.7] mb-6 ${COLONNA_TESTO}`}>{children}</p>
     ),
     blockquote: ({ children }) => (
-      <blockquote className="border-l-2 border-lc-red pl-4 italic text-white/80 mb-5">{children}</blockquote>
+      <blockquote className={`border-l-2 border-lc-red pl-4 italic font-montserrat text-[17px] lg:text-[18px] text-white/85 leading-[1.7] mb-6 ${COLONNA_TESTO}`}>{children}</blockquote>
     ),
   },
   list: {
     bullet: ({ children }) => (
-      <ul className="list-disc list-inside font-montserrat text-[15px] text-white/90 mb-5 space-y-1">{children}</ul>
+      <ul className={`list-disc pl-5 font-montserrat text-[17px] lg:text-[18px] text-white/90 leading-[1.7] mb-6 space-y-1 ${COLONNA_TESTO}`}>{children}</ul>
     ),
     number: ({ children }) => (
-      <ol className="list-decimal list-inside font-montserrat text-[15px] text-white/90 mb-5 space-y-1">{children}</ol>
+      <ol className={`list-decimal pl-5 font-montserrat text-[17px] lg:text-[18px] text-white/90 leading-[1.7] mb-6 space-y-1 ${COLONNA_TESTO}`}>{children}</ol>
     ),
   },
   listItem: {
@@ -212,10 +240,23 @@ const components: PortableTextComponents = {
     // sono già disponibili al momento del rendering.
     classificaF1: ({ value }: { value: any }) => <ClassificaF1Block tipo={value?.tipo} />,
     adSlot: () => <AdSlot height={120} label="Google AdSense" className="mb-6" />,
+    leggiAnche: ({ value }: { value: LeggiAnche }) => (
+      <aside className={`mb-6 ${COLONNA_TESTO}`} aria-label="Leggi anche">
+        <Link
+          href={value.href}
+          className="group flex flex-col gap-1 border-l-2 border-lc-red bg-lc-card rounded-r-xl px-4 py-3 hover:bg-white/[0.04] transition-colors duration-200"
+        >
+          <span className="font-akira font-bold text-[10px] tracking-widest text-lc-red">LEGGI ANCHE</span>
+          <span className="font-montserrat font-semibold text-[15px] lg:text-[16px] text-white leading-snug group-hover:underline">
+            {value.titolo}
+          </span>
+        </Link>
+      </aside>
+    ),
   },
 }
 
-export default function ArticleBody({ blocks }: { blocks?: any[] }) {
+export default function ArticleBody({ blocks, leggiAnche }: { blocks?: any[]; leggiAnche?: LeggiAnche }) {
   if (!blocks || blocks.length === 0) return null
-  return <PortableText value={withAdsInjected(blocks)} components={components} />
+  return <PortableText value={withAdsInjected(blocks, leggiAnche)} components={components} />
 }

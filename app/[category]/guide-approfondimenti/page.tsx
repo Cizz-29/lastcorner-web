@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { getCategoryConfig } from '@/lib/categories'
 import { CATEGORIES_WITH_FULL_SUBCATEGORIES } from '@/lib/subcategories'
 import SubcategoryPage from '@/components/SubcategoryPage'
+import { metadatiSottocategoria } from '@/lib/seo'
 
 // Statica: prima leggeva ?page=... e quello bastava a renderla dinamica per
 // sempre. Le pagine successive stanno in page/[n] qui accanto.
@@ -19,7 +20,7 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: PageProps): Metadata {
   const config = getCategoryConfig(params.category)
   if (!config) return { title: 'Sezione non trovata' }
-  return { title: `Guide e Approfondimenti ${config.label}` }
+  return metadatiSottocategoria(config, { slug: 'guide-approfondimenti', label: 'Guide e approfondimenti' })
 }
 
 export default function GuideApprofondimentiPage({ params }: PageProps) {

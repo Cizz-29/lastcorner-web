@@ -4,6 +4,7 @@ import { getCategoryConfig } from '@/lib/categories'
 import { CATEGORIES_WITH_FULL_SUBCATEGORIES } from '@/lib/subcategories'
 import SubcategoryPage, { conteggioSottocategoria } from '@/components/SubcategoryPage'
 import { paginaDaSegmento, paginePerGenerazioneStatica } from '@/lib/paginazione'
+import { metadatiSottocategoria } from '@/lib/seo'
 
 export const revalidate = false
 
@@ -28,10 +29,7 @@ export async function generateStaticParams() {
 export function generateMetadata({ params }: PageProps): Metadata {
   const config = getCategoryConfig(params.category)
   if (!config) return { title: 'Sezione non trovata' }
-  return {
-    title: `Analisi Tecnica ${config.label} — pagina ${params.n}`,
-    robots: { index: false, follow: true },
-  }
+  return metadatiSottocategoria(config, { slug: 'analisi-tecnica', label: 'Analisi tecnica' }, Number(params.n))
 }
 
 export default function AnalisiTecnicaPaginaPage({ params }: PageProps) {

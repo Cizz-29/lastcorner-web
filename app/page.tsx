@@ -10,16 +10,33 @@ import Footer from '@/components/Footer'
 import AdSlot from '@/components/AdSlot'
 import { NextEventSkeleton } from '@/components/Skeletons'
 import { getAllArticles } from '@/lib/sanity/articles'
+import { metadati } from '@/lib/seo'
 
-// Numero di articoli "in evidenza" (hero + ultime news): gli articoli reali
-// da Sanity, essendo in testa all'elenco, hanno sempre la priorità qui.
-const NEWS_COUNT = 8
+// Come si divide l'elenco degli articoli fra le sezioni della home.
+//
+// Fino a settembre 2026 "Le ultime news" ripartiva dal primo articolo, e le
+// sue prime cinque card erano le stesse cinque storie del blocco in evidenza
+// appena sopra: su mobile circa 1.300 pixel ripetuti. Ora ogni sezione
+// riprende da dove finisce la precedente.
+const IN_EVIDENZA = 5 // l'articolo grande + i quattro della colonna accanto
+const ULTIME_NEWS = 6 // quante card mostra la griglia "Le ultime news"
+// La griglia ha anche il filtro "F1": le si passa qualche articolo in piu'
+// perche' abbia di che riempire le sue sei card anche filtrando.
+const RISERVA_FILTRO = 12
 
 // La home e' l'unica pagina il cui canonical e' '/'. Prima stava nel layout ed
 // era ereditato da tutto il sito (vedi il commento in app/layout.tsx).
-export const metadata: Metadata = {
-  alternates: { canonical: '/' },
-}
+//
+// Titolo e description in italiano e con le parole che la gente cerca: prima
+// erano "Lastcorner | Next Gen Motorsport Coverage", in inglese e senza
+// "Formula 1".
+export const metadata: Metadata = metadati({
+  titolo: 'Lastcorner | Notizie di Formula 1, risultati e motorsport',
+  titoloAssoluto: true,
+  descrizione:
+    'Notizie di Formula 1 ogni giorno: risultati, mercato piloti, analisi tecniche e approfondimenti, più Formula 2, Formula 3, F1 Academy e WRC.',
+  percorso: '/',
+})
 
 // Pagina statica a tempo indeterminato: si aggiorna SOLO su richiesta,
 // quando Sanity chiama /api/revalidate alla pubblicazione (quel gestore
@@ -51,15 +68,19 @@ export default async function HomePage() {
   }
 
   const heroArticle = allArticles[0]
-  const sideArticles = allArticles.slice(1, 5)
-  const latestNewsArticles = allArticles.slice(0, NEWS_COUNT)
-  const altreNewsArticles = allArticles.slice(NEWS_COUNT)
+  const sideArticles = allArticles.slice(1, IN_EVIDENZA)
+  const latestNewsArticles = allArticles.slice(IN_EVIDENZA, IN_EVIDENZA + RISERVA_FILTRO)
+  const altreNewsArticles = allArticles.slice(IN_EVIDENZA + ULTIME_NEWS)
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
 
       <main id="main-content" className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
+        {/* Il titolo della pagina per Google e per chi usa un lettore di
+            schermo. Visivamente la home si apre con le notizie, quindi resta
+            nascosto: prima la home non aveva nessun H1. */}
+        <h1 className="sr-only">Lastcorner: notizie di Formula 1 e motorsport</h1>
 
         {/* ── ULTIM'ORA ─────────────────────────────────────── */}
         <NewsTicker articles={allArticles} />

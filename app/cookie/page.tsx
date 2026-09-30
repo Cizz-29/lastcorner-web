@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import StaticPageLayout, { LegalSection } from '@/components/StaticPageLayout'
+import { metadati } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Cookie Policy',
-  description: 'Informativa sui cookie utilizzati da Lastcorner.net.',
-  alternates: { canonical: '/cookie' },
-}
+export const metadata: Metadata = metadati({
+  titolo: 'Cookie Policy',
+  descrizione: 'Informativa sui cookie utilizzati da Lastcorner.net.',
+  percorso: '/cookie',
+})
 
 export default function CookiePage() {
   return (

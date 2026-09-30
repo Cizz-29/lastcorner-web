@@ -21,7 +21,10 @@ const nextConfig = {
     // di banda oggi e' irrilevante — dopo la correzione delle query siamo
     // sotto i 10 MB al giorno.
     deviceSizes: [256, 384, 640, 828, 1200, 1600],
-    imageSizes: [128, 256, 384],
+    // Solo le misure che deviceSizes non ha gia': per le immagini senza
+    // "fill" Next unisce le due liste, e 256 e 384 comparivano due volte
+    // nello stesso srcset.
+    imageSizes: [128],
 
     formats: ['image/avif', 'image/webp'],
 
@@ -49,6 +52,22 @@ const nextConfig = {
       {
         source: '/formula-3/piloti/christian-ho',
         destination: '/formula-3/team/rodin-motorsport',
+        permanent: true,
+      },
+
+      // Il feed RSS: /feed era l'indirizzo del vecchio WordPress, /rss.xml
+      // quello che molti lettori provano da soli. Entrambi portano al feed vero.
+      { source: '/feed', destination: '/feed.xml', permanent: true },
+      { source: '/rss.xml', destination: '/feed.xml', permanent: true },
+      { source: '/rss', destination: '/feed.xml', permanent: true },
+
+      // "Pagina 1" di un elenco e' l'elenco stesso. Le pagine /page/N si
+      // generano da 2 in su, quindi /page/1 rispondeva 404.
+      { source: '/autori/:slug/page/1', destination: '/autori/:slug', permanent: true },
+      { source: '/:categoria/page/1', destination: '/:categoria', permanent: true },
+      {
+        source: '/:categoria/:sezione(editoriali|analisi-tecnica|guide-approfondimenti|rubriche)/page/1',
+        destination: '/:categoria/:sezione',
         permanent: true,
       },
     ]
