@@ -1,39 +1,31 @@
-# Strumenti di redazione in locale
+# Strumenti di redazione
 
-La **telemetria** non sta più sul sito pubblicato: gira sul computer. Era uno
-strumento interno — nessun link lo raggiungeva e una password lo proteggeva —
-ma viveva comunque su Vercel, con 31 MB di dati versionati e ricostruiti a
-ogni deploy. Online adesso risponde 404. Niente è stato distrutto: è solo
-spento.
+La **telemetria** è pubblica dal 1° ottobre 2026, su
+<https://lastcorner.net/telemetria>. Le pagine si generano al deploy dai file
+JSON in `public/telemetria-data/`, che ora sono **versionati nel repository**
+(circa 3 MB a weekend): li produci tu sul PC con lo script Python e li
+pubblichi con un push, come il codice.
 
-Il **generatore di grafiche** invece è tornato online, ed è giusto così: serve
-proprio quando il computer non c'è, per pubblicare una notizia dal telefono
-senza aprire Photoshop. Tenerlo in locale ne annullava lo scopo, perché in
-locale gira sul PC. Sta a <https://lastcorner.net/grafiche>, protetto da
-password (vedi sotto), e non pesa sul sito: è tutto codice di browser, la
-foto non viene caricata da nessuna parte e l'unico peso è il template da
-1,4 MB, scaricato solo da chi apre la pagina.
+Il **generatore di grafiche** sta a <https://lastcorner.net/grafiche>,
+protetto da password (vedi sotto). È tutto codice di browser: la foto non
+viene caricata da nessuna parte e l'unico peso è il template da 1,4 MB,
+scaricato solo da chi apre la pagina.
 
-## Avviare la telemetria
+## Vedere il sito in locale
 
-Doppio clic su **`strumenti-locali.bat`**, nella cartella `lastcorner`.
-
+Doppio clic su **`strumenti-locali.bat`**, nella cartella `lastcorner-web`.
 Si apre una finestra nera (è il sito che gira sul tuo computer) e, dopo
-qualche secondo, il browser sulla telemetria. Gli indirizzi sono:
+qualche secondo, il browser. Serve per controllare un weekend di telemetria
+appena elaborato prima di pubblicarlo:
 
 - telemetria — <http://localhost:3000/telemetria>
-- grafiche — <http://localhost:3000/grafiche> (la stessa che è online, comoda
-  quando sei già al PC)
+- grafiche — <http://localhost:3000/grafiche>
 
 Per chiudere, chiudi la finestra nera intitolata "Lastcorner locale".
 
-Mentre gira, tutto il sito è navigabile in locale: comodo per vedere una
-modifica prima di metterla online.
-
 ## Elaborare un weekend di telemetria
 
-Prima girava su GitHub a orari fissi. Adesso lo lanci tu, dalla cartella
-`lastcorner`:
+Lo lanci tu, dalla cartella `lastcorner-web`:
 
 ```
 python scripts\telemetry\process_session.py 2026 13
@@ -93,26 +85,50 @@ traguardi di settore invece siamo esatti a ±0,02 s, ed è per questo che ora
 i tempi di settore finiscono in `laps.json`: sono il riferimento con cui
 verificare il grafico.
 
-## Dove stanno i dati, e cosa succede se si perdono
+## Pubblicare un weekend
 
-`public/telemetria-data/` non è più versionato: quei file esistono solo sul
-tuo disco. Non è un problema — si rigenerano lanciando di nuovo lo script
-per i round che servono.
+Lo script scrive in `public/telemetria-data/`: il round nuovo, il disegno
+della pista (`track.json`) e l'indice aggiornato. Per metterli online basta
+il solito push:
 
-`public/grafiche/` invece **resta versionato**, di proposito: il template è
-un export da Photoshop e non si rigenera con un comando. Se il disco si
-rompe, quello lo recuperi dal repository.
+```
+git add public/telemetria-data
+git commit -m "Telemetria: GP di ..."
+git push
+```
 
-## Come è spenta la telemetria online
+Al deploy Vercel genera la pagina del weekend nuovo e la aggiunge alla
+sitemap. Il browser dei lettori scarica la telemetria di un pilota solo
+quando lo mette a confronto (40 KB circa a pilota).
 
-`lib/strumenti.ts` legge la variabile `STRUMENTI_LOCALI`. In locale il file
-`.env.local` la mette a `true` (ci pensa il `.bat`); su Vercel non esiste,
-quindi le pagine chiamano `notFound()` e non finiscono nemmeno nel sito
-compilato.
+### La pista e le curve
 
-Per riaccenderla online basterebbe aggiungere `STRUMENTI_LOCALI=true` fra le
-variabili d'ambiente del progetto su Vercel. Da fare solo sapendo che
-tornerebbe a pesare sui consumi.
+`track.json` contiene il disegno del tracciato (dal giro più veloce della
+qualifica) e la posizione delle curve, che FastF1 legge da MultiViewer. Per
+i circuiti nuovi MultiViewer può non avere ancora le curve — succede col
+Madring di Madrid: la pista si vede lo stesso, senza numeri.
+
+Per rigenerare solo le piste, senza toccare il resto:
+
+```
+python scripts\telemetry\process_session.py 2026 1-15 --solo-tracciato
+```
+
+### La cache di FastF1
+
+Sta in `scripts/telemetry/.cache-fastf1/` (non versionata). Se la vecchia
+cartella `lastcorner` ne ha già una, spostala qui dentro: rielaborare i
+round già scaricati diventa quasi immediato.
+
+## Telemetria online: cosa costa
+
+Le pagine sono statiche (una per weekend, generate al deploy) e i dati sono
+file statici serviti dalla CDN di Vercel: nessuna funzione gira quando un
+lettore apre un confronto. Gli annunci AdSense sulla telemetria sono spenti
+(vedi `components/AdsenseScript.tsx`): gli annunci automatici finirebbero
+fra un grafico e l'altro.
+
+L'interruttore `STRUMENTI_LOCALI` e `lib/strumenti.ts` non esistono più.
 
 ## La password delle grafiche
 

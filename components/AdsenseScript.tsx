@@ -54,6 +54,10 @@ function injectScript() {
 // il CMS (dove si scrive), la telemetria e l'editor grafiche, riservati
 // allo staff. Gli annunci automatici di Google comparirebbero ovunque lo
 // script sia caricato, quindi li' non lo si carica proprio.
+// La telemetria e' pubblica ma resta senza annunci, per ora: gli annunci
+// automatici di Google si infilano fra un grafico e l'altro, e su una pagina
+// che si legge confrontando grafici impilati spezzerebbero proprio il
+// confronto. Da riconsiderare con slot messi a mano fuori dai grafici.
 const PERCORSI_SENZA_ANNUNCI = ['/studio', '/telemetria', '/grafiche']
 
 export default function AdsenseScript() {

@@ -5,6 +5,7 @@ import { getDriverStandings, getConstructorStandings } from '@/lib/f1api'
 import { getRosterDrivers, getRosterTeams, hasStaticRoster } from '@/lib/rosterData'
 import { getSubcategoryPagesForCategory } from '@/lib/subcategories'
 import { authorSlug } from '@/lib/authors'
+import { weekendTelemetria } from '@/lib/telemetria'
 
 const SITE_URL = 'https://lastcorner.net'
 
@@ -135,6 +136,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.4,
     })
+  }
+
+  // Telemetria: l'indice e un weekend per pagina.
+  const weekend = await weekendTelemetria()
+  if (weekend.length > 0) {
+    entries.push({ url: `${SITE_URL}/telemetria`, changeFrequency: 'weekly', priority: 0.7 })
+    for (const w of weekend) {
+      entries.push({
+        url: `${SITE_URL}/telemetria/${w.year}/${w.round}`,
+        changeFrequency: 'monthly',
+        priority: 0.6,
+      })
+    }
   }
 
   // Pagine pilota/team F1 (dati live Jolpica).

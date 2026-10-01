@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { esportaPng, type Annotazione, type VoceLegenda } from '@/components/telemetria/esportaPng'
 import { puntiNotevoli } from '@/components/telemetria/puntiNotevoli'
+import { assegnaColori, leggiColori, salvaColori } from '@/components/telemetria/colori'
+import MappaTracciato, {
+  type Microsettore,
+  type RigaCursore,
+  type Tracciato,
+} from '@/components/telemetria/MappaTracciato'
 
 // Confronto giri di qualifica: si scelgono fino a 4 piloti, per ciascuno si
 // sceglie quale tentativo confrontare, e si sovrappongono le tracce
@@ -58,19 +64,6 @@ function formatLapTime(s: number | null): string {
 }
 
 // --- Colori -----------------------------------------------------------------
-// I compagni di squadra condividono il colore del team: per distinguerli si
-// schiarisce progressivamente il colore e si cambia il tratto della linea.
-
-function shade(hex: string, amount: number): string {
-  const clean = hex.replace('#', '')
-  const num = parseInt(clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean, 16)
-  if (Number.isNaN(num)) return hex
-  const adjust = (v: number) => Math.max(0, Math.min(255, Math.round(v + (255 - v) * amount)))
-  const r = adjust((num >> 16) & 0xff)
-  const g = adjust((num >> 8) & 0xff)
-  const b = adjust(num & 0xff)
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
-}
 
 interface Style {
   color: string
@@ -86,41 +79,35 @@ export interface Traccia {
 
 // Come si distinguono le tracce fra loro.
 //
-// Piloti di squadre diverse: il colore del team, che basta.
+// Piloti diversi: un colore ciascuno, deciso da assegnaColori() (vedi
+// colori.ts): quello del team, oppure il secondario della livrea quando il
+// primo e' gia' in uso o troppo simile a un altro a schermo. Il lettore puo'
+// sceglierne uno suo per ogni pilota.
 //
-// Due piloti della STESSA squadra: prima si schiariva il colore, ma fra una
-// Ferrari e una Ferrari poco piu' chiara, sovrapposte su fondo scuro, non si
-// capiva quale fosse quale. Il secondo prende il bianco.
-//
-// Piu' giri dello STESSO pilota: stesso colore — e' sempre lui — ma tratto
-// diverso. Cambiargli colore direbbe "altro pilota", che e' falso.
-const BIANCO_COMPAGNO = '#FFFFFF'
+// Piu' giri dello STESSO pilota: stesso colore, perche' e' sempre lui, ma
+// tratto diverso. Cambiargli colore direbbe "altro pilota", che e' falso.
 const TRATTI: (string | undefined)[] = [undefined, '10 6', '2 5', '14 5 2 5']
 
-function buildStyles(tracce: Traccia[], perNumero: Record<number, QualiDriver>): Style[] {
-  const contaTeam: Record<string, number> = {}
-  const coloreDi: Record<number, string> = {}
+function buildStyles(
+  tracce: Traccia[],
+  perNumero: Record<number, QualiDriver>,
+  scelti: Record<string, string>
+): Style[] {
+  const piloti = Array.from(new Set(tracce.map((t) => t.num)))
+    .map((n) => perNumero[n])
+    .filter(Boolean)
+    .map((d) => ({ chiave: d.abbr, team: d.team, colore: d.color }))
+  const colori = assegnaColori(piloti, scelti)
   const contaGiri: Record<number, number> = {}
 
   return tracce.map((t) => {
     const d = perNumero[t.num]
-    if (!d) return { color: BIANCO_COMPAGNO }
-
-    if (!(t.num in coloreDi)) {
-      const key = d.color.toLowerCase()
-      const n = contaTeam[key] ?? 0
-      contaTeam[key] = n + 1
-      coloreDi[t.num] =
-        n === 0
-          ? d.color
-          : n === 1
-            ? BIANCO_COMPAGNO
-            : shade(d.color, Math.min(0.3 + 0.25 * (n - 2), 0.75))
-    }
-
     const g = contaGiri[t.num] ?? 0
     contaGiri[t.num] = g + 1
-    return { color: coloreDi[t.num], dash: TRATTI[Math.min(g, TRATTI.length - 1)] }
+    return {
+      color: (d && colori[d.abbr]) ?? '#FFFFFF',
+      dash: TRATTI[Math.min(g, TRATTI.length - 1)],
+    }
   })
 }
 
@@ -166,6 +153,22 @@ export interface Traguardo {
 
 // --- Grafico ----------------------------------------------------------------
 
+/** Etichette delle curve su due righe: nelle sezioni lente e fitte (il
+ *  castello di Baku, la chicane di Monaco) su una riga sola si
+ *  sovrapporrebbero. Una curva troppo vicina alla precedente scende alla
+ *  seconda riga; se e' occupata anche quella, l'etichetta si salta. */
+function righeEtichette(curve: { n: string; f: number }[]) {
+  const ultima = [-1, -1]
+  const fuori: { c: { n: string; f: number }; riga: number }[] = []
+  for (const c of [...curve].sort((a, b) => a.f - b.f)) {
+    const riga = c.f - ultima[0] >= 0.025 ? 0 : c.f - ultima[1] >= 0.025 ? 1 : -1
+    if (riga < 0) continue
+    ultima[riga] = c.f
+    fuori.push({ c, riga })
+  }
+  return fuori
+}
+
 // Le etichette dell'asse Y sono HTML accanto all'SVG, non testo dentro di
 // esso: l'SVG viene stirato in orizzontale (preserveAspectRatio="none") e
 // il testo ne uscirebbe deformato e tagliato ai bordi.
@@ -183,6 +186,11 @@ function Chart({
   nomeFile,
   annotazioni = [],
   traguardi = [],
+  bande = [],
+  cursore = null,
+  onCursore,
+  righeCursore,
+  curve = [],
 }: {
   title: string
   unit: string
@@ -197,6 +205,15 @@ function Chart({
   nomeFile: string
   annotazioni?: Annotazione[]
   traguardi?: Traguardo[]
+  /** Microsettori: sfondo col colore del pilota piu' veloce in quel tratto. */
+  bande?: Microsettore[]
+  /** Punto del giro sotto il cursore, da 0 a 1; condiviso fra tutti i grafici. */
+  cursore?: number | null
+  onCursore?: (f: number | null) => void
+  /** Valori dei piloti nel punto del cursore, per il riquadro che lo segue. */
+  righeCursore?: (f: number) => RigaCursore[]
+  /** Curve del circuito, come riferimento sull'asse orizzontale. */
+  curve?: { n: string; f: number }[]
 }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const titoloRef = useRef<HTMLParagraphElement>(null)
@@ -325,6 +342,34 @@ function Chart({
             preserveAspectRatio="none"
             style={{ height }}
           >
+            {/* Microsettori: un velo del colore di chi e' stato piu' veloce.
+                Sta nell'SVG e non nell'HTML di proposito, cosi' finisce
+                anche nel PNG scaricato. */}
+            {bande.map((b, i) =>
+              b.colore ? (
+                <rect
+                  key={`b${i}`}
+                  x={b.da * W}
+                  y={0}
+                  width={(b.a - b.da) * W}
+                  height={height}
+                  fill={b.colore}
+                  fillOpacity={0.13}
+                />
+              ) : null
+            )}
+            {curve.map((c) => (
+              <line
+                key={`c${c.n}`}
+                x1={c.f * W}
+                y1={0}
+                x2={c.f * W}
+                y2={height}
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
             {values.map((v, i) => {
               const y = yOf(v, height, lo, hi)
               return (
@@ -392,8 +437,66 @@ function Chart({
               ))
             )}
           </svg>
+
+          {/* Cursore: linea verticale condivisa da tutti i grafici e riquadro
+              con i valori esatti dei piloti in quel punto. */}
+          {onCursore && (
+            <div
+              className="absolute inset-0 z-20 cursor-crosshair"
+              style={{ touchAction: 'pan-y' }}
+              onPointerMove={(e) => {
+                const r = e.currentTarget.getBoundingClientRect()
+                onCursore(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)))
+              }}
+              onPointerDown={(e) => {
+                const r = e.currentTarget.getBoundingClientRect()
+                onCursore(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)))
+              }}
+              onPointerLeave={() => onCursore(null)}
+            />
+          )}
+          {cursore != null && (
+            <>
+              <div
+                className="pointer-events-none absolute top-0 bottom-0 z-10 w-px bg-white/70"
+                style={{ left: `${cursore * 100}%` }}
+              />
+              {righeCursore && (
+                <div
+                  className="pointer-events-none absolute top-2 z-30 bg-black/80 border border-white/15 rounded-lg px-2.5 py-1.5"
+                  style={{
+                    left: `${cursore * 100}%`,
+                    transform: cursore > 0.6 ? 'translateX(calc(-100% - 10px))' : 'translateX(10px)',
+                  }}
+                >
+                  {righeCursore(cursore).map((r) => (
+                    <p
+                      key={r.etichetta}
+                      className="font-montserrat text-[11px] font-semibold whitespace-nowrap tabular-nums leading-snug"
+                      style={{ color: r.colore }}
+                    >
+                      {r.etichetta} <span className="text-white">{r.testo}</span>
+                    </p>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
+      {curve.length > 0 && (
+        <div className="relative h-7 mt-1" style={{ marginLeft: AXIS_W }} aria-hidden>
+          {righeEtichette(curve).map(({ c, riga }) => (
+            <span
+              key={c.n}
+              className="absolute font-montserrat text-[9px] font-semibold text-lc-subtle"
+              style={{ left: `${c.f * 100}%`, top: riga * 12, transform: 'translateX(-50%)' }}
+            >
+              T{c.n}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -454,9 +557,12 @@ function distanzaAlTempo(tel: Telemetry, istante: number): number {
 export default function QualiCompare({
   drivers,
   dataPath,
+  tracciato = null,
 }: {
   drivers: QualiDriver[]
   dataPath: string
+  /** Disegno della pista con le curve (track.json): assente nei round vecchi. */
+  tracciato?: Tracciato | null
 }) {
   const sorted = useMemo(
     () => [...drivers].sort((a, b) => (a.position ?? 99) - (b.position ?? 99)),
@@ -480,7 +586,28 @@ export default function QualiCompare({
   // arriva al doppio, utile quando si guarda una singola staccata.
   const [ingrandimento, setIngrandimento] = useState(1)
 
-  const styles = useMemo(() => buildStyles(tracce, perNumero), [tracce, perNumero])
+  // Colori scelti a mano dal lettore, per sigla del pilota. Si leggono dal
+  // browser dopo il primo disegno: letti durante il rendering, server e
+  // browser produrrebbero due pagine diverse.
+  const [coloriScelti, setColoriScelti] = useState<Record<string, string>>({})
+  useEffect(() => setColoriScelti(leggiColori()), [])
+  function scegliColore(abbr: string, colore: string | null) {
+    setColoriScelti((prev) => {
+      const next = { ...prev }
+      if (colore) next[abbr] = colore
+      else delete next[abbr]
+      salvaColori(next)
+      return next
+    })
+  }
+
+  // Punto del giro sotto il cursore (0-1), condiviso da grafici e mappa.
+  const [cursore, setCursore] = useState<number | null>(null)
+
+  const styles = useMemo(
+    () => buildStyles(tracce, perNumero, coloriScelti),
+    [tracce, perNumero, coloriScelti]
+  )
   const numeriScelti = useMemo(() => Array.from(new Set(tracce.map((t) => t.num))), [tracce])
 
   // Carica la telemetria dei piloti selezionati non ancora in cache.
@@ -738,6 +865,79 @@ export default function QualiCompare({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attivi, ingrandimento])
 
+  // Microsettori: il giro diviso in tratti di circa 250 metri, e per ognuno
+  // il pilota che ci ha messo meno. Il tempo nel tratto si legge alla stessa
+  // frazione di giro usata dal delta, quindi colori e curva del delta
+  // raccontano la stessa storia: dove la curva sale, il tratto e' dell'altro.
+  // Sotto il millesimo e mezzo il tratto resta neutro: e' sotto la precisione
+  // con cui la telemetria ricostruisce la distanza.
+  const microsettori = useMemo<(Microsettore & { vincitore?: number })[]>(() => {
+    if (attivi.length < 2) return []
+    const L = attivi[0].tel.distance[attivi[0].tel.distance.length - 1] || 5000
+    const quanti = Math.max(16, Math.min(32, Math.round(L / 250)))
+    const tempoA = (tel: Telemetry, f: number) =>
+      timeAtDistance(tel, f * (tel.distance[tel.distance.length - 1] || 1))
+    return Array.from({ length: quanti }, (_, i) => {
+      const da = i / quanti
+      const a = (i + 1) / quanti
+      const tempi = attivi.map((x) => tempoA(x.tel, a) - tempoA(x.tel, da))
+      const ordinati = [...tempi].sort((p, q) => p - q)
+      const migliore = tempi.indexOf(ordinati[0])
+      if (ordinati[1] - ordinati[0] < 0.0015) return { da, a }
+      return { da, a, colore: attivi[migliore].style.color, vincitore: migliore }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attivi])
+
+  // Valori esatti dei piloti nel punto del cursore, per i riquadri che lo
+  // seguono. Ogni grafico mostra il suo canale.
+  const valoriAl = (getter: (t: Telemetry) => number[], formato: (v: number) => string) =>
+    (f: number): RigaCursore[] =>
+      attivi.map((x) => {
+        const L = x.tel.distance[x.tel.distance.length - 1] || 1
+        return {
+          etichetta: etichettaDi(x),
+          colore: x.style.color,
+          testo: formato(valoreAllaDistanza(x.tel.distance, getter(x.tel), f * L)),
+        }
+      })
+  const righeDelta = (f: number): RigaCursore[] => {
+    if (attivi.length < 2) return []
+    const tempoA = (tel: Telemetry) => timeAtDistance(tel, f * (tel.distance[tel.distance.length - 1] || 1))
+    const rif = tempoA(attivi[0].tel)
+    return attivi.slice(1).map((x) => {
+      const d = tempoA(x.tel) - rif
+      return { etichetta: etichettaDi(x), colore: x.style.color, testo: `${d >= 0 ? '+' : ''}${d.toFixed(3)} s` }
+    })
+  }
+  const righeMappa = (f: number): RigaCursore[] =>
+    attivi.map((x) => {
+      const L = x.tel.distance[x.tel.distance.length - 1] || 1
+      const v = valoreAllaDistanza(x.tel.distance, x.tel.speed, f * L)
+      const m = valoreAllaDistanza(x.tel.distance, x.tel.gear, f * L)
+      return { etichetta: etichettaDi(x), colore: x.style.color, testo: `${Math.round(v)} km/h · ${Math.round(m)}ª` }
+    })
+
+  const curveAsse = tracciato?.curve.map((c) => ({ n: c.n, f: c.f })) ?? []
+  const comuniGrafico = { bande: microsettori, cursore, onCursore: setCursore, curve: curveAsse }
+
+  // Il riepilogo accanto alla mappa: tempo, distacco, velocita' massima e
+  // microsettori vinti da ciascuno.
+  const riepilogo = attivi.map((x, i) => {
+    const giro = x.driver.laps.find((l) => l.lap === x.traccia.lap)
+    return {
+      chiave: `${x.traccia.num}-${x.traccia.lap}-${i}`,
+      etichetta: etichettaDi(x),
+      nome: x.driver.name,
+      team: x.driver.team,
+      colore: x.style.color,
+      tempo: giro?.time ?? null,
+      vmax: Math.max(...x.tel.speed),
+      vinti: microsettori.filter((m) => m.vincitore === i).length,
+    }
+  })
+  const tempoRif = riepilogo[0]?.tempo ?? null
+
   return (
     <div>
       <p className="font-akira text-[10px] text-white uppercase tracking-widest mb-3">
@@ -784,6 +984,31 @@ export default function QualiCompare({
                   <div className="flex items-baseline justify-between gap-2 mb-1">
                     <p className="font-akira text-[13px] text-white truncate">{d.abbr}</p>
                     <div className="flex items-center gap-2 shrink-0">
+                      {/* Colore del pilota, modificabile: il quadratino apre il
+                          selettore del sistema. Vale per tutti i suoi giri. */}
+                      <label
+                        className="relative w-5 h-5 rounded border border-white/30 cursor-pointer overflow-hidden"
+                        style={{ backgroundColor: st?.color }}
+                        title={`Cambia il colore di ${d.abbr}`}
+                      >
+                        <span className="sr-only">Colore di {d.abbr}</span>
+                        <input
+                          type="color"
+                          value={(st?.color ?? '#ffffff').toLowerCase()}
+                          onChange={(e) => scegliColore(d.abbr, e.target.value)}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                      </label>
+                      {coloriScelti[d.abbr] && (
+                        <button
+                          type="button"
+                          onClick={() => scegliColore(d.abbr, null)}
+                          title="Torna al colore predefinito"
+                          className="font-montserrat text-[10px] text-lc-subtle underline hover:text-white"
+                        >
+                          predefinito
+                        </button>
+                      )}
                       <svg width="26" height="6" aria-hidden>
                         <line
                           x1="0"
@@ -855,6 +1080,70 @@ export default function QualiCompare({
             </p>
           ) : (
             <>
+              {(tracciato || attivi.length > 1) && (
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-4 mb-8">
+                  {tracciato && (
+                    <MappaTracciato
+                      tracciato={tracciato}
+                      microsettori={microsettori}
+                      cursore={cursore}
+                      onCursore={setCursore}
+                      righe={cursore != null ? righeMappa(cursore) : []}
+                      colorePallino={attivi[0].style.color}
+                    />
+                  )}
+                  <div className="flex flex-col gap-3">
+                    {riepilogo.map((r, i) => (
+                      <div
+                        key={r.chiave}
+                        className="bg-lc-card border border-white/10 rounded-card-sm p-4 border-l-4"
+                        style={{ borderLeftColor: r.colore }}
+                      >
+                        <div className="flex items-baseline justify-between gap-3">
+                          <p className="font-akira text-[14px] text-white truncate">
+                            {r.etichetta}{' '}
+                            <span className="font-montserrat text-[11px] text-lc-subtle normal-case">{r.team}</span>
+                          </p>
+                          <p className="font-montserrat text-[16px] font-bold text-white tabular-nums shrink-0">
+                            {formatLapTime(r.tempo)}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 font-montserrat text-[12px] text-lc-subtle tabular-nums">
+                          <span>
+                            Distacco{' '}
+                            <span className="text-white font-semibold">
+                              {i === 0 || r.tempo == null || tempoRif == null
+                                ? '—'
+                                : `${r.tempo - tempoRif >= 0 ? '+' : ''}${(r.tempo - tempoRif).toFixed(3)}`}
+                            </span>
+                          </span>
+                          <span>
+                            Vel. max <span className="text-white font-semibold">{r.vmax} km/h</span>
+                          </span>
+                          {microsettori.length > 0 && (
+                            <span>
+                              Microsettori{' '}
+                              <span className="font-semibold" style={{ color: r.colore }}>
+                                {r.vinti}/{microsettori.length}
+                              </span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {microsettori.length > 0 && (
+                      <p className="font-montserrat text-[11px] text-lc-subtle leading-relaxed">
+                        Il giro è diviso in {microsettori.length} microsettori di circa{' '}
+                        {Math.round((attivi[0].tel.distance[attivi[0].tel.distance.length - 1] || 0) / microsettori.length)} metri:
+                        ognuno prende il colore di chi l&apos;ha percorso più in fretta, sulla pista e
+                        sullo sfondo dei grafici. Grigio vuol dire pari.
+                        {tracciato ? ' Passa o tocca la pista e i grafici per leggere i valori esatti.' : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-3 mb-5 ml-[52px]">
                 <label
                   htmlFor="altezza-grafici"
@@ -899,6 +1188,8 @@ export default function QualiCompare({
                     legenda={legenda}
                     nomeFile={nomeFileDi('delta')}
                     traguardi={traguardiSettore}
+                    {...comuniGrafico}
+                    righeCursore={righeDelta}
                   />
                   <p className="font-montserrat text-[11px] text-lc-subtle -mt-4 mb-6 ml-[52px]">
                     Sopra lo zero: più lento di {delta.refAbbr}. Sotto: più veloce.
@@ -906,14 +1197,15 @@ export default function QualiCompare({
                 </>
               )}
 
-              <Chart title="Velocità" unit="km/h" height={alto(ALTEZZE.velocita)} series={serieDa((t) => t.speed)} ticks={5} legenda={legenda} nomeFile={nomeFileDi('velocita')} annotazioni={annotazioniVelocita} />
-              <Chart title="Acceleratore" unit="%" height={alto(ALTEZZE.acceleratore)} series={serieDa((t) => t.throttle)} yMin={0} yMax={100} ticks={3} legenda={legenda} nomeFile={nomeFileDi('acceleratore')} />
-              <Chart title="Freno" unit="on/off" height={alto(ALTEZZE.freno)} series={serieDa((t) => t.brake.map((b) => b * 100))} yMin={0} yMax={100} ticks={2} format={(v) => (v > 50 ? 'ON' : 'OFF')} legenda={legenda} nomeFile={nomeFileDi('freno')} />
-              <Chart title="Marcia" unit="n" height={alto(ALTEZZE.marcia)} series={serieDa((t) => t.gear)} yMin={1} yMax={8} ticks={4} legenda={legenda} nomeFile={nomeFileDi('marcia')} />
+              <Chart title="Velocità" unit="km/h" height={alto(ALTEZZE.velocita)} series={serieDa((t) => t.speed)} ticks={5} legenda={legenda} nomeFile={nomeFileDi('velocita')} annotazioni={annotazioniVelocita} {...comuniGrafico} righeCursore={valoriAl((t) => t.speed, (v) => `${Math.round(v)} km/h`)} />
+              <Chart title="Acceleratore" unit="%" height={alto(ALTEZZE.acceleratore)} series={serieDa((t) => t.throttle)} yMin={0} yMax={100} ticks={3} legenda={legenda} nomeFile={nomeFileDi('acceleratore')} {...comuniGrafico} righeCursore={valoriAl((t) => t.throttle, (v) => `${Math.round(v)}%`)} />
+              <Chart title="Freno" unit="on/off" height={alto(ALTEZZE.freno)} series={serieDa((t) => t.brake.map((b) => b * 100))} yMin={0} yMax={100} ticks={2} format={(v) => (v > 50 ? 'ON' : 'OFF')} legenda={legenda} nomeFile={nomeFileDi('freno')} {...comuniGrafico} righeCursore={valoriAl((t) => t.brake, (v) => (v >= 0.5 ? 'in frenata' : 'no'))} />
+              <Chart title="Marcia" unit="n" height={alto(ALTEZZE.marcia)} series={serieDa((t) => t.gear)} yMin={1} yMax={8} ticks={4} legenda={legenda} nomeFile={nomeFileDi('marcia')} {...comuniGrafico} righeCursore={valoriAl((t) => t.gear, (v) => `${Math.round(v)}ª`)} />
 
               <p className="font-montserrat text-[11px] text-lc-subtle ml-[52px]">
                 Asse orizzontale: distanza percorsa sul giro, dalla linea del traguardo.
-                Il compagno di squadra ha la linea bianca; piu&apos; giri dello stesso pilota
+                Ogni pilota ha un colore suo (il compagno di squadra prende il secondo colore
+                della livrea) e si può cambiare dalla sua scheda; più giri dello stesso pilota
                 hanno lo stesso colore ma tratto diverso.
               </p>
             </>

@@ -4,27 +4,14 @@ REM  Strumenti Lastcorner in locale (telemetria; le grafiche sono anche
 REM  online su lastcorner.net/grafiche, qui sono comode se sei gia' al PC).
 REM
 REM  Doppio clic su questo file: avvia il sito sul tuo computer e apre il
-REM  browser. Niente di tutto questo passa da internet - i dati telemetria
-REM  sono gia' su disco e le foto delle grafiche non escono dal PC.
+REM  browser. Serve a controllare un weekend di telemetria appena elaborato
+REM  prima di pubblicarlo con un push.
 REM
 REM  Per chiudere: chiudi la finestra nera intitolata "Lastcorner locale".
 REM ---------------------------------------------------------------------
 
 cd /d "%~dp0"
 title Avvio strumenti Lastcorner
-
-REM L'interruttore che accende telemetria e grafiche. Su Vercel non esiste,
-REM quindi online quelle pagine restano spente.
-if not exist ".env.local" (
-  echo STRUMENTI_LOCALI=true> .env.local
-  echo Creato .env.local con l'interruttore degli strumenti.
-) else (
-  findstr /b /c:"STRUMENTI_LOCALI=" .env.local >nul 2>&1
-  if errorlevel 1 (
-    echo STRUMENTI_LOCALI=true>> .env.local
-    echo Aggiunto l'interruttore degli strumenti a .env.local.
-  )
-)
 
 if not exist "node_modules" (
   echo.

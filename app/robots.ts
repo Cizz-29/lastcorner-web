@@ -52,14 +52,15 @@ const BOT_SEO = [
   'magpie-crawler',
 ]
 
-// Percorsi che non hanno senso nell'indice: il CMS, l'area telemetria
-// riservata e le route tecniche.
+// Percorsi che non hanno senso nell'indice: il CMS e le route tecniche.
+// La telemetria non c'e' piu': dal 1° ottobre 2026 e' una sezione pubblica e
+// deve farsi trovare.
 // /cerca e' esclusa per una ragione di costo, non di riservatezza: legge i
 // parametri dell'URL, quindi e' dinamica per costruzione e ogni visita
 // scarica l'elenco completo degli articoli. Il middleware ci manda i vecchi
 // /tag/ non mappati, e senza questa riga ogni crawler che passa su un vecchio
 // tag finisce dritto nella pagina piu' costosa del sito.
-const PERCORSI_PRIVATI = ['/studio', '/telemetria', '/api/', '/cerca']
+const PERCORSI_PRIVATI = ['/studio', '/api/', '/cerca']
 
 export default function robots(): MetadataRoute.Robots {
   return {

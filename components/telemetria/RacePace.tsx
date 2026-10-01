@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { esportaPng } from '@/components/telemetria/esportaPng'
+import { assegnaColori, leggiColori } from '@/components/telemetria/colori'
 
 // Passo: tempo sul giro di ogni pilota selezionato, giro per giro.
 // Si può restringere l'analisi a un intervallo di giri (utile per isolare
@@ -44,43 +45,9 @@ function formatLapTime(s: number): string {
   return `${m}:${rest.toFixed(3).padStart(6, '0')}`
 }
 
-// I compagni di squadra condividono il colore ufficiale: si schiarisce
-// progressivamente il secondo (e il terzo) per distinguerli, mantenendo
-// però tutte le linee continue.
-function shade(hex: string, amount: number): string {
-  const clean = hex.replace('#', '')
-  const num = parseInt(clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean, 16)
-  if (Number.isNaN(num)) return hex
-  const adjust = (v: number) => Math.max(0, Math.min(255, Math.round(v + (255 - v) * amount)))
-  const r = adjust((num >> 16) & 0xff)
-  const g = adjust((num >> 8) & 0xff)
-  const b = adjust(num & 0xff)
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
-}
-
-// Stessa regola del confronto qualifica: il secondo pilota di una squadra
-// prende il bianco. Schiarire il colore del team non basta — due tracce
-// Mercedes, una verde acqua e una verde acqua un po' piu' chiara, su fondo
-// nero e per settanta giri sono indistinguibili.
-const BIANCO_COMPAGNO = '#FFFFFF'
-
-function buildColors(drivers: RaceDriver[]): Record<string, string> {
-  const seen: Record<string, number> = {}
-  const out: Record<string, string> = {}
-  for (const d of drivers) {
-    const key = d.color.toLowerCase()
-    const n = seen[key] ?? 0
-    seen[key] = n + 1
-    out[d.abbr] =
-      n === 0
-        ? d.color
-        : n === 1
-          ? BIANCO_COMPAGNO
-          : shade(d.color, Math.min(0.3 + 0.25 * (n - 2), 0.75))
-  }
-  return out
-}
-
+// Stessi colori del confronto giri (vedi colori.ts): quello del team, il
+// secondario della livrea per il compagno, e i colori scelti dal lettore
+// nella scheda Telemetria giro, che si ritrovano anche qui.
 export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
   const sorted = useMemo(
     () => [...drivers].sort((a, b) => (a.position ?? 99) - (b.position ?? 99)),
@@ -100,7 +67,12 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
   }, [maxLap])
 
   const picked = sorted.filter((d) => selected.includes(d.abbr))
-  const colors = useMemo(() => buildColors(picked), [picked])
+  const [coloriScelti, setColoriScelti] = useState<Record<string, string>>({})
+  useEffect(() => setColoriScelti(leggiColori()), [])
+  const colors = useMemo(
+    () => assegnaColori(picked.map((d) => ({ chiave: d.abbr, team: d.team ?? '', colore: d.color })), coloriScelti),
+    [picked, coloriScelti]
+  )
 
   function toggle(abbr: string) {
     setSelected((prev) =>

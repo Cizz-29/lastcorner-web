@@ -22,8 +22,8 @@ const KNOWN_TOP_LEVEL = new Set([
   'ads.txt', 'fonts',
 ])
 
-// La telemetria gira solo sul PC (vedi lib/strumenti.ts) e online risponde
-// 404: non c'e' niente da proteggere. Il generatore di grafiche invece e'
+// La telemetria e' pubblica (dal 1° ottobre 2026) e non ha nulla da
+// proteggere. Il generatore di grafiche invece e'
 // tornato online, perche' serve proprio quando il PC non c'e' — si fa una
 // grafica dal telefono senza aprire Photoshop — e tenerlo in locale ne
 // annullava lo scopo.

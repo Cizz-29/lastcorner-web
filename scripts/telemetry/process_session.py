@@ -3,6 +3,7 @@
     python scripts\\telemetry\\process_session.py 2026 13
     python scripts\\telemetry\\process_session.py 2026 monza
     python scripts\\telemetry\\process_session.py --auto
+    python scripts\\telemetry\\process_session.py 2026 13 --solo-tracciato
 
 Scrive in public/telemetria-data/. Serve fastf1:
 
@@ -371,6 +372,130 @@ def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
     return esito
 
 
+# --- Tracciato --------------------------------------------------------------
+
+# Punti del disegno della pista: abbastanza per curve morbide anche a Monaco,
+# pochi per tenere il file sotto i 15 KB.
+PUNTI_TRACCIATO = 600
+
+# Da quale sessione prendere il disegno: serve un giro veloce e pulito, e la
+# qualifica e' il posto migliore. Le altre sono riserve per i weekend in cui
+# la qualifica manca.
+PREFERENZA_TRACCIATO = ["Q", "SQ", "FP3", "FP2", "FP1"]
+
+
+def tracciato(session) -> dict | None:
+    """Il disegno della pista e la posizione delle curve, in track.json.
+
+    Le coordinate vengono dal giro piu' veloce della sessione (X e Y del GPS
+    della vettura), ruotate come nelle mappe ufficiali e ricampionate a
+    frazioni uguali di giro: il sito colora il tracciato segmento per
+    segmento con la stessa scala che usa per i grafici, cioe' la frazione di
+    giro, e cosi' i due disegni combaciano.
+
+    Le curve (numero, posizione, punto del giro) arrivano dalle informazioni
+    sul circuito che FastF1 legge da MultiViewer.
+    """
+    try:
+        giro = session.laps.pick_fastest()
+        tel = giro.get_telemetry()
+    except Exception:  # noqa: BLE001
+        return None
+    if tel is None or len(tel) < 50 or "X" not in tel or "Distance" not in tel:
+        return None
+
+    try:
+        info = session.get_circuit_info()
+        rotazione = float(info.rotation)
+        curve = info.corners
+    except Exception:  # noqa: BLE001
+        rotazione, curve = 0.0, None
+
+    angolo = np.radians(rotazione)
+    cos, sin = np.cos(angolo), np.sin(angolo)
+
+    def ruota(x, y):
+        return x * cos - y * sin, x * sin + y * cos
+
+    dist = tel["Distance"].to_numpy(dtype=float)
+    lunghezza = float(dist[-1]) or 1.0
+    frazioni = np.linspace(0, 1, PUNTI_TRACCIATO)
+    xs = np.interp(frazioni, dist / lunghezza, tel["X"].to_numpy(dtype=float))
+    ys = np.interp(frazioni, dist / lunghezza, tel["Y"].to_numpy(dtype=float))
+    rx, ry = ruota(xs, ys)
+
+    elenco = []
+    if curve is not None:
+        for _, c in curve.iterrows():
+            try:
+                cx, cy = ruota(float(c["X"]), float(c["Y"]))
+                # L'etichetta sta un po' fuori dalla pista, nella direzione
+                # indicata da MultiViewer: sopra il tracciato si leggerebbe male.
+                a = np.radians(float(c["Angle"]))
+                ox, oy = ruota(np.cos(a) * 600, np.sin(a) * 600)
+                lettera = str(c.get("Letter") or "").strip()
+                elenco.append({
+                    "n": f"{int(c['Number'])}{lettera}",
+                    "f": round(max(0.0, min(1.0, float(c["Distance"]) / lunghezza)), 4),
+                    "x": int(round(cx / 10)),
+                    "y": int(round(cy / 10)),
+                    "lx": int(round((cx + ox) / 10)),
+                    "ly": int(round((cy + oy) / 10)),
+                })
+            except Exception:  # noqa: BLE001
+                continue
+
+    return {
+        "lunghezza": round(lunghezza),
+        # Decimetri interi: bastano e dimezzano il file.
+        "x": [int(round(v / 10)) for v in rx],
+        "y": [int(round(v / 10)) for v in ry],
+        "curve": elenco,
+    }
+
+
+def scrivi_tracciato(sessioni_caricate: dict, base: Path) -> None:
+    for chiave in PREFERENZA_TRACCIATO:
+        session = sessioni_caricate.get(chiave)
+        if session is None:
+            continue
+        dati = tracciato(session)
+        if dati:
+            save_json(base / "track.json", dati)
+            print(f"  tracciato: da {chiave}, {len(dati['curve'])} curve")
+            return
+    print("  tracciato: non disponibile")
+
+
+def solo_tracciato(anno: int, rnd: int) -> bool:
+    """Rigenera solo track.json di un weekend gia' elaborato."""
+    cal = calendario(anno)
+    righe = cal[cal["RoundNumber"] == rnd]
+    if righe.empty:
+        print(f"Round {rnd} non trovato nel calendario {anno}.")
+        return False
+    evento = righe.iloc[0]
+    print(f"Tracciato {anno} round {rnd}: {evento['EventName']}")
+    presenti = {s["key"]: s for s in sessioni_del_weekend(evento)}
+    for chiave in PREFERENZA_TRACCIATO:
+        spec = presenti.get(chiave)
+        if not spec:
+            continue
+        try:
+            session = evento.get_session(spec["nome"])
+            session.load(laps=True, telemetry=True, weather=False, messages=False)
+        except Exception as exc:  # noqa: BLE001
+            print(f"  [{chiave}] non disponibile: {exc}")
+            continue
+        dati = tracciato(session)
+        if dati:
+            save_json(OUT / str(anno) / str(rnd) / "track.json", dati)
+            print(f"  fatto: da {chiave}, {len(dati['curve'])} curve")
+            return True
+    print("  tracciato non disponibile")
+    return False
+
+
 # --- Un weekend ------------------------------------------------------------
 
 def carica_indice() -> list:
@@ -448,6 +573,7 @@ def elabora_round(anno: int, rnd: int) -> bool:
 
     base = OUT / str(anno) / str(rnd)
     sessioni = []
+    caricate: dict = {}
     for spec in sessioni_del_weekend(evento):
         try:
             session = evento.get_session(spec["nome"])
@@ -462,12 +588,16 @@ def elabora_round(anno: int, rnd: int) -> bool:
         info = elabora_sessione(session, spec, base)
         if info:
             sessioni.append(info)
+            if spec["tel"] > 0:
+                caricate[spec["key"]] = session
 
     if not sessioni:
         print("  nessun dato disponibile, salto")
         print("  (se la sessione si e' appena conclusa, l'archivio della F1")
         print("   compare di solito entro un'ora: riprova piu' tardi)")
         return False
+
+    scrivi_tracciato(caricate, base)
 
     indice = [e for e in carica_indice() if not (e["year"] == anno and e["round"] == rnd)]
     data = evento.get("EventDate")
@@ -562,10 +692,25 @@ def main() -> None:
     # FastF1 avvisa quando un dato e' approssimato: utile in analisi, rumore
     # qui, dove i giri sospetti li scartiamo gia' noi.
     warnings.filterwarnings("ignore", module="fastf1")
+    # Solo avvisi ed errori: il registro di ogni download riempiva la finestra
+    # e nascondeva il riepilogo che serve leggere.
+    fastf1.set_log_level("WARNING")
 
     args = sys.argv[1:]
     if args and args[0] == "--auto":
         auto()
+    elif len(args) == 3 and args[2] == "--solo-tracciato":
+        anno = int(args[0])
+        # Anche un intervallo: "2026 1-15 --solo-tracciato".
+        if "-" in args[1] and all(p.isdigit() for p in args[1].split("-")):
+            da, a = (int(p) for p in args[1].split("-"))
+            for rnd in range(da, a + 1):
+                solo_tracciato(anno, rnd)
+        else:
+            rnd = risolvi_round(anno, args[1])
+            if rnd is None:
+                sys.exit(1)
+            solo_tracciato(anno, rnd)
     elif len(args) == 2:
         anno = int(args[0])
         rnd = risolvi_round(anno, args[1])

@@ -14,7 +14,7 @@ const NAV_LINKS = CATEGORIES.map((c) => ({ label: c.label.toUpperCase(), href: `
 // Voci fisse del sottomenu. "Calendario" esiste solo per la F1 (le altre
 // categorie non hanno una fonte dati per mantenerlo), e "Altro" non ha
 // alcun sottomenu: la sua pagina mostra già tutte le news.
-const ROSTER_ITEMS = [
+const ROSTER_ITEMS: { label: string; slug: string; href?: string }[] = [
   { label: 'Piloti',      slug: 'piloti' },
   { label: 'Team',        slug: 'team' },
   { label: 'Classifica',  slug: 'classifica' },
@@ -39,7 +39,10 @@ function getSubmenuItems(categorySlug: string) {
       item.slug === 'piloti' ? { ...item, label: config.etichettaPiloti! } : item
     )
   }
-  return [{ label: 'News', slug: '' }, ...subcategoryItems, ...rosterItems]
+  // La telemetria vive su /telemetria, fuori dalle categorie, ma e' roba di
+  // Formula 1: si trova nel suo sottomenu, in fondo, dove la cerca chi la vuole.
+  const telemetria = categorySlug === 'formula-1' ? [{ label: 'Telemetria', slug: 'telemetria', href: '/telemetria' }] : []
+  return [{ label: 'News', slug: '' } as { label: string; slug: string; href?: string }, ...subcategoryItems, ...rosterItems, ...telemetria]
 }
 
 const SOCIAL_LINKS = [
@@ -139,7 +142,7 @@ export default function Navbar() {
                       {submenuItems.map((item) => (
                         <Link
                           key={item.label}
-                          href={item.slug ? `${link.href}/${item.slug}` : link.href}
+                          href={('href' in item && item.href) || (item.slug ? `${link.href}/${item.slug}` : link.href)}
                           className="block px-4 py-2 font-akira font-bold text-[11px] tracking-wide text-white/75 hover:text-lc-red hover:bg-white/5 transition-colors duration-150"
                         >
                           {item.label}
@@ -211,7 +214,7 @@ export default function Navbar() {
                     {submenuItems.map((item) => (
                       <Link
                         key={item.label}
-                        href={item.slug ? `${link.href}/${item.slug}` : link.href}
+                        href={('href' in item && item.href) || (item.slug ? `${link.href}/${item.slug}` : link.href)}
                         onClick={() => setMobileOpen(false)}
                         className="font-akira font-bold text-[9px] tracking-wide text-white/50 hover:text-lc-red transition-colors duration-200"
                       >
