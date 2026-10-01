@@ -35,6 +35,18 @@ const nextConfig = {
     ],
   },
 
+  // La telemetria dei singoli giri (public/telemetria-data/**/tel/) la
+  // scarica il browser come file statico: il server non la legge mai. Ma
+  // lib/telemetria.ts apre file di quella cartella con un percorso calcolato,
+  // e Next, non potendo sapere quali, li metteva TUTTI nelle funzioni delle
+  // pagine telemetria (40 MB a ottobre 2026, oltre 150 con i giri di gara).
+  // Le funzioni di Vercel hanno un tetto di 250 MB: qui si tolgono.
+  experimental: {
+    outputFileTracingExcludes: {
+      '*': ['./public/telemetria-data/**/tel/**'],
+    },
+  },
+
   // Piloti usciti da un roster durante la stagione.
   //
   // Le pagine pilota nascono da lib/rosterData.ts: tolto il pilota dal

@@ -2,9 +2,13 @@
 
 La **telemetria** è pubblica dal 1° ottobre 2026, su
 <https://lastcorner.net/telemetria>. Le pagine si generano al deploy dai file
-JSON in `public/telemetria-data/`, che ora sono **versionati nel repository**
-(circa 3 MB a weekend): li produci tu sul PC con lo script Python e li
-pubblichi con un push, come il codice.
+JSON in `public/telemetria-data/`, che sono **versionati nel repository**
+(circa 9 MB a weekend con i giri di gara).
+
+**Dal 1° ottobre 2026 i dati arrivano da soli**: un workflow di GitHub
+Actions, dopo ogni sessione, scarica i dati nuovi, li committa e il deploy
+li pubblica (vedi "Aggiornamento automatico" sotto). Lo script sul PC resta
+per rielaborare un weekend a mano o se l'automatico si inceppa.
 
 Il **generatore di grafiche** sta a <https://lastcorner.net/grafiche>,
 protetto da password (vedi sotto). È tutto codice di browser: la foto non
@@ -23,7 +27,34 @@ appena elaborato prima di pubblicarlo:
 
 Per chiudere, chiudi la finestra nera intitolata "Lastcorner locale".
 
-## Elaborare un weekend di telemetria
+## Aggiornamento automatico
+
+`.github/workflows/telemetria.yml` gira ogni ora da venerdì a lunedì (UTC).
+Ogni volta `scripts/telemetry/serve_aggiornare.py` confronta il calendario
+(Jolpica) con `public/telemetria-data/index.json`: se una sessione è finita
+da almeno 40 minuti e sul sito non c'è ancora, la elabora **da sola** (le
+sessioni dei giorni prima non si toccano), committa come `telemetria-bot` e
+Vercel fa il deploy. Se l'archivio F1 non ha ancora i dati non succede
+nulla e si riprova all'ora dopo, per 36 ore al massimo.
+
+In pratica: un'ora o due dopo la fine di ogni sessione i dati sono online.
+
+**Conseguenza importante**: nei weekend di gara il bot fa commit su `main`.
+Prima di ogni tuo push:
+
+```
+git pull --rebase
+```
+
+Altrimenti il push viene rifiutato ("rejected, fetch first").
+
+Per lanciarlo a mano: GitHub → Actions → **Telemetria** → *Run workflow*,
+con il round (es. `16`) ed eventualmente le sole sessioni (es. `Q,R`).
+
+Se su GitHub il job fallisce scaricando i dati (l'archivio F1 a volte
+blocca gli indirizzi dei server), si torna allo script sul PC qui sotto.
+
+## Elaborare un weekend di telemetria a mano
 
 Lo lanci tu, dalla cartella `lastcorner-web`:
 
@@ -37,7 +68,23 @@ dove `2026` è l'anno e `13` il numero del round. In alternativa:
 python scripts\telemetry\process_session.py --auto
 ```
 
-che elabora l'ultimo weekend concluso.
+che elabora l'ultimo weekend concluso. Oppure solo alcune sessioni, lasciando
+com'è il resto del weekend:
+
+```
+python scripts\telemetry\process_session.py 2026 16 --sessioni Q,R
+```
+
+oppure più round di fila: `2026 1-15`.
+
+### Cosa si salva, sessione per sessione
+
+- **libere**: passo, e telemetria dei 3 giri più veloci di ogni pilota;
+- **qualifica e qualifica sprint**: passo, e telemetria dei 5 (4) giri migliori;
+- **gara e sprint**: passo, e telemetria di **tutti** i giri di tutti i
+  piloti, con 250 campioni a giro invece di 350 per tenere il file di un
+  pilota sotto i 100 KB compressi. Sul sito la gara si apre sul passo; la
+  telemetria dei singoli giri è a un clic.
 
 Lo script prende i dati con **FastF1**, che va installato una volta sola:
 
@@ -99,12 +146,18 @@ git push
 
 Al deploy Vercel genera la pagina del weekend nuovo e la aggiunge alla
 sitemap. Il browser dei lettori scarica la telemetria di un pilota solo
-quando lo mette a confronto (40 KB circa a pilota).
+quando lo mette a confronto (40 KB circa a pilota, 200 KB in gara: compressi
+dalla CDN diventano un quarto).
+
+I file `tel/` non entrano nelle funzioni di Vercel: `next.config.js` li
+esclude (`outputFileTracingExcludes`). Senza, Next ce li copiava tutti, e con
+i giri di gara si sarebbe superato il tetto di 250 MB a funzione.
 
 ### La pista e le curve
 
 `track.json` contiene il disegno del tracciato (dal giro più veloce della
-qualifica) e la posizione delle curve, che FastF1 legge da MultiViewer. Per
+qualifica; durante il weekend, prima della qualifica, da quello delle libere,
+e viene sostituito quando arriva la qualifica) e la posizione delle curve, che FastF1 legge da MultiViewer. Per
 i circuiti nuovi MultiViewer può non avere ancora le curve — succede col
 Madring di Madrid: la pista si vede lo stesso, senza numeri.
 
@@ -147,7 +200,8 @@ richiesta protetta: solo un confronto fra due stringhe.
 
 ## Cosa è stato rimosso
 
-- il workflow GitHub Actions che elaborava e committava i dati
+- il vecchio workflow GitHub Actions basato su OpenF1 (sostituito, dal
+  1° ottobre 2026, da quello nuovo con FastF1 descritto sopra)
 - `/api/telemetria-run` e `/api/telemetria-login`, con la pagina di login
 - il pannello che avviava la pipeline dal sito
 

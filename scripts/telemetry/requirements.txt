@@ -1,0 +1,4 @@
+# Dipendenze di process_session.py (serve_aggiornare.py usa solo la libreria
+# standard). Versione fissata: e' quella con cui sono stati generati e
+# verificati i dati; aggiornarla vuol dire ricontrollare un weekend a mano.
+fastf1==3.8.3

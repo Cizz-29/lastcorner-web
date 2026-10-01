@@ -26,6 +26,8 @@ export interface QualiLap {
   // che abbiamo: il delta calcolato dalla telemetria si puo' verificare
   // contro di loro. Assenti nei dati generati prima del passaggio a FastF1.
   settori?: (number | null)[]
+  /** Solo in gara: giro di ingresso o di uscita dai box. */
+  pit?: boolean
 }
 
 export interface QualiDriver {
@@ -264,6 +266,7 @@ function Chart({
         unita: unit,
         etichette: values.map((v) => ({ testo: format(v), y: yOf(v, height, lo, hi) })),
         altezzaGrafico: height,
+        comeSulloSchermo: true,
         annotazioni: tutteLeAnnotazioni,
         legenda,
         nomeFile,
@@ -558,11 +561,15 @@ export default function QualiCompare({
   drivers,
   dataPath,
   tracciato = null,
+  gara = false,
 }: {
   drivers: QualiDriver[]
   dataPath: string
   /** Disegno della pista con le curve (track.json): assente nei round vecchi. */
   tracciato?: Tracciato | null
+  /** Gara o sprint: i giri sono tutti, in ordine, e nell'elenco serve il
+   *  numero del giro per orientarsi. */
+  gara?: boolean
 }) {
   const sorted = useMemo(
     () => [...drivers].sort((a, b) => (a.position ?? 99) - (b.position ?? 99)),
@@ -671,7 +678,12 @@ export default function QualiCompare({
       const d = perNumero[num]
       if (!d) return prev
       const gia = new Set(prev.filter((t) => t.num === num).map((t) => t.lap))
-      const libero = d.laps.find((l) => !gia.has(l.lap))
+      // Il piu' veloce fra quelli liberi: in qualifica i giri sono gia' in
+      // ordine di tempo, in gara in ordine di giro e il primo sarebbe la
+      // partenza.
+      const libero = d.laps
+        .filter((l) => !gia.has(l.lap))
+        .sort((a, b) => a.time - b.time)[0]
       return libero ? [...prev, { num, lap: libero.lap }] : prev
     })
   }
@@ -1043,11 +1055,13 @@ export default function QualiCompare({
                     onChange={(e) => cambiaGiro(i, Number(e.target.value))}
                     className="w-full bg-lc-bg border border-white/15 rounded px-2 py-1.5 font-montserrat text-[12px] text-white focus:outline-none focus:border-lc-red"
                   >
-                    {d.laps.map((l, k) => (
+                    {d.laps.map((l) => (
                       <option key={l.lap} value={l.lap}>
+                        {gara ? `G${l.lap} · ` : ''}
                         {formatLapTime(l.time)}
-                        {k === 0 ? ' — migliore' : ''}
+                        {l.lap === d.bestLap ? ' — migliore' : ''}
                         {l.compound ? ` · ${l.compound.slice(0, 4)}` : ''}
+                        {l.pit ? ' · box' : ''}
                       </option>
                     ))}
                   </select>
@@ -1066,11 +1080,13 @@ export default function QualiCompare({
             })}
           </div>
 
-          <p className="font-montserrat text-[11px] text-lc-subtle mb-8">
-            {tracce.length >= MAX_TRACCE
-              ? `Massimo ${MAX_TRACCE} giri a confronto: togline uno per aggiungerne un altro.`
-              : 'Si possono confrontare anche più giri dello stesso pilota: stesso colore, tratto diverso.'}
-          </p>
+          {tracce.length >= MAX_TRACCE ? (
+            <p className="font-montserrat text-[11px] text-lc-subtle mb-8">
+              Massimo {MAX_TRACCE} giri a confronto: togline uno per aggiungerne un altro.
+            </p>
+          ) : (
+            <div className="mb-8" />
+          )}
 
           {caricamento && attivi.length === 0 ? (
             <p className="font-montserrat text-[13px] text-lc-subtle">Carico la telemetria…</p>
@@ -1134,9 +1150,8 @@ export default function QualiCompare({
                     {microsettori.length > 0 && (
                       <p className="font-montserrat text-[11px] text-lc-subtle leading-relaxed">
                         Il giro è diviso in {microsettori.length} microsettori di circa{' '}
-                        {Math.round((attivi[0].tel.distance[attivi[0].tel.distance.length - 1] || 0) / microsettori.length)} metri:
-                        ognuno prende il colore di chi l&apos;ha percorso più in fretta, sulla pista e
-                        sullo sfondo dei grafici. Grigio vuol dire pari.
+                        {Math.round((attivi[0].tel.distance[attivi[0].tel.distance.length - 1] || 0) / microsettori.length)} metri.
+                        Grigio vuol dire pari.
                         {tracciato ? ' Passa o tocca la pista e i grafici per leggere i valori esatti.' : ''}
                       </p>
                     )}

@@ -36,8 +36,11 @@ export interface VoceLegenda {
  *  l'immagine. Qui si disegna tutto su una tela: sfondo, titolo, etichette,
  *  tracce (rasterizzando l'SVG) e legenda con le sigle dei piloti.
  *
- *  L'immagine esce a larghezza fissa, quindi identica indipendentemente da
- *  quanto e' larga la finestra al momento del clic.
+ *  L'immagine esce a larghezza fissa. L'altezza, se `comeSulloSchermo` e'
+ *  attivo, rispetta le proporzioni che il grafico ha sullo schermo: se il
+ *  lettore lo allunga con il cursore "altezza grafici", anche l'immagine
+ *  esce piu' alta. Senza, il grafico tiene l'altezza in pixel dello schermo
+ *  e su 1600 pixel di larghezza il cursore non si notava quasi.
  */
 export async function esportaPng(opts: {
   svg: SVGSVGElement | null
@@ -49,16 +52,31 @@ export async function esportaPng(opts: {
   annotazioni?: Annotazione[]
   larghezzaSchermo?: number
   altezzaGrafico: number
+  /** Mantiene nel PNG il rapporto larghezza/altezza del grafico a schermo. */
+  comeSulloSchermo?: boolean
   legenda: VoceLegenda[]
   nomeFile: string
   fontTitolo: Element | null
   fontTesto: Element | null
 }) {
-  const { svg, titolo, unita, etichette, altezzaGrafico, legenda, nomeFile } = opts
-  const annotazioni = opts.annotazioni ?? []
+  const { svg, titolo, legenda, nomeFile, unita } = opts
   if (!svg) return
 
   const LARGHEZZA_GRAFICO = 1600
+
+  // Fattore fra il grafico a schermo e quello nell'immagine. Le y (etichette
+  // dell'asse, annotazioni) arrivano in pixel di schermo e vanno moltiplicate
+  // per lo stesso fattore. Limiti larghi ma non infiniti: su un telefono
+  // stretto le proporzioni darebbero un'immagine altissima.
+  const largoSchermo = svg.getBoundingClientRect().width
+  const fattore =
+    opts.comeSulloSchermo && largoSchermo > 0
+      ? Math.min(Math.max(LARGHEZZA_GRAFICO / largoSchermo, 1), 3)
+      : 1
+  const altezzaGrafico = Math.round(opts.altezzaGrafico * fattore)
+  const etichette = opts.etichette.map((e) => ({ ...e, y: e.y * fattore }))
+  const annotazioni = (opts.annotazioni ?? []).map((a) => ({ ...a, y: a.y * fattore }))
+
   const MARGINE = 28
   const COL_ASSE = 64
   const ALT_TITOLO = 34
@@ -125,9 +143,8 @@ export async function esportaPng(opts: {
 
   ctx.drawImage(img, xGrafico, yGrafico, LARGHEZZA_GRAFICO, altezzaGrafico)
 
-  // Annotazioni (velocita' di punta e minime). Le y arrivano in pixel di
-  // schermo: qui il grafico e' alto uguale ma largo LARGHEZZA_GRAFICO, quindi
-  // la y si usa cosi' com'e' e solo la x va riscalata.
+  // Annotazioni (velocita' di punta e minime): la y e' gia' riscalata sopra,
+  // la x si ricava dalla frazione del giro.
   if (annotazioni.length > 0) {
     const ALT_RIGA = 15
     ctx.textAlign = 'center'

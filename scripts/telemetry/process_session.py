@@ -4,6 +4,7 @@
     python scripts\\telemetry\\process_session.py 2026 monza
     python scripts\\telemetry\\process_session.py --auto
     python scripts\\telemetry\\process_session.py 2026 13 --solo-tracciato
+    python scripts\\telemetry\\process_session.py 2026 13 --sessioni FP2,Q
 
 Scrive in public/telemetria-data/. Serve fastf1:
 
@@ -57,13 +58,21 @@ CACHE = Path(__file__).resolve().parent / ".cache-fastf1"
 # circuiti lenti (Monaco, Singapore) dove i giri sono lunghi il doppio.
 TELEMETRY_POINTS = 350
 
+# In gara e nella sprint si salvano tutti i giri di tutti i piloti, cioe'
+# un migliaio di giri a weekend invece di un centinaio: con meno campioni per
+# giro il file di un pilota resta sotto i 100 KB compressi. 250 punti sono
+# uno ogni 20-25 metri, abbastanza per staccate e velocita' minime.
+TELEMETRY_POINTS_GARA = 250
+TUTTI = 10_000
+
 DEFAULT_COLOR = "FF3A3A"
 
 # Sessioni del weekend, nell'ordine in cui si svolgono. La chiave e' il nome
 # con cui FastF1 le elenca nel calendario; "tel" dice quanti giri per pilota
 # salvare con la telemetria completa. Nelle qualifiche il confronto del giro
-# secco e' il cuore dell'analisi, nelle libere bastano pochi riferimenti, in
-# gara e sprint interessa il passo e non il giro singolo.
+# secco e' il cuore dell'analisi, nelle libere bastano pochi riferimenti. In
+# gara e sprint si tengono tutti i giri ("gara": True): la sezione che si apre
+# per prima resta il passo, ma ogni giro si puo' confrontare come in qualifica.
 #
 # "Sprint Shootout" e' il nome che la qualifica sprint aveva nel 2023-2024:
 # sta qui perche' i round vecchi si possano ancora rigenerare.
@@ -73,9 +82,9 @@ SESSION_TYPES = [
     {"nome": "Practice 3", "key": "FP3", "label": "Libere 3", "tel": 3},
     {"nome": "Sprint Qualifying", "key": "SQ", "label": "Qualifica Sprint", "tel": 4},
     {"nome": "Sprint Shootout", "key": "SQ", "label": "Qualifica Sprint", "tel": 4},
-    {"nome": "Sprint", "key": "SPR", "label": "Sprint", "tel": 0},
+    {"nome": "Sprint", "key": "SPR", "label": "Sprint", "tel": TUTTI, "gara": True},
     {"nome": "Qualifying", "key": "Q", "label": "Qualifica", "tel": 5},
-    {"nome": "Race", "key": "R", "label": "Gara", "tel": 0},
+    {"nome": "Race", "key": "R", "label": "Gara", "tel": TUTTI, "gara": True},
 ]
 
 
@@ -95,7 +104,9 @@ def secondi(valore) -> float | None:
 
 # --- Telemetria ------------------------------------------------------------
 
-def costruisci_telemetria(velocita, tempi, durata: float) -> tuple[list, list] | None:
+def costruisci_telemetria(
+    velocita, tempi, durata: float, punti: int = TELEMETRY_POINTS
+) -> tuple[list, list] | None:
     """Distanza percorsa, ricavata integrando la velocita' nel tempo.
 
     La distanza non e' un dato misurato: nessuna fonte la espone. Tre
@@ -131,15 +142,15 @@ def costruisci_telemetria(velocita, tempi, durata: float) -> tuple[list, list] |
     distanza = np.concatenate([[0.0], np.cumsum((v[:-1] + v[1:]) / 2 * np.diff(t))])
 
     indici = np.arange(len(t))
-    if len(indici) > TELEMETRY_POINTS:
+    if len(indici) > punti:
         # Il primo e l'ultimo punto sono il traguardo: non si toccano.
-        mezzo = np.linspace(1, len(indici) - 2, TELEMETRY_POINTS - 2).astype(int)
+        mezzo = np.linspace(1, len(indici) - 2, punti - 2).astype(int)
         indici = np.concatenate([[0], np.unique(mezzo), [len(t) - 1]])
 
     return t[indici], distanza[indici], indici, tieni
 
 
-def telemetria_del_giro(lap) -> dict | None:
+def telemetria_del_giro(lap, punti: int = TELEMETRY_POINTS) -> dict | None:
     """Telemetria di un giro nel formato atteso dal sito."""
     durata = secondi(lap["LapTime"])
     if durata is None:
@@ -153,7 +164,7 @@ def telemetria_del_giro(lap) -> dict | None:
 
     tempi = car["Time"].dt.total_seconds().to_numpy()
     vel = car["Speed"].to_numpy(dtype=float)
-    esito = costruisci_telemetria(vel, tempi, durata)
+    esito = costruisci_telemetria(vel, tempi, durata, punti)
     if esito is None:
         return None
     t, distanza, indici, tieni = esito
@@ -306,11 +317,19 @@ def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
     if massimo <= 0:
         return esito
 
+    gara = bool(spec.get("gara"))
+    punti = TELEMETRY_POINTS_GARA if gara else TELEMETRY_POINTS
+
     cronometrati: dict = {}
     for _, lap in giri.iterrows():
         numero = str(lap["DriverNumber"] or "").strip()
         durata = secondi(lap["LapTime"])
-        if not numero or durata is None or lap["PitOutTime"] == lap["PitOutTime"]:
+        if not numero or durata is None:
+            continue
+        uscita_box = lap["PitOutTime"] == lap["PitOutTime"]
+        # Nelle libere e in qualifica il giro di uscita dai box non e' un
+        # giro vero. In gara si', ed e' anche interessante: si tiene.
+        if uscita_box and not gara:
             continue
         cronometrati.setdefault(int(numero), []).append((durata, lap))
 
@@ -325,7 +344,7 @@ def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
         per_giro: dict = {}
         schede = []
         for durata, lap in elenco[:massimo]:
-            tel = telemetria_del_giro(lap)
+            tel = telemetria_del_giro(lap, punti)
             if tel is None:
                 persi += 1
                 continue
@@ -347,21 +366,34 @@ def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
                     ],
                 }
             )
+            if gara:
+                # Giro di ingresso o di uscita dai box: il sito lo segnala
+                # nell'elenco, perche' il tempo non e' confrontabile.
+                if lap["PitOutTime"] == lap["PitOutTime"] or lap["PitInTime"] == lap["PitInTime"]:
+                    schede[-1]["pit"] = True
         if not schede:
             continue
-        schede.sort(key=lambda l: l["time"])
+        migliore = min(schede, key=lambda l: l["time"])
+        # In gara i giri si elencano in ordine, dal primo all'ultimo; altrove
+        # dal piu' veloce, che e' quello che si cerca.
+        schede.sort(key=lambda l: l["lap"] if gara else l["time"])
         save_json(out_dir / "tel" / f"{numero}.json", per_giro)
         piloti_tel.append(
             {
                 **scheda(numero),
                 "number": numero,
-                "position": posizione,
-                "lapTime": schede[0]["time"],
-                "compound": schede[0]["compound"],
-                "bestLap": schede[0]["lap"],
+                # In gara conta l'ordine d'arrivo, non chi ha fatto il giro
+                # piu' veloce.
+                "position": (posizioni.get(numero) or 99) if gara else posizione,
+                "lapTime": migliore["time"],
+                "compound": migliore["compound"],
+                "bestLap": migliore["lap"],
                 "laps": schede,
             }
         )
+
+    if gara:
+        piloti_tel.sort(key=lambda d: d["position"])
 
     if piloti_tel:
         save_json(out_dir / "laps.json", {"session": spec["key"], "drivers": piloti_tel})
@@ -381,7 +413,7 @@ PUNTI_TRACCIATO = 600
 # Da quale sessione prendere il disegno: serve un giro veloce e pulito, e la
 # qualifica e' il posto migliore. Le altre sono riserve per i weekend in cui
 # la qualifica manca.
-PREFERENZA_TRACCIATO = ["Q", "SQ", "FP3", "FP2", "FP1"]
+PREFERENZA_TRACCIATO = ["Q", "SQ", "FP3", "FP2", "FP1", "SPR", "R"]
 
 
 def tracciato(session) -> dict | None:
@@ -446,6 +478,7 @@ def tracciato(session) -> dict | None:
                 continue
 
     return {
+        "fonte": "",  # la sessione da cui viene: la scrive scrivi_tracciato
         "lunghezza": round(lunghezza),
         # Decimetri interi: bastano e dimezzano il file.
         "x": [int(round(v / 10)) for v in rx],
@@ -454,14 +487,34 @@ def tracciato(session) -> dict | None:
     }
 
 
-def scrivi_tracciato(sessioni_caricate: dict, base: Path) -> None:
-    for chiave in PREFERENZA_TRACCIATO:
+def scrivi_tracciato(sessioni_caricate: dict, base: Path, sempre: bool = True) -> None:
+    """Scrive track.json dalla migliore sessione caricata.
+
+    Con `sempre=False` (aggiornamento di singole sessioni, durante il
+    weekend) lo sovrascrive solo se la sessione nuova e' preferibile a quella
+    da cui viene il disegno attuale: dopo le FP1 la pista arriva dalle FP1,
+    dopo la qualifica dalla qualifica, e la gara non la rimpiazza.
+    """
+    percorso = base / "track.json"
+    attuale = len(PREFERENZA_TRACCIATO)
+    if not sempre and percorso.exists():
+        try:
+            fonte = json.loads(percorso.read_text(encoding="utf-8")).get("fonte") or ""
+        except (OSError, ValueError):
+            fonte = ""
+        # Un file senza "fonte" e' stato scritto da un'elaborazione completa
+        # del weekend, cioe' gia' dalla sessione migliore: non si tocca.
+        attuale = PREFERENZA_TRACCIATO.index(fonte) if fonte in PREFERENZA_TRACCIATO else -1
+    for posto, chiave in enumerate(PREFERENZA_TRACCIATO):
+        if posto >= attuale:
+            return
         session = sessioni_caricate.get(chiave)
         if session is None:
             continue
         dati = tracciato(session)
         if dati:
-            save_json(base / "track.json", dati)
+            dati["fonte"] = chiave
+            save_json(percorso, dati)
             print(f"  tracciato: da {chiave}, {len(dati['curve'])} curve")
             return
     print("  tracciato: non disponibile")
@@ -489,6 +542,7 @@ def solo_tracciato(anno: int, rnd: int) -> bool:
             continue
         dati = tracciato(session)
         if dati:
+            dati["fonte"] = chiave
             save_json(OUT / str(anno) / str(rnd) / "track.json", dati)
             print(f"  fatto: da {chiave}, {len(dati['curve'])} curve")
             return True
@@ -526,7 +580,10 @@ def sessioni_del_weekend(evento) -> list:
     return [s for s in SESSION_TYPES if s["nome"] in presenti]
 
 
-def elabora_round(anno: int, rnd: int) -> bool:
+def elabora_round(anno: int, rnd: int, solo: set | None = None) -> bool:
+    """Elabora un weekend. Con `solo` (es. {"FP2"}) solo quelle sessioni:
+    e' il caso dell'aggiornamento automatico dopo ogni sessione, dove
+    rielaborare tutto il weekend vorrebbe dire riscaricarlo ogni volta."""
     cal = calendario(anno)
     righe = cal[cal["RoundNumber"] == rnd]
     if righe.empty:
@@ -575,10 +632,12 @@ def elabora_round(anno: int, rnd: int) -> bool:
     sessioni = []
     caricate: dict = {}
     for spec in sessioni_del_weekend(evento):
+        if solo is not None and spec["key"] not in solo:
+            continue
         try:
             session = evento.get_session(spec["nome"])
-            # La telemetria e' il grosso del download: per gara e sprint, dove
-            # serve solo il passo, non la si scarica affatto.
+            # La telemetria e' il grosso del download: si scarica solo dove
+            # serve (oggi tutte le sessioni, ma "tel": 0 la spegne).
             session.load(
                 laps=True, telemetry=spec["tel"] > 0, weather=False, messages=False
             )
@@ -592,12 +651,24 @@ def elabora_round(anno: int, rnd: int) -> bool:
                 caricate[spec["key"]] = session
 
     if not sessioni:
-        print("  nessun dato disponibile, salto")
+        print("  nessun dato nuovo disponibile, salto")
         print("  (se la sessione si e' appena conclusa, l'archivio della F1")
         print("   compare di solito entro un'ora: riprova piu' tardi)")
         return False
 
-    scrivi_tracciato(caricate, base)
+    scrivi_tracciato(caricate, base, sempre=solo is None)
+
+    # Le sessioni gia' nell'indice e non rielaborate restano: con `solo`
+    # sono quelle dei giorni prima; senza, quelle che stavolta l'archivio non
+    # ha restituito (un errore di rete non deve cancellare dati gia' buoni).
+    rielaborate = {s["key"] for s in sessioni}
+    vecchie = [
+        s for s in (precedente or {}).get("sessions", [])
+        if isinstance(s, dict) and s.get("key") not in rielaborate
+        and (base / s.get("key", "")).is_dir()
+    ]
+    ordine = {spec["key"]: i for i, spec in enumerate(SESSION_TYPES)}
+    sessioni = sorted(vecchie + sessioni, key=lambda s: ordine.get(s["key"], 99))
 
     indice = [e for e in carica_indice() if not (e["year"] == anno and e["round"] == rnd)]
     data = evento.get("EventDate")
@@ -613,7 +684,7 @@ def elabora_round(anno: int, rnd: int) -> bool:
     )
     indice.sort(key=lambda e: (e["year"], e["round"]))
     save_json(OUT / "index.json", indice)
-    print(f"  fatto: {len(sessioni)} sessioni")
+    print(f"  fatto: {len(rielaborate)} sessioni elaborate, {len(sessioni)} nel weekend")
     return True
 
 
@@ -711,8 +782,21 @@ def main() -> None:
             if rnd is None:
                 sys.exit(1)
             solo_tracciato(anno, rnd)
+    elif len(args) == 4 and args[2] == "--sessioni":
+        anno = int(args[0])
+        rnd = risolvi_round(anno, args[1])
+        if rnd is None:
+            sys.exit(1)
+        solo = {k.strip().upper() for k in args[3].split(",") if k.strip()}
+        elabora_round(anno, rnd, solo)
     elif len(args) == 2:
         anno = int(args[0])
+        # Anche un intervallo: "2026 1-15".
+        if "-" in args[1] and all(p.isdigit() for p in args[1].split("-")):
+            da, a = (int(p) for p in args[1].split("-"))
+            for rnd in range(da, a + 1):
+                elabora_round(anno, rnd)
+            return
         rnd = risolvi_round(anno, args[1])
         if rnd is None:
             sys.exit(1)

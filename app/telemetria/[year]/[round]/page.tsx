@@ -90,7 +90,12 @@ export default async function TelemetriaEventPage({ params }: PageProps) {
       key: info.key,
       label: info.label,
       telemetria: laps ? (
-        <QualiCompare drivers={laps.drivers} dataPath={`${basePath}/tel`} tracciato={tracciato} />
+        <QualiCompare
+          drivers={laps.drivers}
+          dataPath={`${basePath}/tel`}
+          tracciato={tracciato}
+          gara={info.key === 'R' || info.key === 'SPR'}
+        />
       ) : null,
       passo: pace ? <RacePace drivers={pace.drivers} /> : null,
     })

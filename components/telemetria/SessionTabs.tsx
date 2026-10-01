@@ -23,7 +23,10 @@ export default function SessionTabs({ panels }: { panels: SessionPanel[] }) {
     const preferita = ['R', 'Q', 'SPR', 'SQ'].find((k) => panels.some((p) => p.key === k))
     return preferita ?? panels[0]?.key ?? ''
   })
-  const [vista, setVista] = useState<'tel' | 'passo'>('tel')
+  // Vista scelta dal lettore; null = quella predefinita della sessione. In
+  // gara e sprint si apre sul passo, che e' la lettura principale di una
+  // corsa; la telemetria dei singoli giri resta a un clic.
+  const [vista, setVista] = useState<'tel' | 'passo' | null>(null)
 
   if (panels.length === 0) {
     return (
@@ -38,8 +41,10 @@ export default function SessionTabs({ panels }: { panels: SessionPanel[] }) {
   const attivo = panels.find((p) => p.key === sessione) ?? panels[0]
   const haTel = attivo.telemetria !== null
   const haPasso = attivo.passo !== null
+  const scelta = vista ?? (attivo.key === 'R' || attivo.key === 'SPR' ? 'passo' : 'tel')
   // Se la vista scelta non esiste per questa sessione si ricade sull'altra.
-  const vistaEffettiva = vista === 'tel' && !haTel ? 'passo' : vista === 'passo' && !haPasso ? 'tel' : vista
+  const vistaEffettiva =
+    scelta === 'tel' && !haTel ? 'passo' : scelta === 'passo' && !haPasso ? 'tel' : scelta
 
   return (
     <div>
@@ -47,7 +52,10 @@ export default function SessionTabs({ panels }: { panels: SessionPanel[] }) {
         {panels.map((p) => (
           <button
             key={p.key}
-            onClick={() => setSessione(p.key)}
+            onClick={() => {
+              setSessione(p.key)
+              setVista(null)
+            }}
             className={`${pill} ${
               p.key === attivo.key
                 ? 'bg-lc-red border-lc-red text-white'

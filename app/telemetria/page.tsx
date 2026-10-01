@@ -50,8 +50,8 @@ export default async function TelemetriaIndexPage() {
           tracciato colorato per chi è stato più veloce in ogni microsettore.
         </p>
         <p className="font-montserrat text-[13px] text-lc-subtle leading-relaxed max-w-[72ch] mb-10">
-          Per la gara c&apos;è il passo giro per giro, con gomme e soste. Ogni grafico si può
-          scaricare come immagine.
+          Per gara e sprint c&apos;è il passo giro per giro, con gomme e soste, e la telemetria
+          di ogni singolo giro. Ogni grafico si può scaricare come immagine.
         </p>
 
         {events.length === 0 ? (

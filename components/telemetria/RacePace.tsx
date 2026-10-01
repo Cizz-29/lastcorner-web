@@ -336,8 +336,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
         </div>
       ) : (
         <p className="font-montserrat text-[12px] text-lc-subtle mb-6">
-          Clicca un pallino sul grafico per togliere quel giro dalla media —
-          utile per i giri rovinati dal traffico, che restano sotto il 107%.
+          Clicca un pallino sul grafico per togliere quel giro dalla media
         </p>
       )}
 
@@ -522,12 +521,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
             })}
           </div>
 
-          <p className="font-montserrat text-[11px] text-lc-subtle mb-8">
-            Ogni pallino è un giro; quelli più grandi col bordo scuro sono
-            entrata/uscita dai box, quelli vuoti i giri esclusi a mano. Clicca
-            per escludere o rimettere. Giro più veloce nell&apos;intervallo:{' '}
-            {formatLapTime(chart.fastest)}.
-          </p>
+          <div className="mb-8" />
 
           {/* Stint e mescole */}
           <p className="font-akira text-[10px] text-white uppercase tracking-widest mb-3">Stint</p>
