@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Briciole from '@/components/Briciole'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -107,15 +107,12 @@ export default async function TelemetriaEventPage({ params }: PageProps) {
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
       <main id="main-content" className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
-        <nav aria-label="Percorso" className="font-montserrat text-[11px] text-lc-subtle mb-6 flex items-center gap-2 flex-wrap">
-          <Link href="/" className="hover:text-lc-red transition-colors duration-200">Home</Link>
-          <span className="opacity-50">/</span>
-          <Link href="/telemetria" className="hover:text-lc-red transition-colors duration-200">
-            Telemetria
-          </Link>
-          <span className="opacity-50">/</span>
-          <span className="text-white/60">{gp} {event.year}</span>
-        </nav>
+        <Briciole
+          voci={[
+            { nome: 'Telemetria', percorso: '/telemetria' },
+            { nome: `${gp} ${event.year}`, percorso: `/telemetria/${event.year}/${event.round}` },
+          ]}
+        />
 
         <div className="flex items-center gap-3 mb-2">
           <div className="w-1 h-8 bg-lc-red rounded-full shrink-0" />

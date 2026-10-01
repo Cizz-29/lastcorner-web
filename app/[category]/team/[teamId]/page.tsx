@@ -16,7 +16,10 @@ import { getTeamBio } from '@/lib/teamBios'
 import { getCategoryConfig } from '@/lib/categories'
 import { getArticoliConTag } from '@/lib/sanity/articles'
 import type { RosterTeam, RosterDriver } from '@/lib/rosterTypes'
-import { metadati, sigla } from '@/lib/seo'
+import { metadati, sigla, SITE_URL } from '@/lib/seo'
+import Briciole from '@/components/Briciole'
+import { jsonLd } from '@/lib/jsonLd'
+import { grafo } from '@/lib/datiStrutturati'
 
 // Nessuna scadenza dichiarata qui. Per la Formula 1 pero' la pagina si
 // rigenera ogni ora: legge i dati F1 da Jolpica con revalidate 3600, e in
@@ -85,6 +88,25 @@ function StatTile({ label, value }: { label: string; value: string | number }) {
   )
 }
 
+/** SportsTeam: la squadra, lo sport e i suoi piloti (athlete), ciascuno con
+ *  il link alla sua pagina. Cosi' Google collega team e piloti fra loro. */
+function datiTeam(team: RosterTeam, lineup: RosterDriver[], slug: string, categoria: string) {
+  const url = `${SITE_URL}/${slug}/team/${team.constructorId}`
+  return grafo({
+    '@type': 'SportsTeam',
+    '@id': url,
+    name: team.name,
+    url,
+    sport: categoria,
+    sameAs: team.wikipedia ? [team.wikipedia] : undefined,
+    athlete: lineup.map((d) => ({
+      '@type': 'Person',
+      name: `${d.givenName} ${d.familyName}`,
+      url: `${SITE_URL}/${slug}/piloti/${d.driverId}`,
+    })),
+  })
+}
+
 export default async function TeamPage({ params }: TeamPageProps) {
   const config = getCategoryConfig(params.category)
   if (!config) notFound()
@@ -108,16 +130,16 @@ export default async function TeamPage({ params }: TeamPageProps) {
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
       <main className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
-        {/* Breadcrumb */}
-        <nav aria-label="Percorso" className="font-montserrat text-[11px] text-lc-subtle mb-6 flex items-center gap-2 flex-wrap">
-          <Link href="/" className="hover:text-lc-red transition-colors duration-200">Home</Link>
-          <span className="opacity-50">/</span>
-          <Link href={`/${config.slug}/team`} className="hover:text-lc-red transition-colors duration-200">
-            Team {config.label}
-          </Link>
-          <span className="opacity-50">/</span>
-          <span className="text-white/60">{team.name}</span>
-        </nav>
+        <Briciole
+          voci={[
+            { nome: `Team ${config.label}`, percorso: `/${config.slug}/team` },
+            { nome: team.name, percorso: `/${config.slug}/team/${team.constructorId}` },
+          ]}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLd(datiTeam(team, lineup, config.slug, config.label)) }}
+        />
 
         {/* Header */}
         <div className="relative bg-lc-card rounded-card border border-white/10 overflow-hidden p-6 lg:p-8 mb-10">

@@ -43,6 +43,8 @@ export interface DriverStanding {
     givenName: string
     familyName: string
     nationality: string
+    dateOfBirth?: string
+    url?: string
   }
   Constructors: [{ constructorId: string; name: string; nationality: string }]
 }
@@ -51,7 +53,7 @@ export interface ConstructorStanding {
   position: string
   points: string
   wins: string
-  Constructor: { constructorId: string; name: string; nationality: string }
+  Constructor: { constructorId: string; name: string; nationality: string; url?: string }
 }
 
 export async function getDriverStandings(): Promise<DriverStanding[]> {
@@ -148,6 +150,8 @@ export function toRosterDriver(d: DriverStanding): RosterDriver {
     position: d.position,
     points: d.points,
     wins: d.wins,
+    dataNascita: d.Driver.dateOfBirth,
+    wikipedia: d.Driver.url,
   }
 }
 
@@ -159,5 +163,6 @@ export function toRosterTeam(t: ConstructorStanding): RosterTeam {
     position: t.position,
     points: t.points,
     wins: t.wins,
+    wikipedia: t.Constructor.url,
   }
 }

@@ -11,6 +11,7 @@ import { getRosterTeams } from '@/lib/rosterData'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import type { RosterTeam } from '@/lib/rosterTypes'
 import { metadati } from '@/lib/seo'
+import Briciole from '@/components/Briciole'
 
 const CARDS_PER_AD_BLOCK = 6 // ogni 3 righe da 2 card (grid-cols-2)
 
@@ -54,6 +55,7 @@ export default async function TeamsOverviewPage({ params }: PageProps) {
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
       <main className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
+        <Briciole voci={[{ nome: `Team ${config.label}`, percorso: `/${config.slug}/team` }]} />
         <div className="flex items-center gap-3 mb-10">
           <div className="w-1 h-8 bg-lc-red rounded-full shrink-0" />
           <h1 className="font-akira font-extrabold text-[22px] lg:text-[28px] text-white leading-tight uppercase">

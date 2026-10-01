@@ -10,7 +10,7 @@ export const metadata: Metadata = metadati({
 
 export default function NoteLegaliPage() {
   return (
-    <StaticPageLayout title="Note Legali" updatedAt="13 luglio 2026">
+    <StaticPageLayout percorso="/note-legali" title="Note Legali" updatedAt="13 luglio 2026">
       <LegalSection title="Natura del sito">
         <p>
           Lastcorner.net non è una testata giornalistica, in quanto viene aggiornato senza

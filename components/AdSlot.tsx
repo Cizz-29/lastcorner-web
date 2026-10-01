@@ -11,12 +11,18 @@ import { useEffect, useRef } from 'react'
 const ADSENSE_CLIENT_ID = 'ca-pub-5913363906862738'
 const SLOT_BANNER = '9549799917' // Banner orizzontale (home, cima articoli, bio pilota/team)
 const SLOT_MEDIUM = '7198968745' // Riquadro medio sidebar (ex placeholder "300×250")
-const SLOT_LARGE = '3768538358' // Riquadro alto sidebar (ex placeholder "300×600")
+// Il "Riquadro alto sidebar" (3768538358, ex 300×600) e' spento dal
+// 1° ottobre 2026: in 30 giorni 1.002 impressioni, 0,03 € di RPM e un quarto
+// soltanto visibile. Gli spazi da piu' di 400px non mostrano piu' nulla.
+//
+// Il riquadro medio resta, ma solo da desktop: su mobile la barra laterale
+// finisce in fondo alla pagina, dove nessuno lo vedeva (visibilita' 29%) e
+// costava comunque lavoro al telefono. Il banner orizzontale resta ovunque.
+// Insieme all'annuncio ancorato degli annunci automatici, e' tutto.
+const ALTEZZA_MASSIMA_MEDIO = 400
 
 function slotForHeight(height: number): string {
-  if (height <= 150) return SLOT_BANNER
-  if (height <= 400) return SLOT_MEDIUM
-  return SLOT_LARGE
+  return height <= 150 ? SLOT_BANNER : SLOT_MEDIUM
 }
 
 interface AdSlotProps {
@@ -38,6 +44,8 @@ interface AdSlotProps {
 // al primo banner.
 export default function AdSlot({ height, className = '' }: AdSlotProps) {
   const pushedRef = useRef(false)
+  const contenitoreRef = useRef<HTMLDivElement>(null)
+  const soloDesktop = height > 150
 
   // Registra l'annuncio presso adsbygoogle una sola volta. Il push in coda è
   // sicuro anche se lo script base non ha ancora finito di caricarsi: è lui
@@ -51,6 +59,9 @@ export default function AdSlot({ height, className = '' }: AdSlotProps) {
     if (pushedRef.current) return
     const id = requestAnimationFrame(() => {
       if (pushedRef.current) return
+      // Contenitore nascosto (riquadro da sidebar su mobile): nessuna
+      // richiesta ad AdSense. Un'unita' a larghezza zero darebbe solo errore.
+      if ((contenitoreRef.current?.getBoundingClientRect().width ?? 0) === 0) return
       try {
         ;(window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle =
           (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle || []
@@ -70,6 +81,8 @@ export default function AdSlot({ height, className = '' }: AdSlotProps) {
   // riquadro "300x600" ci lasciava 250-300px vuoti ogni volta che AdSense lo
   // riempiva con un formato piu' basso. Sotto i 1024px gli annunci
   // responsive restano intorno ai 250px, e quello si riserva.
+  if (height > ALTEZZA_MASSIMA_MEDIO) return null
+
   const stile = {
     '--altezza-mobile': `${Math.min(height, 250)}px`,
     '--altezza-desktop': `${height}px`,
@@ -77,7 +90,8 @@ export default function AdSlot({ height, className = '' }: AdSlotProps) {
 
   return (
     <div
-      className={`w-full overflow-hidden min-h-[var(--altezza-mobile)] lg:min-h-[var(--altezza-desktop)] ${className}`}
+      ref={contenitoreRef}
+      className={`w-full overflow-hidden min-h-[var(--altezza-mobile)] lg:min-h-[var(--altezza-desktop)] ${soloDesktop ? 'hidden lg:block' : ''} ${className}`}
       style={stile}
     >
       <ins

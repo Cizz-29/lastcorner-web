@@ -18,7 +18,7 @@ const SOCIAL_LINKS = [
 
 export default function ChiSiamoPage() {
   return (
-    <StaticPageLayout title="Chi siamo">
+    <StaticPageLayout percorso="/chi-siamo" title="Chi siamo">
       <p className="font-montserrat text-[15px] text-white/90 leading-relaxed">
         Lastcorner.net nasce nel 2019 come pagina Instagram, fondata da due giovani amici
         appassionati di motori. La nostra missione è semplice: vogliamo essere la risorsa

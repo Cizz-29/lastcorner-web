@@ -19,7 +19,8 @@ import {
   getPercorsiArticoli,
   getUltimiArticoli,
 } from '@/lib/sanity/articles'
-import { getSchedaAutore } from '@/lib/sanity/authors'
+import { getSchedaAutore, type SchedaAutore } from '@/lib/sanity/authors'
+import { autoreLd } from '@/lib/datiStrutturati'
 import { urlFor } from '@/lib/sanity/image'
 import { getCategoryConfig } from '@/lib/categories'
 import { authorSlug } from '@/lib/authors'
@@ -105,7 +106,12 @@ const SITO = 'https://lastcorner.net'
 /** Dati strutturati dell'articolo. Servono a dire a Google che questa pagina
  *  e' una notizia, di che data, e chi l'ha scritta: senza, il pezzo parte
  *  svantaggiato rispetto a chi li dichiara — cioe' tutte le testate. */
-function datiStrutturati(article: Article, percorso: string, categorySlug: string) {
+function datiStrutturati(
+  article: Article,
+  percorso: string,
+  categorySlug: string,
+  scheda: SchedaAutore | null
+) {
   const notizia = {
     '@type': 'NewsArticle',
     headline: article.title,
@@ -119,12 +125,10 @@ function datiStrutturati(article: Article, percorso: string, categorySlug: strin
     // diceva mai.
     dateModified: article.aggiornatoIl ?? article.publishedAt ?? undefined,
     articleSection: article.category,
+    // Con foto e profili social dalla scheda autore, quando c'e': sono i
+    // campi che permettono a Google di riconoscere la firma.
     author: article.author
-      ? {
-          '@type': 'Person',
-          name: article.author,
-          url: `${SITO}/autori/${authorSlug(article.author)}`,
-        }
+      ? autoreLd(article.author, `/autori/${authorSlug(article.author)}`, scheda)
       : undefined,
     publisher: {
       '@type': 'Organization',
@@ -184,7 +188,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: jsonLd(datiStrutturati(article, `/${params.category}/${params.slug}`, params.category)),
+          __html: jsonLd(datiStrutturati(article, `/${params.category}/${params.slug}`, params.category, scheda)),
         }}
       />
 

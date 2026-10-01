@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react'
 import Navbar from './Navbar'
 import Footer from './Footer'
+import Briciole from '@/components/Briciole'
 
 interface StaticPageLayoutProps {
   title: string
+  /** Indirizzo della pagina, per le briciole (es. "/chi-siamo"). */
+  percorso: string
   updatedAt?: string
   children: ReactNode
 }
@@ -11,11 +14,12 @@ interface StaticPageLayoutProps {
 // Layout condiviso per le pagine di solo testo (Chi siamo, Privacy, Cookie,
 // Note legali, Contatti): colonna singola stretta per la leggibilità, senza
 // gli slot pubblicitari usati altrove sul sito.
-export default function StaticPageLayout({ title, updatedAt, children }: StaticPageLayoutProps) {
+export default function StaticPageLayout({ title, percorso, updatedAt, children }: StaticPageLayoutProps) {
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
       <main className="max-w-[760px] w-full mx-auto px-4 sm:px-8 lg:px-4 pt-[96px] pb-24 flex-1">
+        <Briciole voci={[{ nome: title, percorso }]} />
         <div className="flex items-center gap-3 mb-3">
           <div className="w-1 h-8 bg-lc-red rounded-full shrink-0" />
           <h1 className="font-akira font-extrabold text-[22px] lg:text-[28px] text-white leading-tight uppercase">

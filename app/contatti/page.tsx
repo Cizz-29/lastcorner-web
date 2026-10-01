@@ -18,7 +18,7 @@ const SOCIAL_LINKS = [
 
 export default function ContattiPage() {
   return (
-    <StaticPageLayout title="Contatti">
+    <StaticPageLayout percorso="/contatti" title="Contatti">
       <p className="font-montserrat text-[15px] text-white/90 leading-relaxed">
         Per segnalazioni, collaborazioni o qualsiasi altra richiesta puoi scriverci
         all&rsquo;indirizzo email{' '}

@@ -8,7 +8,9 @@ import Pagination from '@/components/Pagination'
 import AuthorHeader from '@/components/AuthorHeader'
 import { ArticleCardGrid, ArticleCardSmall } from '@/components/ArticleCard'
 import { getAllArticles } from '@/lib/sanity/articles'
-import { getSchedaAutore } from '@/lib/sanity/authors'
+import { getSchedaAutore, type SchedaAutore } from '@/lib/sanity/authors'
+import { autoreLd, grafo } from '@/lib/datiStrutturati'
+import Briciole from '@/components/Briciole'
 import { authorSlug } from '@/lib/authors'
 import { ANNUNCIO_OGNI_N_CARD, fettaElenco } from '@/lib/paginazione'
 import { jsonLd } from '@/lib/jsonLd'
@@ -20,20 +22,19 @@ interface AuthorListingProps {
   pagina: number
 }
 
-// Dati strutturati dell'autore. Dicono a Google che dietro gli articoli c'e'
-// una persona reale, con un ruolo e dei profili verificabili: e' il segnale di
-// affidabilita' che una testata dovrebbe dare e che finora mancava.
-function datiStrutturati(nome: string, slug: string, ruolo?: string, social?: { url: string }[]) {
-  const sameAs = (social ?? []).map((s) => s.url)
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Person',
-    name: nome,
-    url: `${SITO}/autori/${slug}`,
-    jobTitle: ruolo || undefined,
-    sameAs: sameAs.length > 0 ? sameAs : undefined,
-    worksFor: { '@type': 'Organization', name: 'Lastcorner', url: SITO },
-  }
+// Dati strutturati dell'autore: una ProfilePage con la persona come
+// soggetto principale, con foto e profili social (sameAs). Dicono a Google
+// che dietro gli articoli c'e' una persona reale, riconoscibile anche su altri
+// siti: e' il segnale di affidabilita' che una testata dovrebbe dare.
+function datiStrutturati(slug: string, scheda: SchedaAutore) {
+  const percorso = `/autori/${slug}`
+  return grafo({
+    '@type': 'ProfilePage',
+    '@id': `${SITO}${percorso}`,
+    url: `${SITO}${percorso}`,
+    inLanguage: 'it-IT',
+    mainEntity: autoreLd(scheda.nome, percorso, scheda),
+  })
 }
 
 export default async function AuthorListing({ slug, pagina }: AuthorListingProps) {
@@ -54,12 +55,13 @@ export default async function AuthorListing({ slug, pagina }: AuthorListingProps
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: jsonLd(datiStrutturati(scheda.nome, slug, scheda.ruolo, scheda.social)),
+            __html: jsonLd(datiStrutturati(slug, scheda)),
           }}
         />
       )}
 
       <main id="main-content" className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
+        <Briciole voci={[{ nome: authorName, percorso: `/autori/${slug}` }]} />
         <div className="flex items-center gap-3 mb-2">
           <div className="w-1 h-8 bg-lc-red rounded-full shrink-0" />
           <h1 className="font-akira font-extrabold text-[22px] lg:text-[28px] text-white leading-tight uppercase">

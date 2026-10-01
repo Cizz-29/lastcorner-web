@@ -10,7 +10,7 @@ export const metadata: Metadata = metadati({
 
 export default function PrivacyPage() {
   return (
-    <StaticPageLayout title="Privacy Policy" updatedAt="21 settembre 2026">
+    <StaticPageLayout percorso="/privacy" title="Privacy Policy" updatedAt="21 settembre 2026">
       <p className="font-montserrat text-[14px] text-white/85 leading-relaxed">
         La presente informativa descrive le modalità di trattamento dei dati personali degli
         utenti che consultano Lastcorner.net (di seguito, il &ldquo;Sito&rdquo;), in conformità

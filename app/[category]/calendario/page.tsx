@@ -8,7 +8,11 @@ import AdSlot from '@/components/AdSlot'
 import { getCurrentSchedule } from '@/lib/f1api'
 import { getCategoryConfig } from '@/lib/categories'
 import { FLAG_CODES, COUNTRY_COLORS } from '@/components/NextEventSection'
-import { metadati } from '@/lib/seo'
+import { metadati, SITE_URL } from '@/lib/seo'
+import Briciole from '@/components/Briciole'
+import { jsonLd } from '@/lib/jsonLd'
+import { grafo } from '@/lib/datiStrutturati'
+import { nomeGp } from '@/lib/telemetria'
 
 const AD_EVERY_N_ROUNDS = 6
 
@@ -48,6 +52,48 @@ function formatDateRange(firstPractice: string | undefined, raceDate: string): s
   return `${startLabel} — ${endLabel}`
 }
 
+/** Un SportsEvent per Gran Premio: nome, date (dalle prime libere alla gara),
+ *  circuito e stato. Dice a Google che la pagina e' un calendario di eventi
+ *  veri, con luogo e data, e non un elenco di testo qualsiasi. */
+function datiCalendario(races: any[], season: number) {
+  return grafo(
+    ...races.map((race) => {
+      const inizio = race.FirstPractice
+        ? `${race.FirstPractice.date}T${race.FirstPractice.time ?? '00:00:00Z'}`
+        : `${race.date}T${race.time ?? '13:00:00Z'}`
+      const gp = nomeGp(race.raceName ?? '')
+      const luogo = race.Circuit?.Location
+      return {
+        '@type': 'SportsEvent',
+        name: `Formula 1 ${gp} ${season}`,
+        description: `Round ${race.round} del Mondiale di Formula 1 ${season}${
+          race.Circuit?.circuitName ? `, sul circuito ${race.Circuit.circuitName}` : ''
+        }.`,
+        sport: 'Formula 1',
+        startDate: inizio,
+        endDate: `${race.date}T${race.time ?? '13:00:00Z'}`,
+        eventStatus: 'https://schema.org/EventScheduled',
+        eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+        location: {
+          '@type': 'Place',
+          name: race.Circuit?.circuitName,
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: luogo?.locality,
+            addressCountry: luogo?.country,
+          },
+          geo:
+            luogo?.lat && luogo?.long
+              ? { '@type': 'GeoCoordinates', latitude: Number(luogo.lat), longitude: Number(luogo.long) }
+              : undefined,
+        },
+        organizer: { '@type': 'Organization', name: 'Formula 1', url: 'https://www.formula1.com' },
+        url: `${SITE_URL}/formula-1/calendario`,
+      }
+    })
+  )
+}
+
 export default async function CalendarioPage({ params }: PageProps) {
   const config = getCategoryConfig(params.category)
   if (!config || params.category !== 'formula-1') notFound()
@@ -60,6 +106,13 @@ export default async function CalendarioPage({ params }: PageProps) {
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
       <main className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
+        <Briciole voci={[{ nome: `Calendario ${config.label}`, percorso: `/${config.slug}/calendario` }]} />
+        {races.length > 0 && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: jsonLd(datiCalendario(races, season)) }}
+          />
+        )}
         <div className="flex items-center gap-3 mb-10">
           <div className="w-1 h-8 bg-lc-red rounded-full shrink-0" />
           <h1 className="font-akira font-extrabold text-[22px] lg:text-[28px] text-white leading-tight uppercase">

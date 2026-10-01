@@ -16,7 +16,10 @@ import { getDriverBio } from '@/lib/driverBios'
 import { getCategoryConfig } from '@/lib/categories'
 import { getArticoliConTag } from '@/lib/sanity/articles'
 import type { RosterDriver } from '@/lib/rosterTypes'
-import { metadati, sigla } from '@/lib/seo'
+import { metadati, sigla, SITE_URL } from '@/lib/seo'
+import Briciole from '@/components/Briciole'
+import { jsonLd } from '@/lib/jsonLd'
+import { grafo } from '@/lib/datiStrutturati'
 
 // Nessuna scadenza dichiarata qui. Per la Formula 1 pero' la pagina si
 // rigenera ogni ora: legge i dati F1 da Jolpica con revalidate 3600, e in
@@ -73,6 +76,37 @@ export async function generateMetadata({ params }: DriverPageProps): Promise<Met
   })
 }
 
+/** ProfilePage con il pilota come Person: e' il tipo che Google usa per le
+ *  pagine dedicate a una persona. Data di nascita e Wikipedia (sameAs) ci
+ *  sono solo per la F1, dove arrivano da Jolpica; il team come SportsTeam
+ *  collega la pagina pilota a quella della squadra. */
+function datiPilota(driver: RosterDriver, slug: string, categoria: string) {
+  const url = `${SITE_URL}/${slug}/piloti/${driver.driverId}`
+  return grafo({
+    '@type': 'ProfilePage',
+    '@id': url,
+    url,
+    inLanguage: 'it-IT',
+    mainEntity: {
+      '@type': 'Person',
+      name: `${driver.givenName} ${driver.familyName}`,
+      givenName: driver.givenName,
+      familyName: driver.familyName,
+      birthDate: driver.dataNascita || undefined,
+      jobTitle: `Pilota di ${categoria}`,
+      sameAs: driver.wikipedia ? [driver.wikipedia] : undefined,
+      memberOf: driver.teamName
+        ? {
+            '@type': 'SportsTeam',
+            name: driver.teamName,
+            url: `${SITE_URL}/${slug}/team/${driver.teamId}`,
+            sport: categoria,
+          }
+        : undefined,
+    },
+  })
+}
+
 function StatTile({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="bg-lc-card rounded-card-sm border border-white/10 py-4 px-3 text-center">
@@ -109,16 +143,16 @@ export default async function DriverPage({ params }: DriverPageProps) {
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
       <main className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
-        {/* Breadcrumb */}
-        <nav aria-label="Percorso" className="font-montserrat text-[11px] text-lc-subtle mb-6 flex items-center gap-2 flex-wrap">
-          <Link href="/" className="hover:text-lc-red transition-colors duration-200">Home</Link>
-          <span className="opacity-50">/</span>
-          <Link href={`/${config.slug}/piloti`} className="hover:text-lc-red transition-colors duration-200">
-            {config.etichettaPiloti ?? 'Piloti'} {config.label}
-          </Link>
-          <span className="opacity-50">/</span>
-          <span className="text-white/60">{fullName}</span>
-        </nav>
+        <Briciole
+          voci={[
+            { nome: `${config.etichettaPiloti ?? 'Piloti'} ${config.label}`, percorso: `/${config.slug}/piloti` },
+            { nome: fullName, percorso: `/${config.slug}/piloti/${driver.driverId}` },
+          ]}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLd(datiPilota(driver, config.slug, config.label)) }}
+        />
 
         {/* Header */}
         <div className="relative bg-lc-card rounded-card border border-white/10 overflow-hidden p-6 lg:p-8 mb-10">

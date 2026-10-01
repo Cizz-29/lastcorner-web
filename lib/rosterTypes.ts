@@ -21,6 +21,10 @@ export interface RosterDriver {
    *  hanno uno, quindi entrambi i campi sono opzionali. */
   supportingTeamName?: string
   supportingTeamId?: string
+  /** Solo F1 (Jolpica): data di nascita AAAA-MM-GG e voce di Wikipedia.
+   *  Servono ai dati strutturati della pagina pilota. */
+  dataNascita?: string
+  wikipedia?: string
 }
 
 export interface RosterTeam {
@@ -30,4 +34,6 @@ export interface RosterTeam {
   position?: string
   points?: string
   wins?: string
+  /** Solo F1 (Jolpica): voce di Wikipedia del team. */
+  wikipedia?: string
 }

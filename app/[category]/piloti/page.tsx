@@ -11,6 +11,7 @@ import { getRosterDrivers } from '@/lib/rosterData'
 import { CATEGORIES, getCategoryConfig } from '@/lib/categories'
 import type { RosterDriver } from '@/lib/rosterTypes'
 import { metadati } from '@/lib/seo'
+import Briciole from '@/components/Briciole'
 
 const AD_EVERY_N_ROWS = 3 // ogni 3 righe da 3 card (grid-cols-3 su desktop)
 const CARDS_PER_AD_BLOCK = AD_EVERY_N_ROWS * 3
@@ -56,6 +57,7 @@ export default async function DriversOverviewPage({ params }: PageProps) {
     <div className="min-h-screen bg-lc-bg flex flex-col">
       <Navbar />
       <main className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
+        <Briciole voci={[{ nome: `${config.etichettaPiloti ?? 'Piloti'} ${config.label}`, percorso: `/${config.slug}/piloti` }]} />
         <div className="flex items-center gap-3 mb-10">
           <div className="w-1 h-8 bg-lc-red rounded-full shrink-0" />
           <h1 className="font-akira font-extrabold text-[22px] lg:text-[28px] text-white leading-tight uppercase">

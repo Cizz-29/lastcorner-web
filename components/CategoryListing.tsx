@@ -10,6 +10,7 @@ import { ArticleCardGrid, ArticleCardSmall } from '@/components/ArticleCard'
 import { getAllArticles } from '@/lib/sanity/articles'
 import { getCategoryConfig } from '@/lib/categories'
 import { ANNUNCIO_OGNI_N_CARD, fettaElenco } from '@/lib/paginazione'
+import Briciole from '@/components/Briciole'
 
 interface CategoryListingProps {
   categorySlug: string
@@ -33,6 +34,7 @@ export default async function CategoryListing({ categorySlug, pagina }: Category
       <Navbar />
 
       <main id="main-content" className="max-w-[1280px] w-full mx-auto px-4 sm:px-8 lg:px-20 pt-[96px] flex-1">
+        <Briciole voci={[{ nome: config.label, percorso: `/${config.slug}` }]} />
         <div className="flex items-center gap-3 mb-8">
           <div className="w-1 h-8 bg-lc-red rounded-full shrink-0" />
           <h1 className="font-akira font-extrabold text-[22px] lg:text-[28px] text-white leading-tight uppercase">

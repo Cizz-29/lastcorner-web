@@ -10,7 +10,7 @@ export const metadata: Metadata = metadati({
 
 export default function CookiePage() {
   return (
-    <StaticPageLayout title="Cookie Policy" updatedAt="21 settembre 2026">
+    <StaticPageLayout percorso="/cookie" title="Cookie Policy" updatedAt="21 settembre 2026">
       <p className="font-montserrat text-[14px] text-white/85 leading-relaxed">
         Questa pagina descrive i cookie e le tecnologie simili utilizzate da Lastcorner.net
         (il &ldquo;Sito&rdquo;) e le opzioni a disposizione degli utenti per gestirli, in
