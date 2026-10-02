@@ -229,12 +229,20 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               </p>
             )}
 
-            {/* Data con l'ora, l'eventuale aggiornamento, l'autore e i minuti
-                di lettura. Prima c'era solo "29 settembre": niente ora, niente
-                <time> leggibile dalle macchine, nessun segno degli
-                aggiornamenti. */}
+            {/* Data, autore e minuti di lettura.
+                Con un aggiornamento dichiarato (campo "Aggiornato il") la data
+                in evidenza e' quella dell'aggiornamento, e la pubblicazione
+                scende sulla riga sotto: e' la data che conta per chi legge un
+                pezzo che cambia nel weekend (orari, risultati), e Google tende
+                a mostrare nell'anteprima la data piu' in vista della pagina.
+                Entrambe restano scritte, come Google raccomanda, e nei dati
+                strutturati vanno come datePublished e dateModified. */}
             <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[13px] font-montserrat text-lc-subtle mb-5">
-              {pubblicato && article.publishedAt ? (
+              {aggiornato && article.aggiornatoIl ? (
+                <span className="text-white font-semibold">
+                  Aggiornato il <time dateTime={article.aggiornatoIl}>{aggiornato}</time>
+                </span>
+              ) : pubblicato && article.publishedAt ? (
                 <time dateTime={article.publishedAt}>{pubblicato}</time>
               ) : (
                 <span>{article.date}</span>
@@ -252,9 +260,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   <span>{minuti} min di lettura</span>
                 </>
               )}
-              {aggiornato && article.aggiornatoIl && (
+              {aggiornato && article.aggiornatoIl && pubblicato && article.publishedAt && (
                 <span className="basis-full text-lc-muted">
-                  Aggiornato il <time dateTime={article.aggiornatoIl}>{aggiornato}</time>
+                  Pubblicato il <time dateTime={article.publishedAt}>{pubblicato}</time>
                 </span>
               )}
             </div>
