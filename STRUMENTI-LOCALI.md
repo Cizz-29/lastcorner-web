@@ -27,32 +27,39 @@ appena elaborato prima di pubblicarlo:
 
 Per chiudere, chiudi la finestra nera intitolata "Lastcorner locale".
 
-## Aggiornamento automatico
+## Aggiornamento automatico (dal PC)
 
-`.github/workflows/telemetria.yml` gira ogni ora da venerdì a lunedì (UTC).
-Ogni volta `scripts/telemetry/serve_aggiornare.py` confronta il calendario
-(Jolpica) con `public/telemetria-data/index.json`: se una sessione è finita
-da almeno 40 minuti e sul sito non c'è ancora, la elabora **da sola** (le
-sessioni dei giorni prima non si toccano), committa come `telemetria-bot` e
-Vercel fa il deploy. Se l'archivio F1 non ha ancora i dati non succede
-nulla e si riprova all'ora dopo, per 36 ore al massimo.
+**Si installa una volta sola**: doppio clic su
+`scripts\telemetry\installa-telemetria-automatica.bat`. Registra
+nell'Utilità di pianificazione di Windows l'attività "Lastcorner Telemetria",
+che ogni 30 minuti lancia (senza finestre) `aggiorna-telemetria.bat`:
 
-In pratica: un'ora o due dopo la fine di ogni sessione i dati sono online.
+1. `serve_aggiornare.py` confronta il calendario (Jolpica) con
+   `public/telemetria-data/index.json`: c'è una sessione finita da almeno 40
+   minuti e non ancora sul sito?
+2. se sì: `git pull --rebase`, elaborazione di **quella** sessione con FastF1,
+   commit e push. Vercel pubblica da solo.
+3. se l'archivio F1 non ha ancora i dati non succede nulla, e mezz'ora dopo
+   si riprova (per 36 ore al massimo).
 
-**Conseguenza importante**: nei weekend di gara il bot fa commit su `main`.
-Prima di ogni tuo push:
+Funziona **solo con il PC acceso e la sessione Windows aperta**. Il registro
+di ogni esecuzione è in `scripts\telemetry\automatico.log`.
 
-```
-git pull --rebase
-```
+Per toglierla: `schtasks /Delete /TN "Lastcorner Telemetria" /F`
 
-Altrimenti il push viene rifiutato ("rejected, fetch first").
+### Perché non da GitHub
 
-Per lanciarlo a mano: GitHub → Actions → **Telemetria** → *Run workflow*,
-con il round (es. `16`) ed eventualmente le sole sessioni (es. `Q,R`).
+Il 2 ottobre 2026 (FP1 e FP2 di Sepang) il workflow su GitHub Actions ha
+girato ma FastF1 non ha ricevuto nulla dall'archivio della F1 ("Failed to
+load timing data"): l'archivio non risponde ai server di GitHub, mentre dal PC
+e dal cloud di Claude sì. In più GitHub aveva saltato per ore le esecuzioni
+programmate. Il workflow `.github/workflows/telemetria.yml` resta solo per il
+lancio a mano. Le **statistiche F1** invece girano su GitHub senza problemi
+(Jolpica non blocca nessuno).
 
-Se su GitHub il job fallisce scaricando i dati (l'archivio F1 a volte
-blocca gli indirizzi dei server), si torna allo script sul PC qui sotto.
+Il commit che arriva dal PC porta il tuo nome; quello delle statistiche
+(`statistiche-bot`) arriva da GitHub dopo le gare: prima di un tuo push a
+mano resta valido `git pull --rebase`.
 
 ## Elaborare un weekend di telemetria a mano
 

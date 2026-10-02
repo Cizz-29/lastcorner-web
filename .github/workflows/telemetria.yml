@@ -24,13 +24,11 @@
 name: Telemetria
 
 on:
-  schedule:
-    # Ogni mezz'ora e non ogni ora: GitHub non garantisce gli orari dei
-    # cron, li ritarda anche di un'ora e a volte ne salta qualcuno (il 2
-    # ottobre 2026, dopo le FP1 di Sepang, per due ore non e' partito niente).
-    # Con due tentativi l'ora un salto costa mezz'ora invece di un'ora o due.
-    # Il controllo senza nulla da fare dura una decina di secondi.
-    - cron: '20,50 * * * 5,6,0,1'
+  # NIENTE PIU' "schedule": dal 2 ottobre 2026 l'aggiornamento automatico
+  # gira sul PC (scripts/telemetry/aggiorna-telemetria.bat). Prova fatta
+  # sulle FP1 e FP2 di Sepang: dai server di GitHub l'archivio della F1 non
+  # restituisce nulla ("Failed to load timing data"), dal PC e dal cloud si'.
+  # Il lancio a mano resta, se un giorno l'archivio smettesse di bloccarli.
   workflow_dispatch:
     inputs:
       round:
