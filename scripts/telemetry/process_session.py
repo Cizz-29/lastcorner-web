@@ -147,11 +147,139 @@ def costruisci_telemetria(
         mezzo = np.linspace(1, len(indici) - 2, punti - 2).astype(int)
         indici = np.concatenate([[0], np.unique(mezzo), [len(t) - 1]])
 
-    return t[indici], distanza[indici], indici, tieni
+    return t[indici], distanza[indici], indici, tieni, t, distanza
 
 
-def telemetria_del_giro(lap, punti: int = TELEMETRY_POINTS) -> dict | None:
-    """Telemetria di un giro nel formato atteso dal sito."""
+# --- Distanza: velocita' + posizione + settori -----------------------------
+#
+# Il delta fra due giri si calcola confrontando i tempi a parita' di punto
+# della pista, quindi tutto dipende da quanto bene sappiamo DOVE era la
+# macchina a ogni istante. Fino al 2 ottobre 2026 lo si ricavava solo
+# integrando la velocita': forma locale ottima, ma un errore che si accumula
+# lungo il giro e diverso per ogni pilota. Il risultato si vedeva nelle
+# curve lente: sulle libere 2 di Sepang il delta dava Hadjar quasi un secondo
+# avanti a Leclerc alla curva 9, dove il cronometro dice 0,2.
+#
+# Ora la distanza combina tre fonti:
+#   1. la velocita' integrata, per la forma fine (frenate, trazione);
+#   2. la posizione GPS (X, Y), proiettata su una linea di riferimento comune
+#      a tutti i giri della sessione: non accumula errori, ma e' rumorosa, e
+#      quindi se ne usa solo l'andamento lento (media mobile di ~3 s) per
+#      correggere la deriva dell'integrale;
+#   3. i tempi di settore del cronometro, esatti: il punto in cui il pilota
+#      passa sul traguardo di settore viene fissato alla stessa posizione per
+#      tutti i giri, cosi' il delta passa esattamente per i distacchi
+#      ufficiali.
+#
+# Misurato su 3 sessioni (Sepang FP2, Baku Q, Monza Q), confrontando la curva
+# con i tempi di settore: errore medio 0,19 / 0,09 / 0,44 s con il solo
+# integrale, 0,06 / 0,04 / 0,08 s con velocita' + posizione. Ancorando il
+# primo settore e misurando il secondo: 0,03-0,06 s.
+
+PASSO_RIFERIMENTO = 0.5  # metri fra due punti della linea di riferimento
+FINESTRA_CORREZIONE = 13  # campioni (~3 s) della media mobile sulla deriva
+
+
+def linea_di_riferimento(session):
+    """Il percorso del giro piu' veloce della sessione, in metri, ricampionato
+    ogni PASSO_RIFERIMENTO: e' la "pista" su cui si proiettano tutti i giri."""
+    # pick_fastest() scarta i giri che FastF1 giudica "non accurati", e a
+    # volte li scarta tutti (Monaco 2026, gara): allora si prova dal giro
+    # cronometrato piu' veloce in giu' finche' uno ha la posizione GPS.
+    candidati = []
+    try:
+        candidati.append(session.laps.pick_fastest())
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        candidati += [g for _, g in session.laps.dropna(subset=["LapTime"]).sort_values("LapTime").head(10).iterrows()]
+    except Exception:  # noqa: BLE001
+        pass
+    pos, durata = None, None
+    for giro in candidati:
+        try:
+            if giro is None or secondi(giro["LapTime"]) is None:
+                continue
+            pos = giro.get_pos_data()
+            durata = secondi(giro["LapTime"])
+            if pos is not None and len(pos) >= 50:
+                break
+        except Exception:  # noqa: BLE001
+            pos = None
+    if pos is None or len(pos) < 50 or durata is None:
+        return None
+    t = pos["Time"].dt.total_seconds().to_numpy()
+    tieni = (t >= 0) & (t <= durata)
+    x = pos["X"].to_numpy(dtype=float)[tieni] / 10
+    y = pos["Y"].to_numpy(dtype=float)[tieni] / 10
+    if len(x) < 50:
+        return None
+    s = np.concatenate([[0.0], np.cumsum(np.hypot(np.diff(x), np.diff(y)))])
+    ss = np.arange(0, s[-1], PASSO_RIFERIMENTO)
+    return np.interp(ss, s, x), np.interp(ss, s, y), ss
+
+
+def distanza_fusa(lap, t: np.ndarray, distanza: np.ndarray, durata: float, rif) -> np.ndarray | None:
+    """Distanza integrata (sui tempi t) corretta con la posizione GPS.
+
+    Ogni campione di posizione si proietta sul tratto della linea di
+    riferimento vicino a dove la velocita' integrata dice che dovrebbe
+    essere (+-150 m): cosi' non si salta mai su un altro pezzo di pista che
+    passa vicino (Suzuka, Baku). La differenza fra le due distanze, lisciata,
+    e' la deriva da togliere all'integrale."""
+    if rif is None:
+        return None
+    rx, ry, rs = rif
+    try:
+        pos = lap.get_pos_data()
+    except Exception:  # noqa: BLE001
+        return None
+    if pos is None or len(pos) < 20:
+        return None
+    pt = pos["Time"].dt.total_seconds().to_numpy()
+    tieni = (pt >= 0) & (pt <= durata)
+    pt = pt[tieni]
+    px = pos["X"].to_numpy(dtype=float)[tieni] / 10
+    py = pos["Y"].to_numpy(dtype=float)[tieni] / 10
+    if len(pt) < 20 or distanza[-1] <= 0:
+        return None
+
+    lunghezza = float(rs[-1])
+    scala = lunghezza / float(distanza[-1])
+    finestra = int(150 / PASSO_RIFERIMENTO)
+    n = len(rx)
+    attese = np.interp(pt, t, distanza) * scala
+    proiettate = np.empty(len(pt))
+    for k in range(len(pt)):
+        j0 = int(attese[k] / PASSO_RIFERIMENTO)
+        cand = np.arange(max(0, j0 - finestra), min(n, j0 + finestra))
+        if len(cand) == 0:
+            cand = np.arange(max(0, n - finestra), n)
+        j = cand[np.argmin((rx[cand] - px[k]) ** 2 + (ry[cand] - py[k]) ** 2)]
+        j2 = min(j + 1, n - 1)
+        bx, by = rx[j2] - rx[j], ry[j2] - ry[j]
+        q = bx * bx + by * by
+        u = 0.0 if q == 0 else min(1.0, max(0.0, ((px[k] - rx[j]) * bx + (py[k] - ry[j]) * by) / q))
+        proiettate[k] = rs[j] + u * (rs[j2] - rs[j])
+
+    deriva = proiettate - attese
+    w = FINESTRA_CORREZIONE
+    liscia = np.convolve(np.pad(deriva, (w // 2, w // 2), mode="edge"), np.ones(w) / w, "valid")
+    fusa = distanza * scala + np.interp(t, pt, liscia)
+    # Traguardo a 0 e a fine giro, e mai all'indietro.
+    fusa = fusa - fusa[0]
+    fusa = fusa * (lunghezza / fusa[-1]) if fusa[-1] > 0 else fusa
+    return np.maximum.accumulate(fusa)
+
+
+def telemetria_del_giro(lap, punti: int = TELEMETRY_POINTS, rif=None) -> dict | None:
+    """Telemetria di un giro nel formato atteso dal sito.
+
+    Con `rif` (la linea di riferimento della sessione) la distanza e' quella
+    corretta con la posizione GPS; senza, solo la velocita' integrata. Nel
+    campo interno "_settori" restano le distanze a cui il giro passa sui due
+    traguardi di settore: servono ad allineare i giri fra loro (vedi
+    allinea_ai_settori) e non finiscono nel file."""
     durata = secondi(lap["LapTime"])
     if durata is None:
         return None
@@ -164,10 +292,26 @@ def telemetria_del_giro(lap, punti: int = TELEMETRY_POINTS) -> dict | None:
 
     tempi = car["Time"].dt.total_seconds().to_numpy()
     vel = car["Speed"].to_numpy(dtype=float)
+    # Giri con la telemetria vuota: l'archivio a volte pubblica la velocita'
+    # tutta a zero (FP1 Cina 2026, mezza griglia). Finivano sul sito come
+    # linee piatte a zero; ora si contano fra i "giri persi".
+    if np.nanmax(vel) < 50:
+        return None
     esito = costruisci_telemetria(vel, tempi, durata, punti)
     if esito is None:
         return None
-    t, distanza, indici, tieni = esito
+    t, distanza, indici, tieni, t_pieno, d_pieno = esito
+
+    fusa = distanza_fusa(lap, t_pieno, d_pieno, durata, rif)
+    if fusa is not None:
+        d_pieno = fusa
+        distanza = fusa[indici]
+    settori = []
+    for colonna in ("Sector1Time", "Sector2Time"):
+        istante = secondi(lap[colonna])
+        settori.append(istante)
+    cum = [settori[0], (settori[0] + settori[1]) if None not in settori else None]
+    ancore = [float(np.interp(c, t_pieno, d_pieno)) if c is not None and 0 < c < durata else None for c in cum]
 
     def canale(colonna, tipo):
         grezzo = car[colonna].to_numpy()
@@ -185,7 +329,30 @@ def telemetria_del_giro(lap, punti: int = TELEMETRY_POINTS) -> dict | None:
         "brake": canale("Brake", lambda x: 1 if bool(x) else 0),
         "gear": canale("nGear", lambda x: int(x)),
         "time": [round(float(x), 3) for x in t],
+        "_settori": ancore,
     }
+
+
+def allinea_ai_settori(giri: list[dict]) -> None:
+    """Fissa i traguardi di settore alla stessa distanza per tutti i giri.
+
+    La posizione di ciascun traguardo e' la mediana di dove i giri della
+    sessione ci passano (secondo la distanza fusa); poi ogni giro viene
+    stirato a tratti (0 -> S1 -> S2 -> fine) perche' ci passi esattamente.
+    Cosi' il delta coincide con i distacchi ufficiali ai settori e l'errore
+    residuo resta confinato dentro ciascun settore."""
+    validi = [g for g in giri if g.get("_settori") and None not in g["_settori"]]
+    if len(validi) >= 2:
+        traguardi = [float(np.median([g["_settori"][i] for g in validi])) for i in range(2)]
+        for g in validi:
+            fine = g["distance"][-1]
+            da = [0.0, g["_settori"][0], g["_settori"][1], fine]
+            a = [0.0, traguardi[0], traguardi[1], fine]
+            if not (da[0] < da[1] < da[2] < da[3] and a[0] < a[1] < a[2] < a[3]):
+                continue
+            g["distance"] = [round(float(x), 1) for x in np.interp(g["distance"], da, a)]
+    for g in giri:
+        g.pop("_settori", None)
 
 
 # --- Anagrafiche -----------------------------------------------------------
@@ -320,6 +487,10 @@ def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
     gara = bool(spec.get("gara"))
     punti = TELEMETRY_POINTS_GARA if gara else TELEMETRY_POINTS
 
+    rif = linea_di_riferimento(session)
+    if rif is None:
+        print(f"  [{spec['key']}] posizione GPS non disponibile: distanza dalla sola velocita'")
+
     cronometrati: dict = {}
     for _, lap in giri.iterrows():
         numero = str(lap["DriverNumber"] or "").strip()
@@ -339,12 +510,15 @@ def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
     ordinati = sorted(cronometrati.items(), key=lambda kv: min(d for d, _ in kv[1]))
     persi = 0
     piloti_tel = []
+    # I file dei piloti si scrivono alla fine: prima tutti i giri vanno
+    # allineati ai traguardi di settore, che si stimano da tutti insieme.
+    da_scrivere: dict = {}
     for posizione, (numero, elenco) in enumerate(ordinati, start=1):
         elenco.sort(key=lambda x: x[0])
         per_giro: dict = {}
         schede = []
         for durata, lap in elenco[:massimo]:
-            tel = telemetria_del_giro(lap, punti)
+            tel = telemetria_del_giro(lap, punti, rif)
             if tel is None:
                 persi += 1
                 continue
@@ -377,7 +551,7 @@ def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
         # In gara i giri si elencano in ordine, dal primo all'ultimo; altrove
         # dal piu' veloce, che e' quello che si cerca.
         schede.sort(key=lambda l: l["lap"] if gara else l["time"])
-        save_json(out_dir / "tel" / f"{numero}.json", per_giro)
+        da_scrivere[numero] = per_giro
         piloti_tel.append(
             {
                 **scheda(numero),
@@ -391,6 +565,15 @@ def elabora_sessione(session, spec: dict, base: Path) -> dict | None:
                 "laps": schede,
             }
         )
+
+    allinea_ai_settori([g for per_giro in da_scrivere.values() for g in per_giro.values()])
+    # Via i file dei piloti di un'elaborazione precedente: un pilota che ora
+    # non ha giri validi lascerebbe sul sito la sua telemetria vecchia.
+    for vecchio in (out_dir / "tel").glob("*.json") if (out_dir / "tel").is_dir() else []:
+        if int(vecchio.stem) not in da_scrivere:
+            vecchio.unlink()
+    for numero, per_giro in da_scrivere.items():
+        save_json(out_dir / "tel" / f"{numero}.json", per_giro)
 
     if gara:
         piloti_tel.sort(key=lambda d: d["position"])

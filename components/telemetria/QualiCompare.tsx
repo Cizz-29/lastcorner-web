@@ -750,17 +750,14 @@ export default function QualiCompare({
 
   // Delta cumulato rispetto alla prima traccia.
   //
-  // Il confronto avviene alla stessa FRAZIONE di giro, non alla stessa
-  // distanza in metri. La distanza non e' un dato di OpenF1: si ricava
-  // integrando la velocita', e due giri dello stesso tracciato finiscono con
-  // lunghezze che differiscono di qualche decina di metri. Confrontandoli a
-  // metri uguali si mettevano a confronto punti diversi della pista, e a 300
-  // km/h quaranta metri di disallineamento valgono mezzo secondo di delta
-  // inventato, con picchi assurdi nelle staccate dove la velocita' cambia in
-  // fretta.
-  //
-  // A frazioni uguali i due giri sono allineati per costruzione all'inizio e
-  // al traguardo, quindi il delta finale coincide con il distacco
+  // Il confronto avviene alla stessa FRAZIONE di giro. La distanza arriva gia'
+  // pronta dalla pipeline (scripts/telemetry/process_session.py): velocita'
+  // integrata, corretta con la posizione GPS e ancorata ai traguardi di
+  // settore, con la stessa lunghezza per tutti i giri della sessione. Qui la
+  // frazione serve solo a non dipendere da quella lunghezza: i dati generati
+  // prima del 2 ottobre 2026 (solo velocita' integrata) hanno lunghezze
+  // diverse da giro a giro, e a frazioni uguali restano comunque allineati
+  // al via e al traguardo, quindi il delta finale coincide con il distacco
   // cronometrato. L'asse resta etichettato in metri, con la lunghezza della
   // traccia di riferimento.
   const delta = useMemo(() => {

@@ -132,12 +132,24 @@ Misurato sullo stesso confronto, con i tempi di settore come metro:
 Spostando i tempi OpenF1 di quei 0,06 s si ottiene la curva FastF1 quasi al
 millesimo: la differenza è tutta lì.
 
-Resta un limite che nessuna elaborazione toglie: a una curva da 70 km/h il
-delta conserva un'incertezza di circa ±0,15 s, perché la distanza non è un
-dato misurato da nessuna fonte — si ricava integrando la velocità. Ai
-traguardi di settore invece siamo esatti a ±0,02 s, ed è per questo che ora
-i tempi di settore finiscono in `laps.json`: sono il riferimento con cui
-verificare il grafico.
+### Come si calcola la distanza (dal 2 ottobre 2026)
+
+La distanza non è un dato misurato da nessuna fonte. Prima la si ricavava
+solo integrando la velocità, e l'errore si accumulava lungo il giro: sulle
+FP2 di Sepang il delta dava Hadjar un secondo avanti a Leclerc alla curva 9,
+dove il cronometro dice 0,2. Ora `process_session.py` combina:
+
+1. velocità integrata (forma fine di frenate e trazioni);
+2. posizione GPS proiettata su una linea comune a tutta la sessione (il giro
+   più veloce), di cui si usa solo l'andamento lento per togliere la deriva;
+3. tempi di settore: ogni giro passa sui traguardi di settore alla stessa
+   distanza, quindi lì il delta coincide con i distacchi ufficiali.
+
+Verificato su Sepang FP2, Baku Q e Monza Q: errore medio della curva ai
+traguardi di settore da 0,09-0,44 s a 0,04-0,08 s prima dell'ancoraggio;
+ancorando il primo settore, l'errore misurato al secondo è 0,03-0,06 s.
+Alle curve lente resta qualche decimo di incertezza, ma non più l'errore
+che cresce lungo il giro.
 
 ## Pubblicare un weekend
 
