@@ -13,7 +13,8 @@ import { metadati } from '@/lib/seo'
 import Briciole from '@/components/Briciole'
 
 // Nessuna scadenza dichiarata qui. Per la Formula 1 pero' la pagina si
-// rigenera ogni ora: legge i dati F1 da Jolpica con revalidate 3600, e in
+// rigenera ogni 12 ore (e a ogni deploy, che dopo ogni gara arriva da solo:
+// vedi lib/f1api.ts): legge i dati F1 da Jolpica con revalidate 43200, e in
 // Next 14 vale la frequenza piu' alta fra quella della pagina e quella dei
 // suoi fetch (verificabile in .next/prerender-manifest.json). Per le altre
 // categorie, che leggono il roster statico, si aggiorna al deploy o quando

@@ -1,5 +1,13 @@
 // Tutte le chiamate API F1 - Jolpica (gratuita, no API key)
-// Cache Next.js: revalidate ogni ora
+//
+// Cache: 12 ore. Fino al 2 ottobre 2026 era un'ora, e ogni pagina F1 si
+// rigenerava ogni ora anche a meta' settimana, quando la classifica non si
+// muove. Ora i dati freschi arrivano in un altro modo: dopo ogni gara e ogni
+// sprint il workflow .github/workflows/statistiche.yml aggiorna
+// data/statistiche-f1.json (che contiene anche la classifica), e il commit fa
+// ripartire il deploy, che rigenera tutte le pagine con i dati nuovi. Le 12 ore
+// restano come rete di sicurezza.
+export const AGGIORNAMENTO_F1 = 43200
 
 import type { RosterDriver, RosterTeam } from './rosterTypes'
 
@@ -8,7 +16,7 @@ const BASE = 'https://api.jolpi.ca/ergast/f1'
 export async function getNextRace() {
   try {
     const res = await fetch(`${BASE}/current/next.json`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: AGGIORNAMENTO_F1 },
     })
     if (!res.ok) return null
     const data = await res.json()
@@ -22,7 +30,7 @@ export async function getNextRace() {
 export async function getCurrentSchedule() {
   try {
     const res = await fetch(`${BASE}/current.json`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: AGGIORNAMENTO_F1 },
     })
     if (!res.ok) return []
     const data = await res.json()
@@ -59,7 +67,7 @@ export interface ConstructorStanding {
 export async function getDriverStandings(): Promise<DriverStanding[]> {
   try {
     const res = await fetch(`${BASE}/current/driverStandings.json`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: AGGIORNAMENTO_F1 },
     })
     if (!res.ok) return []
     const data = await res.json()
@@ -72,7 +80,7 @@ export async function getDriverStandings(): Promise<DriverStanding[]> {
 export async function getConstructorStandings(): Promise<ConstructorStanding[]> {
   try {
     const res = await fetch(`${BASE}/current/constructorStandings.json`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: AGGIORNAMENTO_F1 },
     })
     if (!res.ok) return []
     const data = await res.json()
@@ -98,7 +106,7 @@ export async function getAllStandings() {
 export async function getDriverPodiums(driverId: string): Promise<number> {
   try {
     const res = await fetch(`${BASE}/current/drivers/${driverId}/results.json?limit=100`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: AGGIORNAMENTO_F1 },
     })
     if (!res.ok) return 0
     const data = await res.json()
@@ -117,7 +125,7 @@ export async function getDriverPodiums(driverId: string): Promise<number> {
 export async function getConstructorPodiums(constructorId: string): Promise<number> {
   try {
     const res = await fetch(`${BASE}/current/constructors/${constructorId}/results.json?limit=100`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: AGGIORNAMENTO_F1 },
     })
     if (!res.ok) return 0
     const data = await res.json()

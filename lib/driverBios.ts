@@ -1,4 +1,5 @@
 import { sanityClient } from '@/lib/sanity/client'
+import type { Personalizzazioni } from '@/lib/domandeRapide'
 
 // Testi biografici dei piloti. Prima si controlla Sanity (documento
 // driverBio con lo stesso driverId, ora con editor a blocchi come gli
@@ -42,4 +43,18 @@ export async function getDriverBio(driverId: string): Promise<any[]> {
     // Sanity irraggiungibile o non ancora configurato: si passa al fallback statico.
   }
   return toBlocks(DRIVER_BIOS[driverId] ?? PLACEHOLDER)
+}
+
+/** Domande rapide spente o riscritte a mano nello Studio (campo
+ *  "Domande rapide" della scheda). Vuoto se la scheda non esiste. */
+export async function getPersonalizzazioniPilota(id: string): Promise<Personalizzazioni> {
+  try {
+    const doc = await sanityClient.fetch<{ domandeRapide?: Personalizzazioni } | null>(
+      `*[_type == "driverBio" && lower(driverId) == $id][0]{ domandeRapide }`,
+      { id: id.toLowerCase() }
+    )
+    return doc?.domandeRapide ?? {}
+  } catch {
+    return {}
+  }
 }

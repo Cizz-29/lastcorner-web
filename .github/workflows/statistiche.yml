@@ -1,0 +1,67 @@
+# Statistiche F1 per le "domande rapide" delle schede pilota e team, e
+# classifica aggiornata dopo ogni gara e ogni sprint.
+#
+# scripts/statistiche/aggiorna.py riscarica da Jolpica la stagione in corso
+# (una dozzina di richieste: lo storico e' gia' nel repository), ricalcola
+# vittorie, podi, pole, Mondiali e scrive data/statistiche-f1.json. Se i
+# numeri sono cambiati fa un commit, e il commit fa ripartire il deploy:
+# tutte le pagine F1 si rigenerano con classifica e statistiche nuove.
+# Se non e' cambiato niente (settimana senza gare) non succede nulla.
+#
+# Orari (UTC), scelti perche' Jolpica pubblica i risultati qualche ora dopo
+# la bandiera a scacchi:
+#   sabato 19:00     dopo sprint e gare del sabato (Baku, Las Vegas il giorno dopo)
+#   domenica 18:00   dopo le gare europee e asiatiche
+#   domenica 23:30   dopo le gare americane
+#   lunedi' 09:00    recupero, se Jolpica era in ritardo
+#
+# A mano: GitHub -> Actions -> "Statistiche F1" -> Run workflow.
+
+name: Statistiche F1
+
+on:
+  schedule:
+    - cron: '0 19 * * 6'
+    - cron: '0 18 * * 0'
+    - cron: '30 23 * * 0'
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: statistiche
+  cancel-in-progress: false
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Solo libreria standard: niente da installare.
+      - name: Aggiorna le statistiche
+        run: python3 scripts/statistiche/aggiorna.py
+
+      - name: Commit
+        run: |
+          git config user.name "statistiche-bot"
+          git config user.email "actions@github.com"
+          git add data/statistiche-f1.json scripts/statistiche/storico
+          if git diff --cached --quiet; then
+            echo "Nessun numero cambiato."
+            exit 0
+          fi
+          # Niente "[skip ci]": serve proprio il deploy.
+          git commit -m "Statistiche F1 aggiornate"
+          for tentativo in 1 2 3; do
+            git fetch --depth=50 origin main
+            git rebase origin/main && git push origin HEAD:main && exit 0
+            git rebase --abort 2>/dev/null || true
+            sleep 10
+          done
+          exit 1

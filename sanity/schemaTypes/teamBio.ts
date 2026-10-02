@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { campoDomandeRapide } from './domandeRapide'
 import { LARGHEZZA_MINIMA_CORPO, larghezzaSufficiente } from './misureImmagine'
 
 export default defineType({
@@ -57,6 +58,7 @@ export default defineType({
       ],
       validation: (Rule) => Rule.required(),
     }),
+    campoDomandeRapide,
   ],
   preview: {
     select: { title: 'name', subtitle: 'constructorId' },

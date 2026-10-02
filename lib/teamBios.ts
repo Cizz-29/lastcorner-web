@@ -1,4 +1,5 @@
 import { sanityClient } from '@/lib/sanity/client'
+import type { Personalizzazioni } from '@/lib/domandeRapide'
 
 // Testi "storia/overview" dei team. Prima si controlla Sanity (documento
 // teamBio con lo stesso constructorId, ora con editor a blocchi come gli
@@ -42,4 +43,18 @@ export async function getTeamBio(constructorId: string): Promise<any[]> {
     // Sanity irraggiungibile o non ancora configurato: si passa al fallback statico.
   }
   return toBlocks(TEAM_BIOS[constructorId] ?? PLACEHOLDER)
+}
+
+/** Domande rapide spente o riscritte a mano nello Studio (campo
+ *  "Domande rapide" della scheda). Vuoto se la scheda non esiste. */
+export async function getPersonalizzazioniTeam(id: string): Promise<Personalizzazioni> {
+  try {
+    const doc = await sanityClient.fetch<{ domandeRapide?: Personalizzazioni } | null>(
+      `*[_type == "teamBio" && lower(constructorId) == $id][0]{ domandeRapide }`,
+      { id: id.toLowerCase() }
+    )
+    return doc?.domandeRapide ?? {}
+  } catch {
+    return {}
+  }
 }

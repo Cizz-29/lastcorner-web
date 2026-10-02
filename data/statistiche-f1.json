@@ -1,0 +1,1130 @@
+{
+ "aggiornato": "2026-10-02T07:01:48Z",
+ "stagione": 2026,
+ "piloti": {
+  "alonso": {
+   "gp": 440,
+   "esordio": 2001,
+   "vittorie": 32,
+   "podi": 106,
+   "pole": 22,
+   "mondiali": [
+    2005,
+    2006
+   ],
+   "primaVittoria": {
+    "anno": 2003,
+    "gara": "Hungarian Grand Prix",
+    "data": "2003-08-24"
+   },
+   "ultimaVittoria": {
+    "anno": 2013,
+    "gara": "Spanish Grand Prix",
+    "data": "2013-05-12"
+   },
+   "migliorPiazzamento": {
+    "posizione": 1,
+    "anni": [
+     2005,
+     2006
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "hamilton": {
+   "gp": 395,
+   "esordio": 2007,
+   "vittorie": 106,
+   "podi": 207,
+   "pole": 104,
+   "mondiali": [
+    2008,
+    2014,
+    2015,
+    2017,
+    2018,
+    2019,
+    2020
+   ],
+   "primaVittoria": {
+    "anno": 2007,
+    "gara": "Canadian Grand Prix",
+    "data": "2007-06-10"
+   },
+   "ultimaVittoria": {
+    "anno": 2026,
+    "gara": "Barcelona Grand Prix",
+    "data": "2026-06-14"
+   },
+   "migliorPiazzamento": {
+    "posizione": 1,
+    "anni": [
+     2008,
+     2014,
+     2015,
+     2017,
+     2018,
+     2019,
+     2020
+    ]
+   },
+   "stagione": {
+    "vittorie": 1,
+    "podi": 5,
+    "pole": 0
+   }
+  },
+  "hulkenberg": {
+   "gp": 264,
+   "esordio": 2010,
+   "vittorie": 0,
+   "podi": 1,
+   "pole": 1,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 7,
+    "anni": [
+     2018
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "perez": {
+   "gp": 296,
+   "esordio": 2011,
+   "vittorie": 6,
+   "podi": 39,
+   "pole": 3,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2020,
+    "gara": "Sakhir Grand Prix",
+    "data": "2020-12-06"
+   },
+   "ultimaVittoria": {
+    "anno": 2023,
+    "gara": "Azerbaijan Grand Prix",
+    "data": "2023-04-30"
+   },
+   "migliorPiazzamento": {
+    "posizione": 2,
+    "anni": [
+     2023
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "bottas": {
+   "gp": 261,
+   "esordio": 2013,
+   "vittorie": 10,
+   "podi": 67,
+   "pole": 20,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2017,
+    "gara": "Russian Grand Prix",
+    "data": "2017-04-30"
+   },
+   "ultimaVittoria": {
+    "anno": 2021,
+    "gara": "Turkish Grand Prix",
+    "data": "2021-10-10"
+   },
+   "migliorPiazzamento": {
+    "posizione": 2,
+    "anni": [
+     2019,
+     2020
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "sainz": {
+   "gp": 244,
+   "esordio": 2015,
+   "vittorie": 4,
+   "podi": 29,
+   "pole": 6,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2022,
+    "gara": "British Grand Prix",
+    "data": "2022-07-03"
+   },
+   "ultimaVittoria": {
+    "anno": 2024,
+    "gara": "Mexico City Grand Prix",
+    "data": "2024-10-27"
+   },
+   "migliorPiazzamento": {
+    "posizione": 5,
+    "anni": [
+     2021,
+     2022,
+     2024
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "max_verstappen": {
+   "gp": 248,
+   "esordio": 2015,
+   "vittorie": 71,
+   "podi": 134,
+   "pole": 48,
+   "mondiali": [
+    2021,
+    2022,
+    2023,
+    2024
+   ],
+   "primaVittoria": {
+    "anno": 2016,
+    "gara": "Spanish Grand Prix",
+    "data": "2016-05-15"
+   },
+   "ultimaVittoria": {
+    "anno": 2025,
+    "gara": "Abu Dhabi Grand Prix",
+    "data": "2025-12-07"
+   },
+   "migliorPiazzamento": {
+    "posizione": 1,
+    "anni": [
+     2021,
+     2022,
+     2023,
+     2024
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 7,
+    "pole": 0
+   }
+  },
+  "ocon": {
+   "gp": 195,
+   "esordio": 2016,
+   "vittorie": 1,
+   "podi": 4,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2021,
+    "gara": "Hungarian Grand Prix",
+    "data": "2021-08-01"
+   },
+   "ultimaVittoria": {
+    "anno": 2021,
+    "gara": "Hungarian Grand Prix",
+    "data": "2021-08-01"
+   },
+   "migliorPiazzamento": {
+    "posizione": 8,
+    "anni": [
+     2017,
+     2022
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "stroll": {
+   "gp": 204,
+   "esordio": 2017,
+   "vittorie": 0,
+   "podi": 3,
+   "pole": 1,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 10,
+    "anni": [
+     2023
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "gasly": {
+   "gp": 192,
+   "esordio": 2017,
+   "vittorie": 1,
+   "podi": 5,
+   "pole": 1,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2020,
+    "gara": "Italian Grand Prix",
+    "data": "2020-09-06"
+   },
+   "ultimaVittoria": {
+    "anno": 2020,
+    "gara": "Italian Grand Prix",
+    "data": "2020-09-06"
+   },
+   "migliorPiazzamento": {
+    "posizione": 7,
+    "anni": [
+     2019
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 1
+   }
+  },
+  "leclerc": {
+   "gp": 186,
+   "esordio": 2018,
+   "vittorie": 9,
+   "podi": 54,
+   "pole": 27,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2019,
+    "gara": "Belgian Grand Prix",
+    "data": "2019-09-01"
+   },
+   "ultimaVittoria": {
+    "anno": 2026,
+    "gara": "British Grand Prix",
+    "data": "2026-07-05"
+   },
+   "migliorPiazzamento": {
+    "posizione": 2,
+    "anni": [
+     2022
+    ]
+   },
+   "stagione": {
+    "vittorie": 1,
+    "podi": 4,
+    "pole": 0
+   }
+  },
+  "norris": {
+   "gp": 165,
+   "esordio": 2019,
+   "vittorie": 13,
+   "podi": 49,
+   "pole": 19,
+   "mondiali": [
+    2025
+   ],
+   "primaVittoria": {
+    "anno": 2024,
+    "gara": "Miami Grand Prix",
+    "data": "2024-05-05"
+   },
+   "ultimaVittoria": {
+    "anno": 2026,
+    "gara": "Dutch Grand Prix",
+    "data": "2026-08-23"
+   },
+   "migliorPiazzamento": {
+    "posizione": 1,
+    "anni": [
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 2,
+    "podi": 5,
+    "pole": 3
+   }
+  },
+  "albon": {
+   "gp": 142,
+   "esordio": 2019,
+   "vittorie": 0,
+   "podi": 2,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 7,
+    "anni": [
+     2020
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "russell": {
+   "gp": 167,
+   "esordio": 2019,
+   "vittorie": 8,
+   "podi": 32,
+   "pole": 12,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2022,
+    "gara": "São Paulo Grand Prix",
+    "data": "2022-11-13"
+   },
+   "ultimaVittoria": {
+    "anno": 2026,
+    "gara": "Azerbaijan Grand Prix",
+    "data": "2026-09-26"
+   },
+   "migliorPiazzamento": {
+    "posizione": 4,
+    "anni": [
+     2022,
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 3,
+    "podi": 8,
+    "pole": 5
+   }
+  },
+  "tsunoda": {
+   "gp": 115,
+   "esordio": 2021,
+   "vittorie": 0,
+   "podi": 0,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 12,
+    "anni": [
+     2024
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "piastri": {
+   "gp": 83,
+   "esordio": 2023,
+   "vittorie": 9,
+   "podi": 28,
+   "pole": 6,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2024,
+    "gara": "Hungarian Grand Prix",
+    "data": "2024-07-21"
+   },
+   "ultimaVittoria": {
+    "anno": 2025,
+    "gara": "Dutch Grand Prix",
+    "data": "2025-08-31"
+   },
+   "migliorPiazzamento": {
+    "posizione": 3,
+    "anni": [
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 2,
+    "pole": 0
+   }
+  },
+  "lawson": {
+   "gp": 50,
+   "esordio": 2023,
+   "vittorie": 0,
+   "podi": 0,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 14,
+    "anni": [
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "bearman": {
+   "gp": 42,
+   "esordio": 2024,
+   "vittorie": 0,
+   "podi": 0,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 13,
+    "anni": [
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "colapinto": {
+   "gp": 41,
+   "esordio": 2024,
+   "vittorie": 0,
+   "podi": 0,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 19,
+    "anni": [
+     2024
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "antonelli": {
+   "gp": 39,
+   "esordio": 2025,
+   "vittorie": 8,
+   "podi": 15,
+   "pole": 6,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2026,
+    "gara": "Chinese Grand Prix",
+    "data": "2026-03-15"
+   },
+   "ultimaVittoria": {
+    "anno": 2026,
+    "gara": "Spanish Grand Prix",
+    "data": "2026-09-13"
+   },
+   "migliorPiazzamento": {
+    "posizione": 7,
+    "anni": [
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 8,
+    "podi": 12,
+    "pole": 6
+   }
+  },
+  "bortoleto": {
+   "gp": 38,
+   "esordio": 2025,
+   "vittorie": 0,
+   "podi": 0,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 19,
+    "anni": [
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "hadjar": {
+   "gp": 36,
+   "esordio": 2025,
+   "vittorie": 0,
+   "podi": 3,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 12,
+    "anni": [
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 2,
+    "pole": 0
+   }
+  },
+  "arvid_lindblad": {
+   "gp": 14,
+   "esordio": 2026,
+   "vittorie": 0,
+   "podi": 0,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  }
+ },
+ "team": {
+  "ferrari": {
+   "gp": 1138,
+   "esordio": 1950,
+   "vittorie": 250,
+   "podi": 857,
+   "pole": 254,
+   "mondiali": [
+    1961,
+    1964,
+    1975,
+    1976,
+    1977,
+    1979,
+    1982,
+    1983,
+    1999,
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2007,
+    2008
+   ],
+   "primaVittoria": {
+    "anno": 1951,
+    "gara": "British Grand Prix",
+    "data": "1951-07-14"
+   },
+   "ultimaVittoria": {
+    "anno": 2026,
+    "gara": "British Grand Prix",
+    "data": "2026-07-05"
+   },
+   "migliorPiazzamento": {
+    "posizione": 1,
+    "anni": [
+     1961,
+     1964,
+     1975,
+     1976,
+     1977,
+     1979,
+     1982,
+     1983,
+     1999,
+     2000,
+     2001,
+     2002,
+     2003,
+     2004,
+     2007,
+     2008
+    ]
+   },
+   "stagione": {
+    "vittorie": 2,
+    "podi": 9,
+    "pole": 0
+   }
+  },
+  "mercedes": {
+   "gp": 356,
+   "esordio": 1954,
+   "vittorie": 142,
+   "podi": 330,
+   "pole": 154,
+   "mondiali": [
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021
+   ],
+   "primaVittoria": {
+    "anno": 1954,
+    "gara": "French Grand Prix",
+    "data": "1954-07-04"
+   },
+   "ultimaVittoria": {
+    "anno": 2026,
+    "gara": "Azerbaijan Grand Prix",
+    "data": "2026-09-26"
+   },
+   "migliorPiazzamento": {
+    "posizione": 1,
+    "anni": [
+     2014,
+     2015,
+     2016,
+     2017,
+     2018,
+     2019,
+     2020,
+     2021
+    ]
+   },
+   "stagione": {
+    "vittorie": 11,
+    "podi": 20,
+    "pole": 11
+   }
+  },
+  "aston_martin": {
+   "gp": 134,
+   "esordio": 1959,
+   "vittorie": 0,
+   "podi": 9,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 5,
+    "anni": [
+     2023,
+     2024
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "mclaren": {
+   "gp": 1008,
+   "esordio": 1966,
+   "vittorie": 205,
+   "podi": 565,
+   "pole": 180,
+   "mondiali": [
+    1974,
+    1984,
+    1985,
+    1988,
+    1989,
+    1990,
+    1991,
+    1998,
+    2024,
+    2025
+   ],
+   "primaVittoria": {
+    "anno": 1968,
+    "gara": "Belgian Grand Prix",
+    "data": "1968-06-09"
+   },
+   "ultimaVittoria": {
+    "anno": 2026,
+    "gara": "Dutch Grand Prix",
+    "data": "2026-08-23"
+   },
+   "migliorPiazzamento": {
+    "posizione": 1,
+    "anni": [
+     1974,
+     1984,
+     1985,
+     1988,
+     1989,
+     1990,
+     1991,
+     1998,
+     2024,
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 2,
+    "podi": 7,
+    "pole": 3
+   }
+  },
+  "williams": {
+   "gp": 878,
+   "esordio": 1975,
+   "vittorie": 114,
+   "podi": 316,
+   "pole": 128,
+   "mondiali": [
+    1980,
+    1981,
+    1986,
+    1987,
+    1992,
+    1993,
+    1994,
+    1996,
+    1997
+   ],
+   "primaVittoria": {
+    "anno": 1979,
+    "gara": "British Grand Prix",
+    "data": "1979-07-14"
+   },
+   "ultimaVittoria": {
+    "anno": 2012,
+    "gara": "Spanish Grand Prix",
+    "data": "2012-05-13"
+   },
+   "migliorPiazzamento": {
+    "posizione": 1,
+    "anni": [
+     1980,
+     1981,
+     1986,
+     1987,
+     1992,
+     1993,
+     1994,
+     1996,
+     1997
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "red_bull": {
+   "gp": 432,
+   "esordio": 2005,
+   "vittorie": 130,
+   "podi": 306,
+   "pole": 111,
+   "mondiali": [
+    2010,
+    2011,
+    2012,
+    2013,
+    2022,
+    2023
+   ],
+   "primaVittoria": {
+    "anno": 2009,
+    "gara": "Chinese Grand Prix",
+    "data": "2009-04-19"
+   },
+   "ultimaVittoria": {
+    "anno": 2025,
+    "gara": "Abu Dhabi Grand Prix",
+    "data": "2025-12-07"
+   },
+   "migliorPiazzamento": {
+    "posizione": 1,
+    "anni": [
+     2010,
+     2011,
+     2012,
+     2013,
+     2022,
+     2023
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 9,
+    "pole": 0
+   }
+  },
+  "haas": {
+   "gp": 229,
+   "esordio": 2016,
+   "vittorie": 0,
+   "podi": 0,
+   "pole": 1,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 6,
+    "anni": [
+     2018
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "alpine": {
+   "gp": 129,
+   "esordio": 2021,
+   "vittorie": 1,
+   "podi": 6,
+   "pole": 1,
+   "mondiali": [],
+   "primaVittoria": {
+    "anno": 2021,
+    "gara": "Hungarian Grand Prix",
+    "data": "2021-08-01"
+   },
+   "ultimaVittoria": {
+    "anno": 2021,
+    "gara": "Hungarian Grand Prix",
+    "data": "2021-08-01"
+   },
+   "migliorPiazzamento": {
+    "posizione": 4,
+    "anni": [
+     2022
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 1
+   }
+  },
+  "rb": {
+   "gp": 63,
+   "esordio": 2024,
+   "vittorie": 0,
+   "podi": 1,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "migliorPiazzamento": {
+    "posizione": 6,
+    "anni": [
+     2025
+    ]
+   },
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "audi": {
+   "gp": 15,
+   "esordio": 2026,
+   "vittorie": 0,
+   "podi": 0,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  },
+  "cadillac": {
+   "gp": 15,
+   "esordio": 2026,
+   "vittorie": 0,
+   "podi": 0,
+   "pole": 0,
+   "mondiali": [],
+   "primaVittoria": null,
+   "ultimaVittoria": null,
+   "stagione": {
+    "vittorie": 0,
+    "podi": 0,
+    "pole": 0
+   }
+  }
+ },
+ "classifica": {
+  "piloti": {
+   "antonelli": [
+    1,
+    302.0
+   ],
+   "russell": [
+    2,
+    236.0
+   ],
+   "hamilton": [
+    3,
+    199.0
+   ],
+   "norris": [
+    4,
+    186.0
+   ],
+   "leclerc": [
+    5,
+    179.0
+   ],
+   "max_verstappen": [
+    6,
+    163.0
+   ],
+   "piastri": [
+    7,
+    120.0
+   ],
+   "hadjar": [
+    8,
+    86.0
+   ],
+   "lawson": [
+    9,
+    59.0
+   ],
+   "gasly": [
+    10,
+    41.0
+   ],
+   "arvid_lindblad": [
+    11,
+    37.0
+   ],
+   "colapinto": [
+    12,
+    27.0
+   ],
+   "bearman": [
+    13,
+    20.0
+   ],
+   "bortoleto": [
+    14,
+    10.0
+   ],
+   "hulkenberg": [
+    15,
+    7.0
+   ],
+   "ocon": [
+    16,
+    7.0
+   ],
+   "sainz": [
+    17,
+    7.0
+   ],
+   "albon": [
+    18,
+    5.0
+   ],
+   "alonso": [
+    19,
+    3.0
+   ],
+   "tsunoda": [
+    20,
+    1.0
+   ],
+   "stroll": [
+    21,
+    0.0
+   ],
+   "bottas": [
+    22,
+    0.0
+   ],
+   "perez": [
+    23,
+    0.0
+   ]
+  },
+  "team": {
+   "mercedes": [
+    1,
+    538.0
+   ],
+   "ferrari": [
+    2,
+    378.0
+   ],
+   "mclaren": [
+    3,
+    306.0
+   ],
+   "red_bull": [
+    4,
+    263.0
+   ],
+   "rb": [
+    5,
+    83.0
+   ],
+   "alpine": [
+    6,
+    68.0
+   ],
+   "haas": [
+    7,
+    27.0
+   ],
+   "audi": [
+    8,
+    17.0
+   ],
+   "williams": [
+    9,
+    12.0
+   ],
+   "aston_martin": [
+    10,
+    3.0
+   ],
+   "cadillac": [
+    11,
+    0.0
+   ]
+  }
+ }
+}

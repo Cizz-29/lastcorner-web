@@ -12,7 +12,10 @@ import { getDriverStandings, getDriverPodiums, toRosterDriver } from '@/lib/f1ap
 import { getRosterDrivers, getRosterDriver, hasStaticRoster } from '@/lib/rosterData'
 import { getTeamColor } from '@/lib/teamColors'
 import { getFlagUrl } from '@/lib/nationalityFlags'
-import { getDriverBio } from '@/lib/driverBios'
+import { getDriverBio, getPersonalizzazioniPilota } from '@/lib/driverBios'
+import { statistichePilota } from '@/lib/statisticheF1'
+import { domandePilota } from '@/lib/domandeRapide'
+import DomandeRapide from '@/components/DomandeRapide'
 import { getCategoryConfig } from '@/lib/categories'
 import { getArticoliConTag } from '@/lib/sanity/articles'
 import type { RosterDriver } from '@/lib/rosterTypes'
@@ -22,7 +25,8 @@ import { jsonLd } from '@/lib/jsonLd'
 import { grafo } from '@/lib/datiStrutturati'
 
 // Nessuna scadenza dichiarata qui. Per la Formula 1 pero' la pagina si
-// rigenera ogni ora: legge i dati F1 da Jolpica con revalidate 3600, e in
+// rigenera ogni 12 ore (e a ogni deploy, che dopo ogni gara arriva da solo:
+// vedi lib/f1api.ts): legge i dati F1 da Jolpica con revalidate 43200, e in
 // Next 14 vale la frequenza piu' alta fra quella della pagina e quella dei
 // suoi fetch (verificabile in .next/prerender-manifest.json). Per le altre
 // categorie, che leggono il roster statico, si aggiorna al deploy o quando
@@ -68,6 +72,28 @@ export async function generateMetadata({ params }: DriverPageProps): Promise<Met
     driver.position && driver.points
       ? ` ${driver.position}° nel Mondiale ${anno} con ${driver.points} punti.`
       : ''
+  // In F1 ci sono le statistiche di carriera: il titolo dice quello che la
+  // gente cerca ("quante vittorie ha Leclerc") e la description da' i numeri.
+  const stats = params.category === 'formula-1' ? statistichePilota(driver.driverId) : null
+  if (stats) {
+    const numeri = [
+      stats.mondiali.length > 0 ? `${stats.mondiali.length} Mondial${stats.mondiali.length === 1 ? 'e' : 'i'}` : null,
+      `${stats.vittorie} vittori${stats.vittorie === 1 ? 'a' : 'e'}`,
+      `${stats.podi} podi`,
+      `${stats.pole} pole`,
+    ]
+      .filter(Boolean)
+      .join(', ')
+    return metadati({
+      // Senza " | Lastcorner": con il nome completo si andrebbe oltre i 60
+      // caratteri che Google mostra, e qui conta di piu' la parte descrittiva.
+      titolo: `${nome}: statistiche, vittorie e classifica F1 ${anno}`,
+      titoloAssoluto: true,
+      descrizione: `${nome} (${driver.teamName}) in Formula 1: ${numeri}.${classifica} Biografia e ultime notizie.`,
+      percorso: `/${params.category}/piloti/${params.driverId}`,
+      tipo: 'profile',
+    })
+  }
   return metadati({
     titolo: `${nome}: biografia, carriera e news ${sigla(config)}`,
     descrizione: `${nome}, pilota ${driver.teamName} in ${config.label}: biografia, carriera e ultime notizie.${classifica}`,
@@ -124,7 +150,11 @@ export default async function DriverPage({ params }: DriverPageProps) {
   if (!driver) notFound()
 
   const isLive = params.category === 'formula-1' && driver.position !== undefined
-  const podiums = isLive ? await getDriverPodiums(driver.driverId) : null
+  const stats = params.category === 'formula-1' ? statistichePilota(driver.driverId) : null
+  // I podi della stagione arrivano dal file delle statistiche; Jolpica si
+  // interroga solo per chi non c'e' ancora (un esordiente a meta' stagione,
+  // prima del primo aggiornamento).
+  const podiums = isLive ? (stats?.stagione?.podi ?? (await getDriverPodiums(driver.driverId))) : null
 
   const color = getTeamColor(driver.teamName)
   const flagUrl = driver.nationality ? getFlagUrl(driver.nationality) : null
@@ -138,6 +168,28 @@ export default async function DriverPage({ params }: DriverPageProps) {
   // recenti, invece di scaricare tutto il catalogo per sceglierli qui.
   const relatedNews = await getArticoliConTag(driver.driverId, 6)
   const bio = await getDriverBio(driver.driverId)
+
+  let domande: ReturnType<typeof domandePilota> = []
+  if (params.category === 'formula-1') {
+    const [classifica, personalizzate] = await Promise.all([
+      getDriverStandings(),
+      getPersonalizzazioniPilota(driver.driverId),
+    ])
+    const nomeDi = (d: (typeof classifica)[number]) => `${d.Driver.givenName} ${d.Driver.familyName}`
+    const rif = driver.position === '1' ? classifica[1] : classifica[0]
+    domande = domandePilota({
+      nome: fullName,
+      breve: driver.familyName,
+      stats,
+      anno: new Date().getFullYear(),
+      personalizzate,
+      classifica: {
+        posizione: driver.position ? Number(driver.position) : undefined,
+        punti: driver.points !== undefined ? Number(driver.points) : undefined,
+        riferimento: rif && rif.Driver.driverId !== driver.driverId ? { nome: nomeDi(rif), punti: Number(rif.points) } : undefined,
+      },
+    })
+  }
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -227,6 +279,8 @@ export default async function DriverPage({ params }: DriverPageProps) {
                 </div>
               </>
             )}
+
+            <DomandeRapide domande={domande} />
 
             {/* Overview carriera */}
             <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">

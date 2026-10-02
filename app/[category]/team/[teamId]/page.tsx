@@ -12,7 +12,10 @@ import { getConstructorStandings, getDriverStandings, getConstructorPodiums, toR
 import { getRosterTeams, getRosterTeam, getRosterTeamDrivers, hasStaticRoster } from '@/lib/rosterData'
 import { getTeamColor } from '@/lib/teamColors'
 import { getFlagUrl } from '@/lib/nationalityFlags'
-import { getTeamBio } from '@/lib/teamBios'
+import { getTeamBio, getPersonalizzazioniTeam } from '@/lib/teamBios'
+import { statisticheTeam } from '@/lib/statisticheF1'
+import { domandeTeam, nomeTeam } from '@/lib/domandeRapide'
+import DomandeRapide from '@/components/DomandeRapide'
 import { getCategoryConfig } from '@/lib/categories'
 import { getArticoliConTag } from '@/lib/sanity/articles'
 import type { RosterTeam, RosterDriver } from '@/lib/rosterTypes'
@@ -22,7 +25,8 @@ import { jsonLd } from '@/lib/jsonLd'
 import { grafo } from '@/lib/datiStrutturati'
 
 // Nessuna scadenza dichiarata qui. Per la Formula 1 pero' la pagina si
-// rigenera ogni ora: legge i dati F1 da Jolpica con revalidate 3600, e in
+// rigenera ogni 12 ore (e a ogni deploy, che dopo ogni gara arriva da solo:
+// vedi lib/f1api.ts): legge i dati F1 da Jolpica con revalidate 43200, e in
 // Next 14 vale la frequenza piu' alta fra quella della pagina e quella dei
 // suoi fetch (verificabile in .next/prerender-manifest.json). Per le altre
 // categorie, che leggono il roster statico, si aggiorna al deploy o quando
@@ -72,6 +76,25 @@ export async function generateMetadata({ params }: TeamPageProps): Promise<Metad
     team.position && team.points
       ? ` ${team.position}° nel Mondiale Costruttori ${anno} con ${team.points} punti.`
       : ''
+  const stats = params.category === 'formula-1' ? statisticheTeam(team.constructorId) : null
+  if (stats) {
+    const numeri = [
+      stats.mondiali.length > 0
+        ? `${stats.mondiali.length} Mondial${stats.mondiali.length === 1 ? 'e' : 'i'} costruttori`
+        : null,
+      `${stats.vittorie} vittori${stats.vittorie === 1 ? 'a' : 'e'}`,
+      `${stats.pole} pole`,
+    ]
+      .filter(Boolean)
+      .join(', ')
+    const nome = nomeTeam(team.name, team.constructorId)
+    return metadati({
+      titolo: `${nome}: statistiche, vittorie e classifica F1 ${anno}`,
+      titoloAssoluto: true,
+      descrizione: `${nome} in Formula 1: ${numeri}.${classifica} I piloti ${anno}, la storia e le ultime notizie sul team.`,
+      percorso: `/${params.category}/team/${params.teamId}`,
+    })
+  }
   return metadati({
     titolo: `${team.name}: piloti, risultati e news ${sigla(config)}`,
     descrizione: `${team.name} in ${config.label}: la formazione ${anno}, i risultati e tutte le ultime notizie sul team.${classifica}`,
@@ -115,8 +138,15 @@ export default async function TeamPage({ params }: TeamPageProps) {
   if (!team) notFound()
 
   const isLive = params.category === 'formula-1' && team.position !== undefined
+  const stats = params.category === 'formula-1' ? statisticheTeam(team.constructorId) : null
+  // Podi della stagione dal file delle statistiche (ogni monoposto sul podio
+  // conta, come nelle statistiche ufficiali); Jolpica solo se mancano.
   const [podiums, lineup] = await Promise.all([
-    isLive ? getConstructorPodiums(params.teamId) : Promise.resolve(null),
+    isLive
+      ? stats?.stagione
+        ? Promise.resolve(stats.stagione.podi)
+        : getConstructorPodiums(params.teamId)
+      : Promise.resolve(null),
     findLineup(params.category, params.teamId),
   ])
 
@@ -125,6 +155,30 @@ export default async function TeamPage({ params }: TeamPageProps) {
 
   const relatedNews = await getArticoliConTag(params.teamId, 6)
   const bio = await getTeamBio(team.constructorId)
+
+  let domande: ReturnType<typeof domandeTeam> = []
+  if (params.category === 'formula-1') {
+    const [classifica, personalizzate] = await Promise.all([
+      getConstructorStandings(),
+      getPersonalizzazioniTeam(team.constructorId),
+    ])
+    const rif = team.position === '1' ? classifica[1] : classifica[0]
+    domande = domandeTeam({
+      nome: nomeTeam(team.name, team.constructorId),
+      breve: nomeTeam(team.name, team.constructorId),
+      stats,
+      anno: new Date().getFullYear(),
+      personalizzate,
+      classifica: {
+        posizione: team.position ? Number(team.position) : undefined,
+        punti: team.points !== undefined ? Number(team.points) : undefined,
+        riferimento:
+          rif && rif.Constructor.constructorId !== team.constructorId
+            ? { nome: nomeTeam(rif.Constructor.name, rif.Constructor.constructorId), punti: Number(rif.points) }
+            : undefined,
+      },
+    })
+  }
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
@@ -191,6 +245,8 @@ export default async function TeamPage({ params }: TeamPageProps) {
                 </div>
               </>
             )}
+
+            <DomandeRapide domande={domande} />
 
             {/* Overview storia team */}
             <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">

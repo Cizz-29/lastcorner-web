@@ -16,10 +16,11 @@ import type { ClassificaF1 } from '@/lib/classificaF1'
 // Lo si legge nel manifest della build: 478 articoli F1 a 3600 secondi, quelli
 // di F2, F3 e WRC, che il widget non ce l'hanno, a "mai".
 //
-// Qui la classifica si aggiorna ancora ogni ora, ma una volta sola per tutto
-// il sito. Le pagine tornano statiche davvero e il widget la chiede dal
+// Qui la classifica si aggiorna ogni 12 ore (e a ogni deploy, che dopo ogni
+// gara arriva dal workflow delle statistiche: vedi lib/f1api.ts), una volta
+// sola per tutto il sito. Le pagine tornano statiche davvero e il widget la chiede dal
 // browser. Sta sotto /api, che il middleware non tocca.
-export const revalidate = 3600
+export const revalidate = 43200
 
 export async function GET() {
   const { drivers, constructors } = await getAllStandings()
