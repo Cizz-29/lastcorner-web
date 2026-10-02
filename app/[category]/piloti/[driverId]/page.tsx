@@ -280,8 +280,6 @@ export default async function DriverPage({ params }: DriverPageProps) {
               </>
             )}
 
-            <DomandeRapide domande={domande} />
-
             {/* Overview carriera */}
             <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">
               Carriera
@@ -289,6 +287,9 @@ export default async function DriverPage({ params }: DriverPageProps) {
             <div className="mb-10">
               <BioBody blocks={bio} />
             </div>
+
+            {/* Sotto la biografia: prima si racconta il pilota, poi i numeri. */}
+            <DomandeRapide domande={domande} />
 
             <AdSlot height={120} label="Google AdSense" className="mb-10" />
 

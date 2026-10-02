@@ -246,8 +246,6 @@ export default async function TeamPage({ params }: TeamPageProps) {
               </>
             )}
 
-            <DomandeRapide domande={domande} />
-
             {/* Overview storia team */}
             <h2 className="font-akira text-[12px] text-white uppercase tracking-widest mb-4">
               Il team
@@ -255,6 +253,9 @@ export default async function TeamPage({ params }: TeamPageProps) {
             <div className="mb-10">
               <BioBody blocks={bio} />
             </div>
+
+            {/* Sotto la storia del team, come nelle schede pilota. */}
+            <DomandeRapide domande={domande} />
 
             <AdSlot height={120} label="Google AdSense" className="mb-10" />
 

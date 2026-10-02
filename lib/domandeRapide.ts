@@ -25,10 +25,14 @@ export interface Personalizzazione {
   /** Risposta scritta a mano, con i segnaposto fra graffe. */
   risposta?: string
 }
-export type Personalizzazioni = Partial<Record<ChiaveDomanda, Personalizzazione>>
+export type Personalizzazioni = Partial<Record<ChiaveDomanda, Personalizzazione>> & {
+  /** Domande scritte a mano nello Studio, mostrate dopo quelle automatiche. */
+  altre?: { _key?: string; domanda?: string; risposta?: string; mostra?: boolean }[]
+}
 
 export interface DomandaRapida {
-  chiave: ChiaveDomanda
+  /** Una delle domande automatiche, o "altra-<n>" per quelle scritte a mano. */
+  chiave: string
   domanda: string
   risposta: string
 }
@@ -116,6 +120,16 @@ function componi(s: Soggetto, generatori: Record<ChiaveDomanda, Generatore>): Do
     const testo = p?.risposta?.trim() ? riempi(p.risposta.trim(), valori) : risposta
     if (testo) fuori.push({ chiave, domanda, risposta: testo })
   }
+  // Le domande aggiunte a mano: stessi segnaposto, cosi' anche una domanda
+  // sulla stagione ("Quanti punti ha fatto Leclerc nel {anno}?") resta vera.
+  ;(s.personalizzate?.altre ?? []).forEach((a, i) => {
+    if (a.mostra === false || !a.domanda?.trim() || !a.risposta?.trim()) return
+    fuori.push({
+      chiave: `altra-${a._key ?? i}`,
+      domanda: riempi(a.domanda.trim(), valori),
+      risposta: riempi(a.risposta.trim(), valori),
+    })
+  })
   return fuori
 }
 

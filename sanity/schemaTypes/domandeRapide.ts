@@ -23,9 +23,10 @@ export const campoDomandeRapide = defineField({
   title: 'Domande rapide (solo F1)',
   type: 'object',
   description:
-    'Le domande in cima alla scheda sul sito ("Quanti Mondiali ha vinto…?"). Si generano da sole con i dati aggiornati: qui si spengono o si riscrivono.',
+    'Le domande sotto la biografia, sul sito ("Quanti Mondiali ha vinto…?"). Si generano da sole con i dati aggiornati: qui si spengono, si riscrivono o se ne aggiungono altre.',
   options: { collapsible: true, collapsed: true },
-  fields: DOMANDE.map((d) =>
+  fields: [
+    ...DOMANDE.map((d) =>
     defineField({
       name: d.name,
       title: d.title,
@@ -49,4 +50,42 @@ export const campoDomandeRapide = defineField({
       ],
     })
   ),
+    // Domande libere, scritte a mano: compaiono dopo quelle automatiche,
+    // nell'ordine dell'elenco.
+    defineField({
+      name: 'altre',
+      title: 'Altre domande (scritte a mano)',
+      type: 'array',
+      description: `Compaiono dopo quelle automatiche, nell'ordine dell'elenco. ${SEGNAPOSTI}`,
+      of: [
+        {
+          type: 'object',
+          name: 'domandaLibera',
+          title: 'Domanda',
+          fields: [
+            defineField({
+              name: 'domanda',
+              title: 'Domanda',
+              type: 'string',
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'risposta',
+              title: 'Risposta',
+              type: 'text',
+              rows: 3,
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'mostra',
+              title: 'Mostra',
+              type: 'boolean',
+              initialValue: true,
+            }),
+          ],
+          preview: { select: { title: 'domanda', subtitle: 'risposta' } },
+        },
+      ],
+    }),
+  ],
 })
