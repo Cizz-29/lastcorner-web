@@ -74,7 +74,7 @@ export default async function TelemetriaIndexPage() {
                   Round {ev.round} · {dataWeekend(ev.date)}
                 </p>
                 <p className="font-akira font-bold text-[15px] text-white leading-tight mb-2 group-hover:text-lc-red transition-colors">
-                  {nomeGp(ev.name)}
+                  {nomeGp(ev.name, ev.circuit)}
                 </p>
                 <p className="font-montserrat text-[12px] text-lc-subtle">{ev.circuit}</p>
                 <div className="flex flex-wrap gap-1.5 mt-4">

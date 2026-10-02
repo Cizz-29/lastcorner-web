@@ -4,7 +4,7 @@
 # Vercel, che li pubblica sul sito.
 #
 # Come funziona:
-#   1. ogni ora, da venerdi' a lunedi' (UTC), scripts/telemetry/
+#   1. ogni mezz'ora, da venerdi' a lunedi' (UTC), scripts/telemetry/
 #      serve_aggiornare.py guarda il calendario e l'indice dei dati: se una
 #      sessione e' finita da almeno 40 minuti e non e' ancora sul sito, dice
 #      quale. Senza sessioni da fare il job finisce li', in pochi secondi.
@@ -25,7 +25,12 @@ name: Telemetria
 
 on:
   schedule:
-    - cron: '20 * * * 5,6,0,1'
+    # Ogni mezz'ora e non ogni ora: GitHub non garantisce gli orari dei
+    # cron, li ritarda anche di un'ora e a volte ne salta qualcuno (il 2
+    # ottobre 2026, dopo le FP1 di Sepang, per due ore non e' partito niente).
+    # Con due tentativi l'ora un salto costa mezz'ora invece di un'ora o due.
+    # Il controllo senza nulla da fare dura una decina di secondi.
+    - cron: '20,50 * * * 5,6,0,1'
   workflow_dispatch:
     inputs:
       round:

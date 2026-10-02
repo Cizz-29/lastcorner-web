@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { CampoTestoRitardato } from '../studio/personalizzazioni'
 import { campoDomandeRapide } from './domandeRapide'
 import { LARGHEZZA_MINIMA_CORPO, larghezzaSufficiente } from './misureImmagine'
 
@@ -49,11 +50,28 @@ export default defineType({
         {
           type: 'image',
           title: 'Immagine',
-          options: { hotspot: true },
+          // Finestra grande come negli articoli: nel popup piccolo l'editor
+          // perde il fuoco a ogni carattere e la didascalia non si scrive.
+          options: { hotspot: true, modal: { type: 'dialog' } },
           description: `Mostrata a tutta la larghezza della colonna: sotto ${LARGHEZZA_MINIMA_CORPO}px viene ingrandita e sgrana.`,
           validation: (Rule) =>
             Rule.custom((value) => larghezzaSufficiente(value, LARGHEZZA_MINIMA_CORPO)).warning(),
-          fields: [{ name: 'alt', title: 'Testo alternativo (alt)', type: 'string' }],
+          fields: [
+            {
+              name: 'caption',
+              title: 'Didascalia',
+              type: 'string',
+              description: 'Il testo sotto la foto, come negli articoli.',
+              components: { input: CampoTestoRitardato },
+            },
+            {
+              name: 'alt',
+              title: 'Testo alternativo (alt)',
+              type: 'string',
+              description: "Descrive l'immagine: serve all'accessibilità e a Google.",
+              components: { input: CampoTestoRitardato },
+            },
+          ],
         },
       ],
       validation: (Rule) => Rule.required(),

@@ -1,18 +1,55 @@
 import Image from 'next/image'
 import { PortableText, type PortableTextComponents } from '@portabletext/react'
-import { urlFor } from '@/lib/sanity/image'
+import { urlFor, dimensioniDa } from '@/lib/sanity/image'
 
 // Rendering Portable Text per le bio pilota/team (stesso editor ricco degli
 // articoli, ma senza inserimento automatico di annunci/embed: qui il testo
 // è più breve e non ha senso interromperlo con pubblicità).
 
+// Come le immagini degli articoli (components/ArticleBody.tsx): nelle sue
+// proporzioni reali, con la didascalia sotto. Prima era un riquadro fisso
+// alto 220px, che tagliava le foto verticali, e la didascalia non esisteva.
 function BioImage({ value }: { value: any }) {
-  const src = value?.asset?._ref ? urlFor(value).width(1200).url() : value?.asset?.url
+  const dim = dimensioniDa(value)
+  const src = value?.asset?._ref
+    ? urlFor(value).width(Math.min(1600, dim?.larghezza ?? 1200)).url()
+    : value?.asset?.url
   if (!src) return null
+  const alt = value.alt || value.caption || ''
+  const didascalia = value.caption ? (
+    <figcaption className="font-montserrat italic text-[12px] text-lc-subtle mt-2">{value.caption}</figcaption>
+  ) : null
+
+  if (!dim) {
+    return (
+      <figure className="mb-5">
+        <div className="relative w-full h-[220px] rounded-card overflow-hidden">
+          <Image src={src} alt={alt} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 800px" />
+        </div>
+        {didascalia}
+      </figure>
+    )
+  }
+  const proporzioni = dim.larghezza / dim.altezza
   return (
-    <div className="relative w-full h-[220px] rounded-card overflow-hidden mb-5">
-      <Image src={src} alt={value.alt ?? ''} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 800px" />
-    </div>
+    <figure className="mb-5">
+      {/* Mai piu' larga del file: diverse bio hanno foto da 300px, che a
+          tutta colonna sarebbero sgranate. Meglio piccole e nitide. */}
+      <div
+        className="mx-auto"
+        style={{ maxWidth: `min(100%, ${dim.larghezza}px, calc(70vh * ${proporzioni.toFixed(4)}))` }}
+      >
+        <Image
+          src={src}
+          alt={alt}
+          width={dim.larghezza}
+          height={dim.altezza}
+          sizes="(max-width: 1024px) 100vw, 800px"
+          className="w-full max-w-full h-auto rounded-card"
+        />
+        {didascalia}
+      </div>
+    </figure>
   )
 }
 

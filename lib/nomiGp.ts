@@ -62,7 +62,10 @@ const NOMI: [string, string][] = [
   ['indianapolis', '500 Miglia di Indianapolis'],
 ]
 
-export function nomeGp(nome: string): string {
+/** Il circuito serve in un caso solo: nel 2026 FastF1 chiama "Bahrain Grand
+ *  Prix" anche la gara corsa a Sepang, senza "in Malaysia". */
+export function nomeGp(nome: string, circuito?: string): string {
   const n = nome.toLowerCase()
+  if (n.includes('bahrain') && /kuala|sepang|malays/i.test(circuito ?? '')) return 'GP del Bahrain a Sepang'
   return NOMI.find(([chiave]) => n.includes(chiave))?.[1] ?? nome.replace(/ Grand Prix$/i, '').replace(/^/, 'GP ')
 }

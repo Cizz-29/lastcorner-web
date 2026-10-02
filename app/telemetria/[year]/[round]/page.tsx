@@ -37,7 +37,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const w = await trovaWeekend(params)
   if (!w) return { title: 'Telemetria non trovata' }
-  const gp = nomeGp(w.name)
+  const gp = nomeGp(w.name, w.circuit)
   return metadati({
     titolo: `Telemetria F1 ${gp} ${w.year}: qualifica e passo`,
     descrizione: `La telemetria del ${gp} ${w.year} a ${w.circuit}: confronta i giri dei piloti con velocità, acceleratore, freno, marce, delta e microsettori sul tracciato, e il passo di libere e gara.`,
@@ -101,7 +101,7 @@ export default async function TelemetriaEventPage({ params }: PageProps) {
     })
   }
 
-  const gp = nomeGp(event.name)
+  const gp = nomeGp(event.name, event.circuit)
 
   return (
     <div className="min-h-screen bg-lc-bg flex flex-col">
