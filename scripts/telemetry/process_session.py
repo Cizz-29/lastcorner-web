@@ -105,7 +105,8 @@ def secondi(valore) -> float | None:
 # --- Telemetria ------------------------------------------------------------
 
 def costruisci_telemetria(
-    velocita, tempi, durata: float, punti: int = TELEMETRY_POINTS
+    velocita, tempi, durata: float, punti: int = TELEMETRY_POINTS,
+    v_inizio: float | None = None, v_fine: float | None = None,
 ) -> tuple[list, list] | None:
     """Distanza percorsa, ricavata integrando la velocita' nel tempo.
 
@@ -132,7 +133,12 @@ def costruisci_telemetria(
         return None
 
     t = np.concatenate([[0.0], tempi, [durata]])
-    v = np.concatenate([[velocita[0]], velocita, [velocita[-1]]]) / 3.6
+    # Velocita' esattamente sul traguardo: se chi chiama l'ha interpolata dai
+    # campioni a cavallo della linea si usa quella, altrimenti si ripete il
+    # primo/ultimo campione (vedi telemetria_del_giro).
+    v0 = velocita[0] if v_inizio is None else v_inizio
+    v1 = velocita[-1] if v_fine is None else v_fine
+    v = np.concatenate([[v0], velocita, [v1]]) / 3.6
 
     # I punti aggiunti agli estremi possono coincidere con campioni gia'
     # presenti: un dt nullo non sposta l'integrale ma sporca gli indici.
@@ -181,42 +187,59 @@ FINESTRA_CORREZIONE = 13  # campioni (~3 s) della media mobile sulla deriva
 
 
 def linea_di_riferimento(session):
-    """Il percorso del giro piu' veloce della sessione, in metri, ricampionato
-    ogni PASSO_RIFERIMENTO: e' la "pista" su cui si proiettano tutti i giri."""
-    # pick_fastest() scarta i giri che FastF1 giudica "non accurati", e a
-    # volte li scarta tutti (Monaco 2026, gara): allora si prova dal giro
-    # cronometrato piu' veloce in giu' finche' uno ha la posizione GPS.
+    """Il percorso di un giro veloce della sessione, in metri, ricampionato
+    ogni PASSO_RIFERIMENTO: e' la "pista" su cui si proiettano tutti i giri.
+
+    Lo zero della linea DEVE essere il traguardo. Il 3 ottobre 2026 (qualifica
+    di Sepang) il giro piu' veloce, di Verstappen, aveva la posizione GPS
+    solo da 1,1 s dopo il via: la linea partiva 90 metri dopo il traguardo e
+    tutti gli altri giri risultavano spostati, con un delta di Hamilton a +1,2
+    s alla curva 1 (il cronometro dava +0,14 al primo settore). Ora si
+    scelgono solo giri con la posizione registrata attorno al traguardo, sia
+    alla partenza sia all'arrivo, e i due estremi della linea si
+    interpolano esattamente all'istante del via e a quello del traguardo,
+    usando anche i campioni appena prima e appena dopo il giro."""
     candidati = []
     try:
         candidati.append(session.laps.pick_fastest())
     except Exception:  # noqa: BLE001
         pass
     try:
-        candidati += [g for _, g in session.laps.dropna(subset=["LapTime"]).sort_values("LapTime").head(10).iterrows()]
+        candidati += [g for _, g in session.laps.dropna(subset=["LapTime"]).sort_values("LapTime").head(15).iterrows()]
     except Exception:  # noqa: BLE001
         pass
-    pos, durata = None, None
+
     for giro in candidati:
         try:
-            if giro is None or secondi(giro["LapTime"]) is None:
+            durata = secondi(giro["LapTime"]) if giro is not None else None
+            if durata is None:
                 continue
-            pos = giro.get_pos_data()
-            durata = secondi(giro["LapTime"])
-            if pos is not None and len(pos) >= 50:
-                break
+            pos = giro.get_pos_data(pad=2, pad_side="both")
         except Exception:  # noqa: BLE001
-            pos = None
-    if pos is None or len(pos) < 50 or durata is None:
-        return None
-    t = pos["Time"].dt.total_seconds().to_numpy()
-    tieni = (t >= 0) & (t <= durata)
-    x = pos["X"].to_numpy(dtype=float)[tieni] / 10
-    y = pos["Y"].to_numpy(dtype=float)[tieni] / 10
-    if len(x) < 50:
-        return None
-    s = np.concatenate([[0.0], np.cumsum(np.hypot(np.diff(x), np.diff(y)))])
-    ss = np.arange(0, s[-1], PASSO_RIFERIMENTO)
-    return np.interp(ss, s, x), np.interp(ss, s, y), ss
+            continue
+        if pos is None or len(pos) < 50:
+            continue
+        t = pos["Time"].dt.total_seconds().to_numpy()
+        x = pos["X"].to_numpy(dtype=float) / 10
+        y = pos["Y"].to_numpy(dtype=float) / 10
+
+        def coperto(istante: float) -> bool:
+            # Un campione entro 0,6 s prima e uno entro 0,6 s dopo.
+            prima = t[t <= istante]
+            dopo = t[t >= istante]
+            return len(prima) > 0 and len(dopo) > 0 and istante - prima.max() <= 0.6 and dopo.min() - istante <= 0.6
+
+        if not (coperto(0.0) and coperto(durata)):
+            continue
+        dentro = (t > 0) & (t < durata)
+        if dentro.sum() < 50:
+            continue
+        xs = np.concatenate([[np.interp(0.0, t, x)], x[dentro], [np.interp(durata, t, x)]])
+        ys = np.concatenate([[np.interp(0.0, t, y)], y[dentro], [np.interp(durata, t, y)]])
+        s = np.concatenate([[0.0], np.cumsum(np.hypot(np.diff(xs), np.diff(ys)))])
+        ss = np.arange(0, s[-1], PASSO_RIFERIMENTO)
+        return np.interp(ss, s, xs), np.interp(ss, s, ys), ss
+    return None
 
 
 def distanza_fusa(lap, t: np.ndarray, distanza: np.ndarray, durata: float, rif) -> np.ndarray | None:
@@ -283,12 +306,42 @@ def telemetria_del_giro(lap, punti: int = TELEMETRY_POINTS, rif=None) -> dict | 
     durata = secondi(lap["LapTime"])
     if durata is None:
         return None
+    # Con un po' di margine prima e dopo il giro: servono a sapere cosa
+    # faceva la macchina ESATTAMENTE sul traguardo. I campioni arrivano ogni
+    # 0,2-0,3 s, e a volte manca piu' di un secondo (Verstappen, qualifica di
+    # Sepang 2026: primo campione del giro a 1,06 s, gia' a 308 km/h). Prima
+    # si ripeteva il primo campione all'istante zero, e il grafico della
+    # velocita' partiva con una riga piatta a 308 per i primi 90 metri, dove
+    # in realta' la macchina passava sulla linea a 287 e accelerava. Ora il
+    # valore sulla linea si interpola fra l'ultimo campione prima e il primo
+    # dopo, come fa FastF1 con interpolate_edges.
     try:
-        car = lap.get_car_data()
+        con_margine = lap.get_car_data(pad=2, pad_side="both")
     except Exception:  # noqa: BLE001 — un giro senza telemetria non e' un errore
         return None
+    if con_margine is None or len(con_margine) < 20:
+        return None
+    tm = con_margine["Time"].dt.total_seconds().to_numpy()
+    dentro = (tm > 0) & (tm < durata)
+    car = con_margine[dentro]
     if len(car) < 20:
         return None
+
+    def al_traguardo(istante: float, colonna: str, interpola: bool):
+        """Valore di un canale all'istante dato, dai campioni attorno (entro
+        1,5 s); None se da una delle due parti non c'e' niente."""
+        valori = con_margine[colonna].to_numpy(dtype=float)
+        prima = np.where(tm <= istante)[0]
+        dopo = np.where(tm >= istante)[0]
+        if len(prima) == 0 or len(dopo) == 0:
+            return None
+        i, j = prima[-1], dopo[0]
+        if istante - tm[i] > 1.5 or tm[j] - istante > 1.5:
+            return None
+        if not interpola or j == i:
+            return valori[i] if istante - tm[i] <= tm[j] - istante else valori[j]
+        f = (istante - tm[i]) / (tm[j] - tm[i])
+        return valori[i] + f * (valori[j] - valori[i])
 
     tempi = car["Time"].dt.total_seconds().to_numpy()
     vel = car["Speed"].to_numpy(dtype=float)
@@ -297,7 +350,11 @@ def telemetria_del_giro(lap, punti: int = TELEMETRY_POINTS, rif=None) -> dict | 
     # linee piatte a zero; ora si contano fra i "giri persi".
     if np.nanmax(vel) < 50:
         return None
-    esito = costruisci_telemetria(vel, tempi, durata, punti)
+    esito = costruisci_telemetria(
+        vel, tempi, durata, punti,
+        v_inizio=al_traguardo(0.0, "Speed", True),
+        v_fine=al_traguardo(durata, "Speed", True),
+    )
     if esito is None:
         return None
     t, distanza, indici, tieni, t_pieno, d_pieno = esito
@@ -313,16 +370,20 @@ def telemetria_del_giro(lap, punti: int = TELEMETRY_POINTS, rif=None) -> dict | 
     cum = [settori[0], (settori[0] + settori[1]) if None not in settori else None]
     ancore = [float(np.interp(c, t_pieno, d_pieno)) if c is not None and 0 < c < durata else None for c in cum]
 
-    def canale(colonna, tipo):
-        grezzo = car[colonna].to_numpy()
+    def canale(colonna, tipo, interpola=False):
+        grezzo = car[colonna].to_numpy(dtype=float)
         # Stessa ricostruzione fatta sui tempi: punto iniziale, campioni,
         # punto finale — poi gli stessi filtri, cosi' gli indici combaciano.
-        pieno = np.concatenate([[grezzo[0]], grezzo, [grezzo[-1]]])[tieni]
+        # Agli estremi il valore sul traguardo (interpolato per la velocita',
+        # il campione piu' vicino per gas, freno e marcia).
+        a = al_traguardo(0.0, colonna, interpola)
+        b = al_traguardo(durata, colonna, interpola)
+        pieno = np.concatenate([[grezzo[0] if a is None else a], grezzo, [grezzo[-1] if b is None else b]])[tieni]
         return [tipo(x) for x in pieno[indici]]
 
     return {
         "distance": [round(float(x), 1) for x in distanza],
-        "speed": canale("Speed", lambda x: int(round(float(x)))),
+        "speed": canale("Speed", lambda x: int(round(float(x))), interpola=True),
         # Il gas grezzo sfora ogni tanto il 100 (arriva a 104): il grafico lo
         # disegna come percentuale, quindi si taglia qui invece che li'.
         "throttle": canale("Throttle", lambda x: max(0, min(100, int(round(float(x)))))),

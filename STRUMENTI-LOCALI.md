@@ -151,6 +151,25 @@ ancorando il primo settore, l'errore misurato al secondo è 0,03-0,06 s.
 Alle curve lente resta qualche decimo di incertezza, ma non più l'errore
 che cresce lungo il giro.
 
+### Il traguardo (dal 3 ottobre 2026)
+
+I campioni arrivano ogni 0,2-0,3 s, ma attorno al traguardo a volte ne manca
+più di un secondo. Due conseguenze, viste nella qualifica di Sepang:
+
+- la linea comune veniva dal giro di Verstappen, che aveva il GPS solo da
+  1,1 s dopo il via: partiva 90 metri dopo il traguardo e spostava tutti gli
+  altri giri (Hamilton a +1,2 s alla curva 1, il cronometro dice +0,14 al
+  primo settore). Ora la linea si prende solo da un giro con la posizione
+  registrata attorno a partenza e arrivo, e gli estremi si interpolano
+  esattamente sul traguardo;
+- il primo campione di velocità (308 km/h a 1,06 s) veniva ripetuto
+  all'istante zero: riga piatta per 90 metri, dove la macchina passava sulla
+  linea a 288. Ora il valore sul traguardo si interpola fra l'ultimo
+  campione del giro prima e il primo di questo (FastF1 `pad`).
+
+Su tutte le sessioni 2026, errore del delta nel primo 3% del giro (mediana
+sui 10 giri migliori): il caso peggiore da 0,60 s a 0,10 s.
+
 ## Pubblicare un weekend
 
 Lo script scrive in `public/telemetria-data/`: il round nuovo, il disegno
