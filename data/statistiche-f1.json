@@ -1,9 +1,9 @@
 {
- "aggiornato": "2026-10-02T07:01:48Z",
+ "aggiornato": "2026-10-04T20:52:20Z",
  "stagione": 2026,
  "piloti": {
   "alonso": {
-   "gp": 440,
+   "gp": 441,
    "esordio": 2001,
    "vittorie": 32,
    "podi": 106,
@@ -36,10 +36,10 @@
    }
   },
   "hamilton": {
-   "gp": 395,
+   "gp": 396,
    "esordio": 2007,
    "vittorie": 106,
-   "podi": 207,
+   "podi": 208,
    "pole": 104,
    "mondiali": [
     2008,
@@ -74,12 +74,12 @@
    },
    "stagione": {
     "vittorie": 1,
-    "podi": 5,
+    "podi": 6,
     "pole": 0
    }
   },
   "hulkenberg": {
-   "gp": 264,
+   "gp": 265,
    "esordio": 2010,
    "vittorie": 0,
    "podi": 1,
@@ -100,7 +100,7 @@
    }
   },
   "perez": {
-   "gp": 296,
+   "gp": 297,
    "esordio": 2011,
    "vittorie": 6,
    "podi": 39,
@@ -129,7 +129,7 @@
    }
   },
   "bottas": {
-   "gp": 261,
+   "gp": 262,
    "esordio": 2013,
    "vittorie": 10,
    "podi": 67,
@@ -159,7 +159,7 @@
    }
   },
   "sainz": {
-   "gp": 244,
+   "gp": 245,
    "esordio": 2015,
    "vittorie": 4,
    "podi": 29,
@@ -190,11 +190,11 @@
    }
   },
   "max_verstappen": {
-   "gp": 248,
+   "gp": 249,
    "esordio": 2015,
-   "vittorie": 71,
-   "podi": 134,
-   "pole": 48,
+   "vittorie": 72,
+   "podi": 135,
+   "pole": 49,
    "mondiali": [
     2021,
     2022,
@@ -207,9 +207,9 @@
     "data": "2016-05-15"
    },
    "ultimaVittoria": {
-    "anno": 2025,
-    "gara": "Abu Dhabi Grand Prix",
-    "data": "2025-12-07"
+    "anno": 2026,
+    "gara": "Bahrain Grand Prix in Malaysia",
+    "data": "2026-10-04"
    },
    "migliorPiazzamento": {
     "posizione": 1,
@@ -221,13 +221,13 @@
     ]
    },
    "stagione": {
-    "vittorie": 0,
-    "podi": 7,
-    "pole": 0
+    "vittorie": 1,
+    "podi": 8,
+    "pole": 1
    }
   },
   "ocon": {
-   "gp": 195,
+   "gp": 196,
    "esordio": 2016,
    "vittorie": 1,
    "podi": 4,
@@ -257,7 +257,7 @@
    }
   },
   "stroll": {
-   "gp": 204,
+   "gp": 205,
    "esordio": 2017,
    "vittorie": 0,
    "podi": 3,
@@ -278,7 +278,7 @@
    }
   },
   "gasly": {
-   "gp": 192,
+   "gp": 193,
    "esordio": 2017,
    "vittorie": 1,
    "podi": 5,
@@ -307,7 +307,7 @@
    }
   },
   "leclerc": {
-   "gp": 186,
+   "gp": 187,
    "esordio": 2018,
    "vittorie": 9,
    "podi": 54,
@@ -336,7 +336,7 @@
    }
   },
   "norris": {
-   "gp": 165,
+   "gp": 166,
    "esordio": 2019,
    "vittorie": 13,
    "podi": 49,
@@ -367,7 +367,7 @@
    }
   },
   "albon": {
-   "gp": 142,
+   "gp": 143,
    "esordio": 2019,
    "vittorie": 0,
    "podi": 2,
@@ -388,7 +388,7 @@
    }
   },
   "russell": {
-   "gp": 167,
+   "gp": 168,
    "esordio": 2019,
    "vittorie": 8,
    "podi": 32,
@@ -439,7 +439,7 @@
    }
   },
   "piastri": {
-   "gp": 83,
+   "gp": 84,
    "esordio": 2023,
    "vittorie": 9,
    "podi": 28,
@@ -468,7 +468,7 @@
    }
   },
   "lawson": {
-   "gp": 50,
+   "gp": 51,
    "esordio": 2023,
    "vittorie": 0,
    "podi": 0,
@@ -489,7 +489,7 @@
    }
   },
   "bearman": {
-   "gp": 42,
+   "gp": 43,
    "esordio": 2024,
    "vittorie": 0,
    "podi": 0,
@@ -510,7 +510,7 @@
    }
   },
   "colapinto": {
-   "gp": 41,
+   "gp": 42,
    "esordio": 2024,
    "vittorie": 0,
    "podi": 0,
@@ -531,10 +531,10 @@
    }
   },
   "antonelli": {
-   "gp": 39,
+   "gp": 40,
    "esordio": 2025,
    "vittorie": 8,
-   "podi": 15,
+   "podi": 16,
    "pole": 6,
    "mondiali": [],
    "primaVittoria": {
@@ -555,12 +555,12 @@
    },
    "stagione": {
     "vittorie": 8,
-    "podi": 12,
+    "podi": 13,
     "pole": 6
    }
   },
   "bortoleto": {
-   "gp": 38,
+   "gp": 39,
    "esordio": 2025,
    "vittorie": 0,
    "podi": 0,
@@ -581,7 +581,7 @@
    }
   },
   "hadjar": {
-   "gp": 36,
+   "gp": 37,
    "esordio": 2025,
    "vittorie": 0,
    "podi": 3,
@@ -602,7 +602,7 @@
    }
   },
   "arvid_lindblad": {
-   "gp": 14,
+   "gp": 15,
    "esordio": 2026,
    "vittorie": 0,
    "podi": 0,
@@ -619,10 +619,10 @@
  },
  "team": {
   "ferrari": {
-   "gp": 1138,
+   "gp": 1139,
    "esordio": 1950,
    "vittorie": 250,
-   "podi": 857,
+   "podi": 858,
    "pole": 254,
    "mondiali": [
     1961,
@@ -675,15 +675,15 @@
    },
    "stagione": {
     "vittorie": 2,
-    "podi": 9,
+    "podi": 10,
     "pole": 0
    }
   },
   "mercedes": {
-   "gp": 356,
+   "gp": 357,
    "esordio": 1954,
    "vittorie": 142,
-   "podi": 330,
+   "podi": 331,
    "pole": 154,
    "mondiali": [
     2014,
@@ -720,12 +720,12 @@
    },
    "stagione": {
     "vittorie": 11,
-    "podi": 20,
+    "podi": 21,
     "pole": 11
    }
   },
   "aston_martin": {
-   "gp": 134,
+   "gp": 135,
    "esordio": 1959,
    "vittorie": 0,
    "podi": 9,
@@ -747,7 +747,7 @@
    }
   },
   "mclaren": {
-   "gp": 1008,
+   "gp": 1009,
    "esordio": 1966,
    "vittorie": 205,
    "podi": 565,
@@ -796,7 +796,7 @@
    }
   },
   "williams": {
-   "gp": 878,
+   "gp": 879,
    "esordio": 1975,
    "vittorie": 114,
    "podi": 316,
@@ -843,11 +843,11 @@
    }
   },
   "red_bull": {
-   "gp": 432,
+   "gp": 433,
    "esordio": 2005,
-   "vittorie": 130,
-   "podi": 306,
-   "pole": 111,
+   "vittorie": 131,
+   "podi": 307,
+   "pole": 112,
    "mondiali": [
     2010,
     2011,
@@ -862,9 +862,9 @@
     "data": "2009-04-19"
    },
    "ultimaVittoria": {
-    "anno": 2025,
-    "gara": "Abu Dhabi Grand Prix",
-    "data": "2025-12-07"
+    "anno": 2026,
+    "gara": "Bahrain Grand Prix in Malaysia",
+    "data": "2026-10-04"
    },
    "migliorPiazzamento": {
     "posizione": 1,
@@ -878,13 +878,13 @@
     ]
    },
    "stagione": {
-    "vittorie": 0,
-    "podi": 9,
-    "pole": 0
+    "vittorie": 1,
+    "podi": 10,
+    "pole": 1
    }
   },
   "haas": {
-   "gp": 229,
+   "gp": 230,
    "esordio": 2016,
    "vittorie": 0,
    "podi": 0,
@@ -905,7 +905,7 @@
    }
   },
   "alpine": {
-   "gp": 129,
+   "gp": 130,
    "esordio": 2021,
    "vittorie": 1,
    "podi": 6,
@@ -934,7 +934,7 @@
    }
   },
   "rb": {
-   "gp": 63,
+   "gp": 64,
    "esordio": 2024,
    "vittorie": 0,
    "podi": 1,
@@ -955,7 +955,7 @@
    }
   },
   "audi": {
-   "gp": 15,
+   "gp": 16,
    "esordio": 2026,
    "vittorie": 0,
    "podi": 0,
@@ -970,7 +970,7 @@
    }
   },
   "cadillac": {
-   "gp": 15,
+   "gp": 16,
    "esordio": 2026,
    "vittorie": 0,
    "podi": 0,
@@ -989,7 +989,7 @@
   "piloti": {
    "antonelli": [
     1,
-    302.0
+    320.0
    ],
    "russell": [
     2,
@@ -997,31 +997,31 @@
    ],
    "hamilton": [
     3,
-    199.0
-   ],
-   "norris": [
-    4,
-    186.0
+    214.0
    ],
    "leclerc": [
+    4,
+    191.0
+   ],
+   "norris": [
     5,
-    179.0
+    188.0
    ],
    "max_verstappen": [
     6,
-    163.0
+    188.0
    ],
    "piastri": [
     7,
-    120.0
+    128.0
    ],
    "hadjar": [
     8,
-    86.0
+    96.0
    ],
    "lawson": [
     9,
-    59.0
+    65.0
    ],
    "gasly": [
     10,
@@ -1029,7 +1029,7 @@
    ],
    "arvid_lindblad": [
     11,
-    37.0
+    38.0
    ],
    "colapinto": [
     12,
@@ -1051,17 +1051,17 @@
     16,
     7.0
    ],
-   "sainz": [
+   "alonso": [
     17,
     7.0
    ],
-   "albon": [
+   "sainz": [
     18,
-    5.0
+    7.0
    ],
-   "alonso": [
+   "albon": [
     19,
-    3.0
+    5.0
    ],
    "tsunoda": [
     20,
@@ -1083,23 +1083,23 @@
   "team": {
    "mercedes": [
     1,
-    538.0
+    556.0
    ],
    "ferrari": [
     2,
-    378.0
+    405.0
    ],
    "mclaren": [
     3,
-    306.0
+    316.0
    ],
    "red_bull": [
     4,
-    263.0
+    298.0
    ],
    "rb": [
     5,
-    83.0
+    90.0
    ],
    "alpine": [
     6,
@@ -1119,7 +1119,7 @@
    ],
    "aston_martin": [
     10,
-    3.0
+    7.0
    ],
    "cadillac": [
     11,
