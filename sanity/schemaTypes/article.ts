@@ -1,5 +1,7 @@
 import { defineField, defineType } from 'sanity'
+import { OlistIcon } from '@sanity/icons'
 import { CampoTestoRitardato } from '../studio/personalizzazioni'
+import { MINIMO_VOCI_INDICE, titoliDelCorpo, vociIndice, type LivelloIndice } from '../../lib/indice'
 import {
   LARGHEZZA_MINIMA_PRINCIPALE,
   LARGHEZZA_MINIMA_CORPO,
@@ -294,6 +296,61 @@ export default defineType({
             prepare({ title, subtitle }: { title?: string; subtitle?: string }) {
               const righe = (subtitle ?? '').split('\n').filter(Boolean).length
               return { title: title || 'Tabella', subtitle: `${righe} righe` }
+            },
+          },
+        },
+        {
+          // Indice dei contenuti. Non si scrive niente: l'elenco si ricava
+          // dai titoli H2 (ed eventualmente H3) del corpo, quindi resta
+          // allineato anche se un titolo cambia. Va messo dove deve comparire,
+          // di solito dopo il primo paragrafo. Vedi lib/indice.ts.
+          type: 'object',
+          name: 'indice',
+          title: 'Indice dei contenuti',
+          icon: OlistIcon,
+          description: 'Elenco cliccabile dei titoli dell\'articolo. Si compila da solo.',
+          options: { modal: { type: 'dialog' } },
+          fields: [
+            {
+              name: 'titolo',
+              title: 'Intestazione (opzionale)',
+              type: 'string',
+              description: 'Vuota = "In questo articolo".',
+            },
+            {
+              name: 'livelli',
+              title: 'Cosa elencare',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'Solo i titoli (H2)', value: 'h2' },
+                  { title: 'Titoli e sottotitoli (H2 e H3)', value: 'h2h3' },
+                ],
+                layout: 'radio',
+              },
+              initialValue: 'h2',
+            },
+          ],
+          // Avvisi, non errori: un indice di troppo non rompe niente, sul
+          // sito semplicemente non compare.
+          validation: (Rule: any) =>
+            Rule.custom((valore: { livelli?: LivelloIndice } | undefined, contesto: any) => {
+              const corpo = (contesto?.document?.body ?? []) as any[]
+              const quanti = corpo.filter((b) => b?._type === 'indice').length
+              if (quanti > 1) return 'C\'è più di un indice: ne basta uno.'
+              const voci = vociIndice(titoliDelCorpo(corpo), valore?.livelli)
+              return voci.length >= MINIMO_VOCI_INDICE
+                ? true
+                : `L'indice compare solo con almeno ${MINIMO_VOCI_INDICE} titoli${valore?.livelli === 'h2h3' ? '' : ' H2'}: ora ${voci.length === 1 ? 'ce n\'è uno' : 'non ce ne sono'}.`
+            }).warning(),
+          preview: {
+            select: { titolo: 'titolo', livelli: 'livelli' },
+            prepare({ titolo, livelli }: { titolo?: string; livelli?: string }) {
+              return {
+                title: titolo || 'Indice dei contenuti',
+                subtitle: livelli === 'h2h3' ? 'Titoli H2 e H3' : 'Titoli H2',
+                media: OlistIcon,
+              }
             },
           },
         },

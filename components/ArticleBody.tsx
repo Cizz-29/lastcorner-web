@@ -7,6 +7,7 @@ import XEmbed from '@/components/XEmbed'
 import InstagramEmbed from '@/components/InstagramEmbed'
 import ClassificaF1Block from '@/components/ClassificaF1Block'
 import { urlFor, dimensioniDa } from '@/lib/sanity/image'
+import { MINIMO_VOCI_INDICE, titoliDelCorpo, vociIndice, type LivelloIndice, type VoceIndice } from '@/lib/indice'
 
 // Ogni quanti paragrafi consecutivi inserire uno slot pubblicitario nel corpo.
 const AD_EVERY_N_PARAGRAPHS = 3
@@ -177,86 +178,142 @@ function EmbedBlock({ value }: { value: { url?: string } }) {
   )
 }
 
-const components: PortableTextComponents = {
-  block: {
-    h2: ({ children }) => (
-      <h2 className={`font-akira text-[18px] lg:text-[20px] text-white font-bold mt-9 mb-4 ${COLONNA_TESTO}`}>{children}</h2>
-    ),
-    h3: ({ children }) => (
-      <h3 className={`font-akira text-[16px] lg:text-[18px] text-white font-bold mt-7 mb-3 ${COLONNA_TESTO}`}>{children}</h3>
-    ),
-    // 17px su mobile e 18 su desktop, interlinea 1,7. Prima erano 15px: sotto
-    // la soglia di lettura comoda su telefono, dove arriva l'86% del traffico
-    // da Google.
-    normal: ({ children }) => (
-      <p className={`font-montserrat text-[17px] lg:text-[18px] text-white/90 leading-[1.7] mb-6 ${COLONNA_TESTO}`}>{children}</p>
-    ),
-    blockquote: ({ children }) => (
-      <blockquote className={`border-l-2 border-lc-red pl-4 italic font-montserrat text-[17px] lg:text-[18px] text-white/85 leading-[1.7] mb-6 ${COLONNA_TESTO}`}>{children}</blockquote>
-    ),
-  },
-  list: {
-    bullet: ({ children }) => (
-      <ul className={`list-disc pl-5 font-montserrat text-[17px] lg:text-[18px] text-white/90 leading-[1.7] mb-6 space-y-1 ${COLONNA_TESTO}`}>{children}</ul>
-    ),
-    number: ({ children }) => (
-      <ol className={`list-decimal pl-5 font-montserrat text-[17px] lg:text-[18px] text-white/90 leading-[1.7] mb-6 space-y-1 ${COLONNA_TESTO}`}>{children}</ol>
-    ),
-  },
-  listItem: {
-    bullet: ({ children }) => <li>{children}</li>,
-    number: ({ children }) => <li>{children}</li>,
-  },
-  marks: {
-    // I link esterni si aprono in una scheda nuova, quelli interni no.
-    //
-    // Prima ci finivano tutti: cliccando su un altro articolo del sito il
-    // lettore si ritrovava con una scheda in piu' invece di navigare, e la
-    // sessione si spezzava. Un link interno e' scritto come percorso
-    // relativo ("/formula-1/calendario"), quindi basta guardare se comincia
-    // con http per distinguerli; il dominio nostro e' trattato come interno
-    // per i link vecchi scritti per esteso.
-    link: ({ children, value }) => {
-      const href: string = value?.href ?? ''
-      const esterno =
-        /^https?:\/\//i.test(href) && !/^https?:\/\/(www\.)?lastcorner\.net(\/|$)/i.test(href)
-      return (
-        <a
-          href={href}
-          {...(esterno ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-          className="text-lc-red underline hover:no-underline"
+// L'header e' fisso (75px): senza margine di scorrimento, cliccando una voce
+// dell'indice il titolo finirebbe nascosto sotto la barra.
+const MARGINE_ANCORA = 'scroll-mt-[96px]'
+
+// Indice dei contenuti (blocco `indice` dello Studio, vedi lib/indice.ts).
+// Reso dal server come semplice elenco di link interni: nessun JavaScript,
+// funziona anche prima che la pagina abbia finito di caricare.
+function IndiceBlock({
+  value,
+  titoli,
+}: {
+  value: { titolo?: string; livelli?: LivelloIndice; _key?: string }
+  titoli: VoceIndice[]
+}) {
+  const voci = vociIndice(titoli, value?.livelli)
+  if (voci.length < MINIMO_VOCI_INDICE) return null
+  const idTitolo = `indice-${value?._key ?? 'articolo'}`
+  return (
+    <nav
+      aria-labelledby={idTitolo}
+      className={`mb-8 border-l-2 border-lc-red bg-lc-card rounded-r-xl px-4 py-4 lg:px-5 ${COLONNA_TESTO}`}
+    >
+      <p id={idTitolo} className="font-akira font-bold text-[10px] tracking-widest text-lc-red mb-3 uppercase">
+        {value?.titolo?.trim() || 'In questo articolo'}
+      </p>
+      <ol className="space-y-2 font-montserrat text-[15px] lg:text-[16px] leading-snug">
+        {voci.map((v) => (
+          <li key={v.key} className={v.livello === 3 ? 'pl-4 text-[14px] lg:text-[15px]' : undefined}>
+            <a
+              href={`#${v.id}`}
+              className={`hover:text-lc-red hover:underline ${v.livello === 3 ? 'text-white/70' : 'text-white/90 font-semibold'}`}
+            >
+              {v.testo}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}
+
+function creaComponenti(titoli: VoceIndice[]): PortableTextComponents {
+  const idPerBlocco = new Map(titoli.map((t) => [t.key, t.id]))
+  return {
+    block: {
+      h2: ({ children, value }) => (
+        <h2
+          id={value?._key ? idPerBlocco.get(value._key) : undefined}
+          className={`font-akira text-[18px] lg:text-[20px] text-white font-bold mt-9 mb-4 ${MARGINE_ANCORA} ${COLONNA_TESTO}`}
         >
           {children}
-        </a>
-      )
-    },
-  },
-  types: {
-    image: ImageBlock,
-    embed: EmbedBlock,
-    tabella: ({ value }: { value: any }) => <TabellaBlock value={value} />,
-    // ClassificaF1Block è un Server Component asincrono: qui va bene,
-    // perché ArticleBody viene reso lato server e i dati della classifica
-    // sono già disponibili al momento del rendering.
-    classificaF1: ({ value }: { value: any }) => <ClassificaF1Block tipo={value?.tipo} />,
-    adSlot: () => <AdSlot height={120} label="Google AdSense" className="mb-6" />,
-    leggiAnche: ({ value }: { value: LeggiAnche }) => (
-      <aside className={`mb-6 ${COLONNA_TESTO}`} aria-label="Leggi anche">
-        <Link
-          href={value.href}
-          className="group flex flex-col gap-1 border-l-2 border-lc-red bg-lc-card rounded-r-xl px-4 py-3 hover:bg-white/[0.04] transition-colors duration-200"
+        </h2>
+      ),
+      h3: ({ children, value }) => (
+        <h3
+          id={value?._key ? idPerBlocco.get(value._key) : undefined}
+          className={`font-akira text-[16px] lg:text-[18px] text-white font-bold mt-7 mb-3 ${MARGINE_ANCORA} ${COLONNA_TESTO}`}
         >
-          <span className="font-akira font-bold text-[10px] tracking-widest text-lc-red">LEGGI ANCHE</span>
-          <span className="font-montserrat font-semibold text-[15px] lg:text-[16px] text-white leading-snug group-hover:underline">
-            {value.titolo}
-          </span>
-        </Link>
-      </aside>
-    ),
-  },
+          {children}
+        </h3>
+      ),
+      // 17px su mobile e 18 su desktop, interlinea 1,7. Prima erano 15px: sotto
+      // la soglia di lettura comoda su telefono, dove arriva l'86% del traffico
+      // da Google.
+      normal: ({ children }) => (
+        <p className={`font-montserrat text-[17px] lg:text-[18px] text-white/90 leading-[1.7] mb-6 ${COLONNA_TESTO}`}>{children}</p>
+      ),
+      blockquote: ({ children }) => (
+        <blockquote className={`border-l-2 border-lc-red pl-4 italic font-montserrat text-[17px] lg:text-[18px] text-white/85 leading-[1.7] mb-6 ${COLONNA_TESTO}`}>{children}</blockquote>
+      ),
+    },
+    list: {
+      bullet: ({ children }) => (
+        <ul className={`list-disc pl-5 font-montserrat text-[17px] lg:text-[18px] text-white/90 leading-[1.7] mb-6 space-y-1 ${COLONNA_TESTO}`}>{children}</ul>
+      ),
+      number: ({ children }) => (
+        <ol className={`list-decimal pl-5 font-montserrat text-[17px] lg:text-[18px] text-white/90 leading-[1.7] mb-6 space-y-1 ${COLONNA_TESTO}`}>{children}</ol>
+      ),
+    },
+    listItem: {
+      bullet: ({ children }) => <li>{children}</li>,
+      number: ({ children }) => <li>{children}</li>,
+    },
+    marks: {
+      // I link esterni si aprono in una scheda nuova, quelli interni no.
+      //
+      // Prima ci finivano tutti: cliccando su un altro articolo del sito il
+      // lettore si ritrovava con una scheda in piu' invece di navigare, e la
+      // sessione si spezzava. Un link interno e' scritto come percorso
+      // relativo ("/formula-1/calendario"), quindi basta guardare se comincia
+      // con http per distinguerli; il dominio nostro e' trattato come interno
+      // per i link vecchi scritti per esteso.
+      link: ({ children, value }) => {
+        const href: string = value?.href ?? ''
+        const esterno =
+          /^https?:\/\//i.test(href) && !/^https?:\/\/(www\.)?lastcorner\.net(\/|$)/i.test(href)
+        return (
+          <a
+            href={href}
+            {...(esterno ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+            className="text-lc-red underline hover:no-underline"
+          >
+            {children}
+          </a>
+        )
+      },
+    },
+    types: {
+      image: ImageBlock,
+      embed: EmbedBlock,
+      tabella: ({ value }: { value: any }) => <TabellaBlock value={value} />,
+      // ClassificaF1Block è un Server Component asincrono: qui va bene,
+      // perché ArticleBody viene reso lato server e i dati della classifica
+      // sono già disponibili al momento del rendering.
+      classificaF1: ({ value }: { value: any }) => <ClassificaF1Block tipo={value?.tipo} />,
+      indice: ({ value }: { value: any }) => <IndiceBlock value={value} titoli={titoli} />,
+      adSlot: () => <AdSlot height={120} label="Google AdSense" className="mb-6" />,
+      leggiAnche: ({ value }: { value: LeggiAnche }) => (
+        <aside className={`mb-6 ${COLONNA_TESTO}`} aria-label="Leggi anche">
+          <Link
+            href={value.href}
+            className="group flex flex-col gap-1 border-l-2 border-lc-red bg-lc-card rounded-r-xl px-4 py-3 hover:bg-white/[0.04] transition-colors duration-200"
+          >
+            <span className="font-akira font-bold text-[10px] tracking-widest text-lc-red">LEGGI ANCHE</span>
+            <span className="font-montserrat font-semibold text-[15px] lg:text-[16px] text-white leading-snug group-hover:underline">
+              {value.titolo}
+            </span>
+          </Link>
+        </aside>
+      ),
+    },
+  }
 }
 
 export default function ArticleBody({ blocks, leggiAnche }: { blocks?: any[]; leggiAnche?: LeggiAnche }) {
   if (!blocks || blocks.length === 0) return null
-  return <PortableText value={withAdsInjected(blocks, leggiAnche)} components={components} />
+  const titoli = titoliDelCorpo(blocks)
+  return <PortableText value={withAdsInjected(blocks, leggiAnche)} components={creaComponenti(titoli)} />
 }
