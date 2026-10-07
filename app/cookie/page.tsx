@@ -10,7 +10,7 @@ export const metadata: Metadata = metadati({
 
 export default function CookiePage() {
   return (
-    <StaticPageLayout percorso="/cookie" title="Cookie Policy" updatedAt="21 settembre 2026">
+    <StaticPageLayout percorso="/cookie" title="Cookie Policy" updatedAt="7 ottobre 2026">
       <p className="font-montserrat text-[14px] text-white/85 leading-relaxed">
         Questa pagina descrive i cookie e le tecnologie simili utilizzate da Lastcorner.net
         (il &ldquo;Sito&rdquo;) e le opzioni a disposizione degli utenti per gestirli, in
@@ -88,16 +88,45 @@ export default function CookiePage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="Statistiche di utilizzo">
+      <LegalSection title="Statistiche di utilizzo (Google Analytics)">
         <p>
-          Il Sito utilizza Vercel Web Analytics e Vercel Speed Insights per contare le visite e
-          misurare i tempi di caricamento delle pagine. Questi strumenti{' '}
+          Con il tuo consenso il Sito utilizza{' '}
+          <strong className="text-white">Google Analytics 4</strong>, servizio di analisi fornito
+          da Google Ireland Limited, per sapere quante persone leggono il Sito, da dove arrivano
+          (motori di ricerca, social, link diretti) e quali pagine visitano. I dati servono
+          esclusivamente a migliorare i contenuti.
+        </p>
+        <p>
+          Senza il tuo consenso Google Analytics{' '}
+          <strong className="text-white">non viene caricato</strong>: nessuna richiesta parte
+          verso Google e nessun cookie viene installato. Con il consenso vengono installati i
+          cookie <code>_ga</code> e <code>_ga_&lt;ID&gt;</code>, che distinguono un visitatore
+          dall&rsquo;altro e durano fino a 2 anni. Google Analytics 4 non registra né conserva
+          l&rsquo;indirizzo IP completo; le funzioni pubblicitarie (Google Signals e
+          personalizzazione degli annunci) sono disattivate e i dati restano nei rapporti del
+          Sito per 14 mesi. Google tratta i dati in qualità di responsabile del trattamento.
+        </p>
+        <p>
+          Maggiori informazioni sono disponibili alla pagina{' '}
+          <a
+            href="https://policies.google.com/technologies/partner-sites"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white hover:text-lc-red transition-colors duration-200"
+          >
+            Come Google utilizza i dati quando utilizzi siti o app dei nostri partner
+          </a>
+          .
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Statistiche aggregate (Vercel)">
+        <p>
+          Il Sito utilizza inoltre Vercel Web Analytics e Vercel Speed Insights per contare le
+          visite e misurare i tempi di caricamento delle pagine. Questi strumenti{' '}
           <strong className="text-white">non installano cookie</strong>, non creano un
           identificatore persistente del visitatore e producono solo dati aggregati: per questo
           non richiedono consenso.
-        </p>
-        <p>
-          Il Sito <strong className="text-white">non</strong> utilizza Google Analytics.
         </p>
       </LegalSection>
 
@@ -107,8 +136,11 @@ export default function CookiePage() {
           modificare le impostazioni che compare nel messaggio stesso.
         </p>
         <p>
-          Il consenso ai contenuti incorporati da X e Instagram si gestisce dal banner del Sito,
-          riapribile in qualsiasi momento dal link &ldquo;Preferenze Cookie&rdquo; nel footer.
+          Il consenso a Google Analytics e ai contenuti incorporati da X e Instagram si gestisce
+          dal banner del Sito, separatamente per ciascuna finalità con il pulsante
+          &ldquo;Personalizza&rdquo;. Il banner si riapre in qualsiasi momento dal link
+          &ldquo;Preferenze Cookie&rdquo; nel footer; se revochi il consenso a Google Analytics,
+          il Sito smette subito di inviare dati e cancella i cookie <code>_ga</code>.
         </p>
         <p>
           Puoi inoltre gestire o disabilitare i cookie direttamente dalle impostazioni del tuo

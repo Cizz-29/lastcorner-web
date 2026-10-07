@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import CookieConsent from '@/components/CookieConsent'
 import AdsenseScript from '@/components/AdsenseScript'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
 import './globals.css'
 import { jsonLd as serializzaJsonLd } from '@/lib/jsonLd'
 import { FEED_RSS } from '@/lib/seo'
@@ -118,14 +119,16 @@ export default function RootLayout({
         {children}
         <CookieConsent />
         <AdsenseScript />
+        {/* Google Analytics 4: solo dopo il consenso "Statistiche" del banner. */}
+        <GoogleAnalytics />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializzaJsonLd(jsonLd) }}
         />
         {/* Vercel Web Analytics + Speed Insights: nessun cookie, nessun
-            banner di consenso necessario (dati aggregati, non tracciano
-            il singolo utente). Servono per capire quante visite arrivano
-            una volta online sui domini veri. */}
+            consenso necessario (dati aggregati, non tracciano il singolo
+            utente). Contano tutte le visite, anche di chi rifiuta Google
+            Analytics: i due numeri non coincideranno mai. */}
         <Analytics />
         <SpeedInsights />
       </body>

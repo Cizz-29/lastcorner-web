@@ -10,7 +10,7 @@ export const metadata: Metadata = metadati({
 
 export default function PrivacyPage() {
   return (
-    <StaticPageLayout percorso="/privacy" title="Privacy Policy" updatedAt="21 settembre 2026">
+    <StaticPageLayout percorso="/privacy" title="Privacy Policy" updatedAt="7 ottobre 2026">
       <p className="font-montserrat text-[14px] text-white/85 leading-relaxed">
         La presente informativa descrive le modalità di trattamento dei dati personali degli
         utenti che consultano Lastcorner.net (di seguito, il &ldquo;Sito&rdquo;), in conformità
@@ -84,6 +84,16 @@ export default function PrivacyPage() {
             tramite il banner del Sito.
           </li>
           <li>
+            <strong className="text-white">Google Analytics</strong> (Google Ireland Limited), per
+            le statistiche di utilizzo, caricato solo previo consenso espresso tramite il banner
+            del Sito. Per questo servizio Google agisce come responsabile del trattamento.
+            Dettagli nella{' '}
+            <a href="/cookie" className="text-white hover:text-lc-red transition-colors duration-200">
+              Cookie Policy
+            </a>
+            .
+          </li>
+          <li>
             <strong className="text-white">Vercel Inc.</strong>, per l&rsquo;hosting e per le
             statistiche aggregate di utilizzo (Web Analytics e Speed Insights), che non
             installano cookie né identificano il singolo visitatore.
@@ -99,7 +109,8 @@ export default function PrivacyPage() {
           legge.
         </p>
         <p>
-          Per la pubblicità e per i contenuti incorporati da X e Instagram la base giuridica è il{' '}
+          Per la pubblicità, per le statistiche di Google Analytics e per i contenuti incorporati
+          da X e Instagram la base giuridica è il{' '}
           <strong className="text-white">consenso</strong> dell&rsquo;interessato, revocabile in
           qualsiasi momento con le modalità indicate nella{' '}
           <a href="/cookie" className="text-white hover:text-lc-red transition-colors duration-200">
@@ -112,7 +123,8 @@ export default function PrivacyPage() {
       <LegalSection title="Conservazione dei dati">
         <p>
           I dati di navigazione sono conservati per il tempo tecnicamente necessario e comunque
-          non superiore a quanto previsto dalle policy del fornitore di hosting. I dati forniti
+          non superiore a quanto previsto dalle policy del fornitore di hosting. I dati di Google
+          Analytics restano disponibili nei rapporti per 14 mesi. I dati forniti
           via email sono conservati per il tempo necessario a gestire la richiesta e, salvo
           diversa necessità, non oltre 24 mesi.
         </p>
