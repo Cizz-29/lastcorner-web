@@ -1213,13 +1213,6 @@ export default function QualiCompare({
               <Chart title="Acceleratore" unit="%" height={alto(ALTEZZE.acceleratore)} series={serieDa((t) => t.throttle)} yMin={0} yMax={100} ticks={3} legenda={legenda} nomeFile={nomeFileDi('acceleratore')} {...comuniGrafico} righeCursore={valoriAl((t) => t.throttle, (v) => `${Math.round(v)}%`)} />
               <Chart title="Freno" unit="on/off" height={alto(ALTEZZE.freno)} series={serieDa((t) => t.brake.map((b) => b * 100))} yMin={0} yMax={100} ticks={2} format={(v) => (v > 50 ? 'ON' : 'OFF')} legenda={legenda} nomeFile={nomeFileDi('freno')} {...comuniGrafico} righeCursore={valoriAl((t) => t.brake, (v) => (v >= 0.5 ? 'in frenata' : 'no'))} />
               <Chart title="Marcia" unit="n" height={alto(ALTEZZE.marcia)} series={serieDa((t) => t.gear)} yMin={1} yMax={8} ticks={4} legenda={legenda} nomeFile={nomeFileDi('marcia')} {...comuniGrafico} righeCursore={valoriAl((t) => t.gear, (v) => `${Math.round(v)}ª`)} />
-
-              <p className="font-montserrat text-[11px] text-lc-subtle ml-[52px]">
-                Asse orizzontale: distanza percorsa sul giro, dalla linea del traguardo.
-                Ogni pilota ha un colore suo (il compagno di squadra prende il secondo colore
-                della livrea) e si può cambiare dalla sua scheda; più giri dello stesso pilota
-                hanno lo stesso colore ma tratto diverso.
-              </p>
             </>
           )}
         </>

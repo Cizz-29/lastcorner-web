@@ -46,14 +46,9 @@ export default async function TelemetriaIndexPage() {
             Telemetria F1 {anno}
           </h1>
         </div>
-        <p className="font-montserrat text-[15px] text-white/85 leading-relaxed max-w-[72ch] mb-3">
-          I dati delle monoposto, Gran Premio per Gran Premio. Scegli un weekend e metti a confronto
-          i giri di qualifica e delle libere: velocità, acceleratore, freno, marce e delta, con il
-          tracciato colorato per chi è stato più veloce in ogni microsettore.
-        </p>
-        <p className="font-montserrat text-[13px] text-lc-subtle leading-relaxed max-w-[72ch] mb-10">
-          Per gara e sprint c&apos;è il passo giro per giro, con gomme e soste, e la telemetria
-          di ogni singolo giro. Ogni grafico si può scaricare come immagine.
+        <p className="font-montserrat text-[15px] text-white/85 leading-relaxed max-w-[72ch] mb-10">
+          Insights tecnici su tutte le sessioni di tutti i weekend della stagione {anno}. Scegli un
+          weekend, una sessione e metti a confronto i giri di più piloti o analizza i passi gara.
         </p>
 
         {events.length === 0 ? (
