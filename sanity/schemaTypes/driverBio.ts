@@ -2,6 +2,7 @@ import { defineField, defineType } from 'sanity'
 import { CampoTestoRitardato } from '../studio/personalizzazioni'
 import { campoDomandeRapide } from './domandeRapide'
 import { LARGHEZZA_MINIMA_CORPO, larghezzaSufficiente } from './misureImmagine'
+import { campoFonte, regoleFonte } from './fonteImmagine'
 
 export default defineType({
   name: 'driverBio',
@@ -54,8 +55,10 @@ export default defineType({
           // perde il fuoco a ogni carattere e la didascalia non si scrive.
           options: { hotspot: true, modal: { type: 'dialog' } },
           description: `Mostrata a tutta la larghezza della colonna: sotto ${LARGHEZZA_MINIMA_CORPO}px viene ingrandita e sgrana.`,
-          validation: (Rule) =>
+          validation: (Rule) => [
+            ...regoleFonte(Rule),
             Rule.custom((value) => larghezzaSufficiente(value, LARGHEZZA_MINIMA_CORPO)).warning(),
+          ],
           fields: [
             {
               name: 'caption',
@@ -71,6 +74,7 @@ export default defineType({
               description: "Descrive l'immagine: serve all'accessibilità e a Google.",
               components: { input: CampoTestoRitardato },
             },
+            campoFonte,
           ],
         },
       ],

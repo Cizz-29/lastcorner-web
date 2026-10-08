@@ -284,7 +284,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 quindi il browser non taglia piu' nulla per conto suo. Cosa
                 resta dentro il ritaglio si decide nello Studio col punto di
                 interesse (hotspot). */}
-            <div className="relative w-full aspect-[3/2] rounded-card overflow-hidden mb-8 border-b-2 border-lc-red">
+            <div className={`relative w-full aspect-[3/2] rounded-card overflow-hidden border-b-2 border-lc-red ${article.imageCredit ? 'mb-2' : 'mb-8'}`}>
               <Image
                 src={article.heroImageUrl ?? article.imageUrl}
                 alt={article.imageAlt ?? article.title}
@@ -294,6 +294,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 priority
               />
             </div>
+            {article.imageCredit && (
+              <p className="font-montserrat text-[11px] text-lc-subtle text-right mb-8">{article.imageCredit}</p>
+            )}
 
             {corpo && corpo.length > 0 ? (
               <ArticleBody

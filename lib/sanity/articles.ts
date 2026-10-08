@@ -3,6 +3,7 @@ import { sanityClient } from '@/lib/sanity/client'
 import { urlFor } from '@/lib/sanity/image'
 import { CATEGORIES } from '@/lib/categories'
 import { type Article } from '@/components/ArticleCard'
+import { testoCredito, type FonteImmagine } from '@/lib/fontiImmagini'
 
 // Immagine di riserva se un articolo Sanity fosse senza mainImage
 // (in teoria impossibile: il campo è obbligatorio nello schema).
@@ -33,7 +34,7 @@ interface SanityArticleDoc {
   publishedAt: string
   _updatedAt?: string
   aggiornatoIl?: string
-  mainImage?: { asset?: any; alt?: string }
+  mainImage?: { asset?: any; alt?: string; fonte?: FonteImmagine }
   excerpt?: string
   breaking?: boolean
   tags?: string[]
@@ -81,6 +82,8 @@ function toArticle(doc: SanityArticleDoc): Article {
     // vale per entrambi i formati.
     heroImageUrl: doc.mainImage ? urlFor(doc.mainImage).width(1200).height(800).fit('crop').url() : FALLBACK_IMAGE,
     imageAlt: doc.mainImage?.alt?.trim() || undefined,
+    // Credito della foto principale (campo "Fonte e permesso"), sotto la foto in cima all'articolo.
+    imageCredit: testoCredito(doc.mainImage?.fonte) ?? undefined,
     excerpt: doc.excerpt,
     breaking: doc.breaking,
     tags: doc.tags,

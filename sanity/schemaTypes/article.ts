@@ -1,6 +1,7 @@
 import { defineField, defineType } from 'sanity'
 import { OlistIcon } from '@sanity/icons'
 import { CampoTestoRitardato } from '../studio/personalizzazioni'
+import { campoFonte, regoleFonte } from './fonteImmagine'
 import { MINIMO_VOCI_INDICE, titoliDelCorpo, vociIndice, type LivelloIndice } from '../../lib/indice'
 import {
   LARGHEZZA_MINIMA_PRINCIPALE,
@@ -141,8 +142,10 @@ export default defineType({
       description: `Almeno ${LARGHEZZA_MINIMA_PRINCIPALE}px di larghezza, orizzontale. E' l'immagine che Google usa per Discover e per l'anteprima social.`,
       fields: [
         { name: 'alt', title: 'Testo alternativo (alt)', type: 'string', description: 'Descrizione breve per accessibilita e SEO.' },
+        campoFonte,
       ],
       validation: (Rule) => [
+        ...regoleFonte(Rule),
         Rule.required(),
         // Errore, non avviso: sotto i 1200px l'articolo e' fuori da Discover
         // e l'anteprima social esce sgranata. Vale la pena fermarsi e
@@ -228,13 +231,16 @@ export default defineType({
           // Avviso e non errore: nel corpo capita di dover mettere uno
           // screenshot, un grafico o una vecchia foto d'archivio che a piena
           // risoluzione non esiste. Meglio segnalarlo che impedirlo.
-          validation: (Rule) =>
+          validation: (Rule) => [
+            ...regoleFonte(Rule),
             Rule.custom((value) => larghezzaSufficiente(value, LARGHEZZA_MINIMA_CORPO)).warning(),
+          ],
           fields: [
             {
               name: 'caption',
               title: 'Didascalia',
               type: 'string',
+              description: 'Il credito della foto si aggiunge da solo: non scriverlo qui.',
               components: { input: CampoTestoRitardato },
             },
             {

@@ -24,6 +24,8 @@ export interface Article {
   /** Stessa foto ritagliata 3:2, usata solo dall'immagine grande in cima
    *  all'articolo. Assente per gli articoli mock. */
   heroImageUrl?: string
+  /** Credito della foto principale, già nella forma da mostrare ("Foto: …"). */
+  imageCredit?: string
   excerpt?: string
   breaking?: boolean
   /**
