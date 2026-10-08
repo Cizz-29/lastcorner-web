@@ -29,6 +29,7 @@ import { metadati, SITE_URL } from '@/lib/seo'
 import { dataOraItaliana, minutiDiLettura } from '@/lib/date'
 
 import { ALTRI_ARTICOLI } from '@/lib/altriArticoli'
+import CreditoFoto from '@/components/CreditoFoto'
 
 // Articoli in fondo alla pagina ("Continua a leggere"). Se ne chiede uno in
 // piu' a Sanity: il primo va nel riquadro "Leggi anche" dentro il testo.
@@ -295,7 +296,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               />
             </div>
             {article.imageCredit && (
-              <p className="font-montserrat text-[11px] text-lc-subtle text-right mb-8">{article.imageCredit}</p>
+              <p className="font-montserrat text-[11px] text-lc-subtle text-right mb-8"><CreditoFoto parti={article.imageCredit} /></p>
             )}
 
             {corpo && corpo.length > 0 ? (

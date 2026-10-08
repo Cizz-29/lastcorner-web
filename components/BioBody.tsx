@@ -1,7 +1,8 @@
 import Image from 'next/image'
 import { PortableText, type PortableTextComponents } from '@portabletext/react'
 import { urlFor, dimensioniDa } from '@/lib/sanity/image'
-import { testoCredito } from '@/lib/fontiImmagini'
+import { partiCredito } from '@/lib/fontiImmagini'
+import CreditoFoto from '@/components/CreditoFoto'
 
 // Rendering Portable Text per le bio pilota/team (stesso editor ricco degli
 // articoli, ma senza inserimento automatico di annunci/embed: qui il testo
@@ -17,14 +18,14 @@ function BioImage({ value }: { value: any }) {
     : value?.asset?.url
   if (!src) return null
   const alt = value.alt || value.caption || ''
-  const credito = testoCredito(value?.fonte)
+  const credito = partiCredito(value?.fonte)
   const didascalia = value.caption || credito ? (
     <figcaption className="font-montserrat italic text-[12px] text-lc-subtle mt-2">
       {value.caption}
       {credito && (
         <span className="not-italic">
           {value.caption ? ' · ' : ''}
-          {credito}
+          <CreditoFoto parti={credito} />
         </span>
       )}
     </figcaption>

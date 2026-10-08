@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import type { ParteCredito } from '@/lib/fontiImmagini'
 
 export interface Article {
   id: string
@@ -24,8 +25,9 @@ export interface Article {
   /** Stessa foto ritagliata 3:2, usata solo dall'immagine grande in cima
    *  all'articolo. Assente per gli articoli mock. */
   heroImageUrl?: string
-  /** Credito della foto principale, già nella forma da mostrare ("Foto: …"). */
-  imageCredit?: string
+  /** Credito della foto principale, già nella forma da mostrare ("Foto: …"),
+   *  a pezzi perché alcune fonti chiedono dei link (Wikimedia Commons). */
+  imageCredit?: ParteCredito[]
   excerpt?: string
   breaking?: boolean
   /**

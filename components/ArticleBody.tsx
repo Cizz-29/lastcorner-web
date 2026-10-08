@@ -7,7 +7,8 @@ import XEmbed from '@/components/XEmbed'
 import InstagramEmbed from '@/components/InstagramEmbed'
 import ClassificaF1Block from '@/components/ClassificaF1Block'
 import { urlFor, dimensioniDa } from '@/lib/sanity/image'
-import { testoCredito } from '@/lib/fontiImmagini'
+import { partiCredito } from '@/lib/fontiImmagini'
+import CreditoFoto from '@/components/CreditoFoto'
 import { MINIMO_VOCI_INDICE, titoliDelCorpo, vociIndice, type LivelloIndice, type VoceIndice } from '@/lib/indice'
 
 // Ogni quanti paragrafi consecutivi inserire uno slot pubblicitario nel corpo.
@@ -90,14 +91,14 @@ function ImageBlock({ value }: { value: any }) {
 
   // Didascalia e credito della foto (campo "Fonte e permesso"): il credito
   // compare anche senza didascalia, perché alcune fonti lo richiedono.
-  const credito = testoCredito(value?.fonte)
+  const credito = partiCredito(value?.fonte)
   const didascalia = value.caption || credito ? (
     <figcaption className="font-montserrat italic text-[12px] text-lc-subtle mt-2">
       {value.caption}
       {credito && (
         <span className="not-italic">
           {value.caption ? ' · ' : ''}
-          {credito}
+          <CreditoFoto parti={credito} />
         </span>
       )}
     </figcaption>
