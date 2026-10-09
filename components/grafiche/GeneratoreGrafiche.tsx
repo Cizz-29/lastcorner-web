@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import DescrizioneSocial from '@/components/grafiche/DescrizioneSocial'
 
 // Generatore delle grafiche citazione per i social.
 //
@@ -754,6 +755,8 @@ export default function GeneratoreGrafiche() {
           />
         </div>
       </div>
+
+      <DescrizioneSocial />
     </div>
   )
 }
