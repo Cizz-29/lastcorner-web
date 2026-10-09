@@ -8,9 +8,9 @@
 // Le condizioni d'uso sono state lette l'8 ottobre 2026 (dettagli e link nel
 // documento "Fonti delle immagini" e in PASSAGGIO-CONSEGNE.md). Nell'elenco ci
 // sono le aree stampa a cui la redazione ha accesso: Pirelli, Red Bull Content
-// Pool, Mercedes, Audi e Haas concedono l'uso editoriale per iscritto; per
-// Ferrari e Aston Martin il testo non si e' trovato (Aston Martin e' dietro
-// login), quindi vanno confermate con l'ufficio stampa. Le fonti che l'uso non
+// Pool, Mercedes, Audi e Haas concedono l'uso editoriale per iscritto;
+// Ferrari anche (condizioni lette il 9 ottobre, vedi sotto); per Aston Martin
+// il testo e' dietro login e va confermato. Le fonti che l'uso non
 // lo concedono (Alpine, Williams, siti dei team F2/F3, FIA, altre testate,
 // social) passano da "Permesso scritto" o "Licenza acquistata".
 //
@@ -132,7 +132,12 @@ export const FONTI: Record<ChiaveFonte, DefinizioneFonte> = {
     richiedeFotografo: true,
   },
   ferrari: {
-    titolo: 'Ferrari Media Centre',
+    // Condizioni generali del Media Centre: le foto si possono riprodurre
+    // senza autorizzazione "integralmente, per usi non commerciali e
+    // limitatamente alle ipotesi di riproduzione o pubblicazione su giornali
+    // [...] per fini informativi e di cronaca", indicando la fonte, senza
+    // alterare i crediti e "senza alterazioni o modifiche".
+    titolo: 'Ferrari Media Centre (solo cronaca, foto non modificata)',
     credito: conFotografo('Scuderia Ferrari'),
   },
   mercedes: {
