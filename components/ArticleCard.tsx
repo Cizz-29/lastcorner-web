@@ -30,6 +30,8 @@ export interface Article {
   imageCredit?: ParteCredito[]
   excerpt?: string
   breaking?: boolean
+  /** Articolo live con la diretta in corso: bollino LIVE sulle card. */
+  liveInCorso?: boolean
   /**
    * Corpo dell'articolo: array di blocchi Portable Text (lo stesso formato
    * usato dallo schema Sanity `article.body`), reso con <ArticleBody />.
@@ -40,6 +42,16 @@ export interface Article {
   tags?: string[]
   /** Sotto-categoria opzionale (es. "classifiche") per filtrare all'interno di una categoria */
   subcategory?: string
+}
+
+// Bollino in alto a sinistra sulle card degli articoli live in corso.
+function BollinoCard() {
+  return (
+    <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1.5 font-akira font-bold text-[10px] text-white bg-lc-red rounded-full px-2.5 py-1 tracking-wide">
+      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse motion-reduce:animate-none" aria-hidden />
+      LIVE
+    </span>
+  )
 }
 
 // ── Card piccola: colonna destra hero (orizzontale) ──────────
@@ -72,6 +84,7 @@ export function ArticleCardSmall({ article }: { article: Article }) {
           {/* Divider sottile vicino al titolo — riga corta allineata a destra */}
           <div className="w-8 h-px bg-white/25 my-1 self-end" />
           <div className="flex items-center justify-end gap-2 text-[10px] text-lc-subtle font-montserrat">
+            {article.liveInCorso && <span className="font-akira font-bold text-lc-red">LIVE</span>}
             <span>{article.date}</span>
             <span className="opacity-60">|</span>
             <span>{article.author}</span>
@@ -107,6 +120,7 @@ export function ArticleCardGrid({ article }: { article: Article }) {
           background: 'radial-gradient(ellipse 100% 55% at 50% 115%, rgba(255,58,58,0.95) 0%, rgba(255,58,58,0) 65%)',
         }}
       />
+      {article.liveInCorso && <BollinoCard />}
       {/* Testo sovrapposto in basso */}
       <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
         <h3 className="font-akira font-bold text-[13px] text-white text-center leading-snug line-clamp-3 mb-2">
@@ -148,6 +162,7 @@ export function ArticleCardHero({ article }: { article: Article }) {
           background: 'radial-gradient(ellipse 70% 60% at 50% 100%, rgba(255,58,58,1) 0%, rgba(255,58,58,0.4) 35%, rgba(255,58,58,0) 70%)',
         }}
       />
+      {article.liveInCorso && <BollinoCard />}
       {/* Testo sovrapposto in basso */}
       <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
         <h2 className="font-akira font-bold text-[20px] text-white text-center leading-tight mb-3 line-clamp-3">

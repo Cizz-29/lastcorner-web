@@ -328,3 +328,10 @@ export default function ArticleBody({ blocks, leggiAnche }: { blocks?: any[]; le
   const titoli = titoliDelCorpo(blocks)
   return <PortableText value={withAdsInjected(blocks, leggiAnche)} components={creaComponenti(titoli)} />
 }
+
+/** Testo di un aggiornamento live: stessi stili del corpo, senza annunci,
+ *  "Leggi anche" e indice. */
+export function TestoAggiornamento({ blocks }: { blocks?: any[] }) {
+  if (!blocks || blocks.length === 0) return null
+  return <PortableText value={blocks} components={creaComponenti([])} />
+}

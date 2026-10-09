@@ -4,6 +4,7 @@ import { urlFor } from '@/lib/sanity/image'
 import { CATEGORIES } from '@/lib/categories'
 import { type Article } from '@/components/ArticleCard'
 import { partiCredito, type FonteImmagine } from '@/lib/fontiImmagini'
+import type { AggiornamentoLive, DatiLive } from '@/lib/live'
 
 // Immagine di riserva se un articolo Sanity fosse senza mainImage
 // (in teoria impossibile: il campo è obbligatorio nello schema).
@@ -37,6 +38,7 @@ interface SanityArticleDoc {
   mainImage?: { asset?: any; alt?: string; fonte?: FonteImmagine }
   excerpt?: string
   breaking?: boolean
+  liveInCorso?: boolean
   tags?: string[]
   body?: any[]
 }
@@ -55,7 +57,7 @@ interface SanityArticleDoc {
 // pulizia dei link: e' giusta per la sitemap, che dice a Google quando
 // ripassare. aggiornatoIl la mette la redazione solo per gli aggiornamenti
 // veri: e' quella che si mostra al lettore e che finisce nei dati strutturati.
-const CAMPI_ELENCO = `_id, _updatedAt, title, slug, category, subcategory, author, publishedAt, aggiornatoIl, mainImage, excerpt, breaking, tags`
+const CAMPI_ELENCO = `_id, _updatedAt, title, slug, category, subcategory, author, publishedAt, aggiornatoIl, mainImage, excerpt, breaking, tags, "liveInCorso": live.inCorso == true`
 
 const ARTICLE_QUERY = `*[_type == "article" && defined(slug.current)] | order(publishedAt desc){
   ${CAMPI_ELENCO}
@@ -86,6 +88,7 @@ function toArticle(doc: SanityArticleDoc): Article {
     imageCredit: partiCredito(doc.mainImage?.fonte) ?? undefined,
     excerpt: doc.excerpt,
     breaking: doc.breaking,
+    liveInCorso: doc.liveInCorso || undefined,
     tags: doc.tags,
     content: doc.body, // presente solo se richiesto esplicitamente
   }
@@ -111,6 +114,18 @@ export const getAllArticles = cache(async (): Promise<Article[]> => {
       (errore as Error)?.message ?? errore
     )
     return []
+  }
+})
+
+// Diretta di un articolo live (lib/live.ts): interruttore e aggiornamenti.
+// Separata dall'elenco come il corpo, per lo stesso motivo.
+export const getLive = cache(async (id: string): Promise<{ live?: DatiLive; aggiornamenti?: AggiornamentoLive[] }> => {
+  try {
+    return (
+      (await sanityClient.fetch(`*[_id == $id][0]{ live, aggiornamenti }`, { id })) ?? {}
+    )
+  } catch {
+    return {}
   }
 })
 

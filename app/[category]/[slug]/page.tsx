@@ -14,6 +14,7 @@ import CondividiArticolo from '@/components/CondividiArticolo'
 import { ArticleCardGrid, type Article } from '@/components/ArticleCard'
 import {
   getArticleBody,
+  getLive,
   getArticleBySlug,
   getCorrelati,
   getPercorsiArticoli,
@@ -30,6 +31,16 @@ import { dataOraItaliana, minutiDiLettura } from '@/lib/date'
 
 import { ALTRI_ARTICOLI } from '@/lib/altriArticoli'
 import CreditoFoto from '@/components/CreditoFoto'
+import LiveAggiornamenti, { BollinoLive } from '@/components/LiveAggiornamenti'
+import {
+  eLive,
+  idAggiornamento,
+  ordinaAggiornamenti,
+  periodoCopertura,
+  testoSemplice,
+  type AggiornamentoLive,
+  type DatiLive,
+} from '@/lib/live'
 
 // Articoli in fondo alla pagina ("Continua a leggere"). Se ne chiede uno in
 // piu' a Sanity: il primo va nel riquadro "Leggi anche" dentro il testo.
@@ -111,9 +122,10 @@ function datiStrutturati(
   article: Article,
   percorso: string,
   categorySlug: string,
-  scheda: SchedaAutore | null
+  scheda: SchedaAutore | null,
+  diretta?: { live?: DatiLive; aggiornamenti: AggiornamentoLive[] }
 ) {
-  const notizia = {
+  const notizia: Record<string, unknown> = {
     '@type': 'NewsArticle',
     headline: article.title,
     description: article.excerpt,
@@ -137,6 +149,28 @@ function datiStrutturati(
       logo: { '@type': 'ImageObject', url: `${SITO}/images/logo.svg` },
     },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITO}${percorso}` },
+  }
+  // Articolo live: LiveBlogPosting (sottotipo di BlogPosting, quindi sempre
+  // un articolo per Google) con periodo di copertura e aggiornamenti, ognuno
+  // con l'indirizzo della sua ancora. dateModified e' l'ultimo aggiornamento.
+  if (diretta && eLive(diretta.live, diretta.aggiornamenti)) {
+    const { inizio, fine } = periodoCopertura(diretta.live, diretta.aggiornamenti, article.publishedAt)
+    const ultimo = diretta.aggiornamenti[0]?.orario
+    notizia['@type'] = 'LiveBlogPosting'
+    notizia.coverageStartTime = inizio
+    notizia.coverageEndTime = fine
+    if (ultimo && ultimo > String(notizia.dateModified ?? '')) notizia.dateModified = ultimo
+    notizia.liveBlogUpdate = diretta.aggiornamenti.map((a) => {
+      const testo = testoSemplice(a.testo)
+      return {
+        '@type': 'BlogPosting',
+        headline: (a.titolo?.trim() || testo.split('\n')[0] || article.title).slice(0, 110),
+        datePublished: a.orario,
+        url: `${SITO}${percorso}#${idAggiornamento(a)}`,
+        author: notizia.author,
+        articleBody: testo || undefined,
+      }
+    })
   }
   // Il percorso Home > Categoria > Articolo, lo stesso delle briciole in
   // cima alla pagina: Google lo usa per mostrare il risultato con la
@@ -162,12 +196,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   // Il testo dell'articolo viaggia separato: vedi la nota su ARTICLE_QUERY in
   // lib/sanity/articles.ts. Le due richieste sono indipendenti, quindi partono
   // insieme.
-  const [corpo, otherArticles, correlati, scheda] = await Promise.all([
+  const [corpo, otherArticles, correlati, scheda, datiLive] = await Promise.all([
     getArticleBody(article.id),
     getUltimiArticoli(ALTRI_ARTICOLI, article.id),
     getCorrelati(article, CORRELATI + 1),
     article.author ? getSchedaAutore(authorSlug(article.author)) : Promise.resolve(null),
+    getLive(article.id),
   ])
+  const aggiornamenti = ordinaAggiornamenti(datiLive.aggiornamenti)
+  const live = eLive(datiLive.live, aggiornamenti)
+  const liveInCorso = Boolean(datiLive.live?.inCorso)
 
   const urlAssoluto = `${SITO}/${params.category}/${params.slug}`
   const pubblicato = dataOraItaliana(article.publishedAt)
@@ -189,7 +227,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: jsonLd(datiStrutturati(article, `/${params.category}/${params.slug}`, params.category, scheda)),
+          __html: jsonLd(
+            datiStrutturati(article, `/${params.category}/${params.slug}`, params.category, scheda, {
+              live: datiLive.live,
+              aggiornamenti,
+            })
+          ),
         }}
       />
 
@@ -213,9 +256,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               schermo. Con min-w-0 la colonna vale esattamente lo spazio
               disponibile e il contenuto si adatta a lei. */}
           <article className="min-w-0">
-            <span className="inline-block font-akira font-bold text-[11px] text-white bg-lc-red rounded-full px-3 py-1 mb-4 tracking-wide">
-              {article.category.toUpperCase()}
-            </span>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="inline-block font-akira font-bold text-[11px] text-white bg-lc-red rounded-full px-3 py-1 tracking-wide">
+                {article.category.toUpperCase()}
+              </span>
+              {live && <BollinoLive inCorso={liveInCorso} />}
+            </div>
 
             {/* Titolo — variante più pesante di Akira (SuperBold, 800) */}
             {/* 24px su mobile: a 28 un titolo medio andava su sei righe e da
@@ -304,11 +350,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 blocks={corpo}
                 leggiAnche={inTesto ? { titolo: inTesto.title, href: `/${inTesto.slug}` } : undefined}
               />
-            ) : (
+            ) : live ? null : (
               <p className="font-montserrat text-[14px] text-lc-subtle italic">
                 Contenuto in arrivo.
               </p>
             )}
+
+            {live && <LiveAggiornamenti aggiornamenti={aggiornamenti} inCorso={liveInCorso} />}
 
             {/* Fondo articolo: condivisione, chi l'ha scritto, cosa leggere
                 dopo. Prima l'articolo finiva nel vuoto, e su mobile gli altri

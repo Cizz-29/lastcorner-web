@@ -3,6 +3,7 @@ import { OlistIcon } from '@sanity/icons'
 import { CampoTestoRitardato } from '../studio/personalizzazioni'
 import { campoFonte, regoleFonte } from './fonteImmagine'
 import { OPZIONI_SESSIONE } from '../../lib/sessioniF1'
+import { campoAggiornamenti, campoLive } from './live'
 import { MINIMO_VOCI_INDICE, titoliDelCorpo, vociIndice, type LivelloIndice } from '../../lib/indice'
 import {
   LARGHEZZA_MINIMA_PRINCIPALE,
@@ -190,6 +191,7 @@ export default defineType({
             : 'Nessun tag pilota/team: valuta se aggiungerne uno per far comparire l\'articolo nella sezione "news correlate"'
         ).warning(),
     }),
+    defineField(campoLive as any),
     defineField({
       name: 'body',
       title: 'Corpo articolo',
@@ -409,6 +411,7 @@ export default defineType({
     // accanto al confronto delle modifiche. Non compare mai sul sito: le query
     // del sito elencano i campi uno per uno e questo non c'e'.
     // Dopo aver letto le note si puo' svuotare il campo prima di pubblicare.
+    defineField(campoAggiornamenti as any),
     defineField({
       name: 'noteRevisione',
       title: 'Note di revisione',
