@@ -1144,14 +1144,6 @@ export default function QualiCompare({
                         </div>
                       </div>
                     ))}
-                    {microsettori.length > 0 && (
-                      <p className="font-montserrat text-[11px] text-lc-subtle leading-relaxed">
-                        Il giro è diviso in {microsettori.length} microsettori di circa{' '}
-                        {Math.round((attivi[0].tel.distance[attivi[0].tel.distance.length - 1] || 0) / microsettori.length)} metri.
-                        Grigio vuol dire pari.
-                        {tracciato ? ' Passa o tocca la pista e i grafici per leggere i valori esatti.' : ''}
-                      </p>
-                    )}
                   </div>
                 </div>
               )}
