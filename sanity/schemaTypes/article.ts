@@ -2,6 +2,7 @@ import { defineField, defineType } from 'sanity'
 import { OlistIcon } from '@sanity/icons'
 import { CampoTestoRitardato } from '../studio/personalizzazioni'
 import { campoFonte, regoleFonte } from './fonteImmagine'
+import { OPZIONI_SESSIONE } from '../../lib/sessioniF1'
 import { MINIMO_VOCI_INDICE, titoliDelCorpo, vociIndice, type LivelloIndice } from '../../lib/indice'
 import {
   LARGHEZZA_MINIMA_PRINCIPALE,
@@ -106,6 +107,15 @@ export default defineType({
           if (LIMITED_SUBCATEGORY_VALUES.includes(value as string)) return true
           return `Per "${category ?? 'questa categoria'}" la sotto-categoria può essere solo News o Rubriche`
         }),
+    }),
+    defineField({
+      name: 'recapSessione',
+      title: 'Recap di sessione F1',
+      type: 'string',
+      description:
+        'Solo se l\'articolo è il resoconto di una sessione del weekend: in home, nel riquadro "Prossimo evento", il nome della sessione (es. PL1) diventa un link a questo articolo. Il Gran Premio lo ricava il sito dalla data di pubblicazione.',
+      options: { list: OPZIONI_SESSIONE },
+      hidden: ({ document }) => (document as { category?: string } | undefined)?.category !== 'Formula 1',
     }),
     defineField({
       name: 'author',
@@ -250,6 +260,7 @@ export default defineType({
               description: 'Descrive l\'immagine: serve all\'accessibilità, a Google e alla ricerca nell\'archivio.',
               components: { input: CampoTestoRitardato },
             },
+            campoFonte,
           ],
         },
         {

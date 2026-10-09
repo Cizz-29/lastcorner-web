@@ -296,7 +296,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               />
             </div>
             {article.imageCredit && (
-              <p className="font-montserrat text-[11px] text-lc-subtle text-right mb-8"><CreditoFoto parti={article.imageCredit} /></p>
+              <p className="font-montserrat text-[11px] text-lc-subtle mb-8"><CreditoFoto parti={article.imageCredit} /></p>
             )}
 
             {corpo && corpo.length > 0 ? (

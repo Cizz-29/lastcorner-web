@@ -1,6 +1,9 @@
 import Image from 'next/image'
 import CountdownWidget from './CountdownWidget'
+import Link from 'next/link'
 import { getNextRace } from '@/lib/f1api'
+import { sessioniDelWeekend } from '@/lib/sessioniF1'
+import { getRecapSessioni } from '@/lib/sanity/recapSessioni'
 
 // Mappa paese → codice ISO 3166-1 alpha-2, usato per le immagini bandiera
 // da flagcdn.com (gratuito, no API key). Le emoji bandiera non si
@@ -46,30 +49,18 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Rome' })
 }
 
+// Sessioni in ordine di orario (comprese le Qualifiche Sprint, che prima
+// mancavano) e la prossima da disputare.
 function getRaceWeekend(race: any) {
-  const sessions = [
-    { label: 'PL1',         key: 'FirstPractice',  date: race.FirstPractice?.date,  time: race.FirstPractice?.time },
-    { label: 'PL2',         key: 'SecondPractice', date: race.SecondPractice?.date, time: race.SecondPractice?.time },
-    { label: 'PL3',         key: 'ThirdPractice',  date: race.ThirdPractice?.date,  time: race.ThirdPractice?.time },
-    { label: 'Sprint',      key: 'Sprint',         date: race.Sprint?.date,          time: race.Sprint?.time },
-    { label: 'Qualifiche',  key: 'Qualifying',     date: race.Qualifying?.date,      time: race.Qualifying?.time },
-    { label: 'Gara',        key: 'Race',           date: race.date,                  time: race.time ?? '13:00:00Z' },
-  ].filter(s => s.date)
-
+  const sessions = sessioniDelWeekend(race)
   const now = new Date()
-  let nextSessionLabel = 'Gara'
-  let nextSessionDate: Date | null = null
-
-  for (const s of sessions) {
-    const dt = new Date(`${s.date}T${s.time}`)
-    if (dt > now) {
-      nextSessionLabel = s.label
-      nextSessionDate = dt
-      break
-    }
+  const prossima = sessions.find((s) => s.inizio > now)
+  return {
+    sessions,
+    nextSessionKey: prossima?.chiave ?? null,
+    nextSessionLabel: prossima?.etichetta ?? 'Gara',
+    nextSessionDate: prossima?.inizio ?? null,
   }
-
-  return { sessions, nextSessionLabel, nextSessionDate }
 }
 
 function NextEventFallback() {
@@ -97,7 +88,10 @@ export default async function NextEventSection() {
   const country = race.Circuit?.Location?.country ?? ''
   const flagCode = FLAG_CODES[country] ?? null
   const colors = COUNTRY_COLORS[country] ?? ['#FF3A3A', '#FF3A3A']
-  const { sessions, nextSessionLabel, nextSessionDate } = getRaceWeekend(race)
+  const { sessions, nextSessionKey, nextSessionLabel, nextSessionDate } = getRaceWeekend(race)
+  // Articoli di recap delle sessioni già disputate (campo "Recap di sessione
+  // F1" nello Studio): il nome della sessione diventa un link.
+  const recap = await getRecapSessioni(sessions)
 
   // Data gara
   const raceDate = formatDate(race.date)
@@ -242,14 +236,16 @@ export default async function NextEventSection() {
               </p>
               <div className="flex flex-col gap-1">
                 {sessions.map((s) => {
-                  const dt = new Date(`${s.date}T${s.time}`)
+                  const dt = s.inizio
                   const isPast = dt < new Date()
-                  const isNext = s.label === nextSessionLabel
+                  const isNext = s.chiave === nextSessionKey
+                  const link = isPast ? recap[s.chiave] : undefined
                   return (
                     <div
-                      key={s.key}
-                      className={`flex items-center justify-between py-[6px] px-3 rounded-lg transition-colors ${
+                      key={s.chiave}
+                      className={`flex items-center justify-between gap-3 py-[6px] px-3 rounded-lg transition-colors ${
                         isNext ? 'bg-lc-red/15 border border-lc-red/30' :
+                        link ? 'opacity-80 hover:opacity-100 hover:bg-white/5' :
                         isPast ? 'opacity-35' : 'hover:bg-white/5'
                       }`}
                     >
@@ -257,9 +253,20 @@ export default async function NextEventSection() {
                         {isNext && <div className="w-1.5 h-1.5 rounded-full bg-lc-red animate-pulse motion-reduce:animate-none" aria-hidden />}
                         {isPast && !isNext && <div className="w-1.5 h-1.5 rounded-full bg-white/20" aria-hidden />}
                         {!isNext && !isPast && <div className="w-1.5 h-1.5 rounded-full bg-white/40" aria-hidden />}
-                        <span className={`font-akira text-[11px] ${isNext ? 'text-white' : 'text-white/70'}`}>
-                          {s.label}
-                        </span>
+                        {link ? (
+                          <Link
+                            href={link}
+                            className="font-akira text-[11px] text-white underline decoration-lc-red decoration-2 underline-offset-4 hover:text-lc-red"
+                            aria-label={`${s.etichetta}: leggi il resoconto`}
+                          >
+                            {s.etichetta}
+                            <span className="ml-1.5 inline-block text-lc-red" aria-hidden>→</span>
+                          </Link>
+                        ) : (
+                          <span className={`font-akira text-[11px] ${isNext ? 'text-white' : 'text-white/70'}`}>
+                            {s.etichetta}
+                          </span>
+                        )}
                       </div>
                       <span className="font-montserrat text-[10px] text-lc-subtle">
                         {dt.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Rome' })}
