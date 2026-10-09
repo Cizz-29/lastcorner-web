@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { esportaPng } from '@/components/telemetria/esportaPng'
+import { EtichetteYInterne } from '@/components/telemetria/EtichetteYInterne'
 import { assegnaColori, leggiColori } from '@/components/telemetria/colori'
 
 // Passo: tempo sul giro di ogni pilota selezionato, giro per giro.
@@ -362,7 +363,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
           </div>
 
           <div className="flex mb-3">
-            <div className="relative shrink-0" style={{ width: AXIS_W, height: H }} aria-hidden>
+            <div className="relative shrink-0 hidden sm:block" style={{ width: AXIS_W, height: H }} aria-hidden>
               {gridTimes.map((t, i) => {
                 const p = pos(from, t)
                 return (
@@ -378,7 +379,8 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
               })}
             </div>
 
-            <div className="flex-1 min-w-0 bg-lc-card border border-white/10 rounded-card-sm overflow-hidden">
+            <div className="relative flex-1 min-w-0 bg-lc-card border border-white/10 rounded-card-sm overflow-hidden">
+              <EtichetteYInterne valori={gridTimes.map((t) => ({ testo: formatLapTime(t), y: pos(from, t).y }))} />
               <svg
                 ref={svgRef}
                 viewBox={`0 0 ${W} ${H}`}
@@ -487,7 +489,7 @@ export default function RacePace({ drivers }: { drivers: RaceDriver[] }) {
 
           {/* Numeri dei giri sotto al grafico */}
           <div className="flex mb-6">
-            <div className="shrink-0" style={{ width: AXIS_W }} />
+            <div className="shrink-0 hidden sm:block" style={{ width: AXIS_W }} />
             <div className="flex-1 flex justify-between font-montserrat text-[9px] text-lc-subtle px-1">
               {gridLaps.map((lap, i) => (
                 <span key={i}>{lap}</span>

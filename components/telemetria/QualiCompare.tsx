@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { esportaPng, type Annotazione, type VoceLegenda } from '@/components/telemetria/esportaPng'
 import { puntiNotevoli } from '@/components/telemetria/puntiNotevoli'
+import { EtichetteYInterne } from '@/components/telemetria/EtichetteYInterne'
 import { assegnaColori, leggiColori, salvaColori } from '@/components/telemetria/colori'
 import MappaTracciato, {
   type Microsettore,
@@ -296,7 +297,7 @@ function Chart({
       </div>
       <div className="flex">
         <div
-          className="relative shrink-0 text-right pr-2"
+          className="relative shrink-0 text-right pr-2 hidden sm:block"
           style={{ width: AXIS_W, height }}
           aria-hidden
         >
@@ -313,6 +314,7 @@ function Chart({
         </div>
 
         <div className="relative flex-1 min-w-0 bg-lc-card border border-white/10 rounded-card-sm overflow-hidden">
+          <EtichetteYInterne valori={values.map((v) => ({ testo: format(v), y: yOf(v, height, lo, hi) }))} />
           {/* Etichette delle velocita': HTML sovrapposto, non testo dentro
               l'SVG, che verrebbe stirato da preserveAspectRatio="none". */}
           {tutteLeAnnotazioni.map((a, i) => (
@@ -488,7 +490,7 @@ function Chart({
         </div>
       </div>
       {curve.length > 0 && (
-        <div className="relative h-7 mt-1" style={{ marginLeft: AXIS_W }} aria-hidden>
+        <div className="relative h-7 mt-1 sm:ml-[52px]" aria-hidden>
           {righeEtichette(curve).map(({ c, riga }) => (
             <span
               key={c.n}
@@ -1148,7 +1150,7 @@ export default function QualiCompare({
                 </div>
               )}
 
-              <div className="flex items-center gap-3 mb-5 ml-[52px]">
+              <div className="flex items-center gap-3 mb-5 sm:ml-[52px]">
                 <label
                   htmlFor="altezza-grafici"
                   className="font-akira text-[9px] uppercase tracking-widest text-lc-subtle shrink-0"
@@ -1195,7 +1197,7 @@ export default function QualiCompare({
                     {...comuniGrafico}
                     righeCursore={righeDelta}
                   />
-                  <p className="font-montserrat text-[11px] text-lc-subtle -mt-4 mb-6 ml-[52px]">
+                  <p className="font-montserrat text-[11px] text-lc-subtle -mt-4 mb-6 sm:ml-[52px]">
                     Sopra lo zero: più lento di {delta.refAbbr}. Sotto: più veloce.
                   </p>
                 </>
