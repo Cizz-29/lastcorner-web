@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { TIPI_POST, type TipoPost } from '@/lib/ai/tipiPost'
 
 // "Genera descrizione": dalla notizia incollata, la descrizione Instagram
 // nello stile di @lastcorner_net e la versione per X
 // (app/grafiche/descrizione/route.ts). Funziona anche per i post fatti in
 // Photoshop: basta incollare la fonte. Il testo resta modificabile prima di
-// copiarlo.
+// copiarlo. Quattro tipi di post (lib/ai/tipiPost.ts), ognuno con regole ed
+// esempi propri; gli altri tipi la redazione li scrive a mano.
 
 const etichetta = 'font-montserrat text-[11px] uppercase tracking-widest text-lc-subtle'
 const campo =
@@ -55,6 +57,7 @@ function Risultato({ titolo, valore, onChange, limite }: {
 }
 
 export default function DescrizioneSocial() {
+  const [tipo, setTipo] = useState<TipoPost>('risultato')
   const [fonte, setFonte] = useState('')
   const [appunti, setAppunti] = useState('')
   const [instagram, setInstagram] = useState('')
@@ -69,7 +72,7 @@ export default function DescrizioneSocial() {
       const r = await fetch('/grafiche/descrizione', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ fonte, appunti }),
+        body: JSON.stringify({ tipo, fonte, appunti }),
       })
       if (r.status === 401) throw new Error('Password scaduta: ricarica la pagina.')
       const dati = await r.json().catch(() => ({}))
@@ -93,12 +96,33 @@ export default function DescrizioneSocial() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="flex flex-col gap-4">
           <div>
+            <label className={etichetta}>Tipo di post</label>
+            <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Tipo di post">
+              {TIPI_POST.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={tipo === t.id}
+                  onClick={() => setTipo(t.id)}
+                  className={`font-montserrat text-[13px] px-3 py-1.5 rounded-full border transition-colors ${
+                    tipo === t.id
+                      ? 'border-lc-red bg-lc-red text-white'
+                      : 'border-white/15 text-lc-subtle hover:border-white/40 hover:text-white'
+                  }`}
+                >
+                  {t.nome}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
             <label className={etichetta}>Notizia o fonte</label>
             <textarea
               rows={10}
               value={fonte}
               onChange={(e) => setFonte(e.target.value)}
-              placeholder="Incolla qui il testo della notizia, il comunicato o le dichiarazioni, con la fonte (es. «Come riportato da The Race…»)."
+              placeholder={TIPI_POST.find((t) => t.id === tipo)!.aiuto}
               className={`${campo} mt-2 resize-y`}
             />
           </div>
@@ -107,7 +131,7 @@ export default function DescrizioneSocial() {
             <input
               value={appunti}
               onChange={(e) => setAppunti(e.target.value)}
-              placeholder="Es. tono ironico, metti in evidenza Leclerc, c'è l'articolo sul sito"
+              placeholder="Es. appuntamento alle 14:00 per le qualifiche, hashtag #BahrainGP, c'è l'articolo sul sito"
               className={`${campo} mt-2`}
             />
           </div>
