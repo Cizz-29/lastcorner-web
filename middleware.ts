@@ -13,14 +13,28 @@ import { PAGINE_MASSIME, SOTTOCATEGORIE_PAGINABILI, percorsoPagina } from '@/lib
 // uno di questi, la richiesta prosegue normale (non è un vecchio URL da
 // migrare). Tutto il resto, se è un singolo segmento, viene cercato come
 // slug articolo su Sanity: se trovato si fa redirect alla nuova posizione,
-// altrimenti si lascia proseguire (finirà nel normale 404).
+// altrimenti si risponde subito 404 (vedi nonTrovato).
 const KNOWN_TOP_LEVEL = new Set([
   'formula-1', 'formula-2', 'formula-3', 'f1-academy', 'wrc', 'altro',
   'chi-siamo', 'contatti', 'privacy', 'cookie', 'note-legali', 'autori',
   'cerca', 'telemetria', 'telemetria-data', 'grafiche',
   'studio', 'api', 'images', 'sitemap.xml', 'robots.txt', '_next', 'favicon.ico',
-  'ads.txt', 'fonts',
+  'ads.txt', 'fonts', 'opengraph-image', 'icon', 'apple-icon', 'feed.xml', 'news-sitemap.xml',
 ])
+
+// Indirizzi che solo i bot provano (pannelli WordPress, file di
+// configurazione, backup): rispondono subito 404, senza far girare nessuna
+// pagina. Prima finivano nella pagina categoria o articolo, che disegnava il
+// 404 e lo salvava nella cache ISR: il 10 ottobre 2026 erano 182 indirizzi
+// diversi in 12 ore, un terzo delle esecuzioni delle funzioni del sito.
+const RE_INDIRIZZI_DA_BOT =
+  /^\/(?:\.|wp-|wordpress|xmlrpc|cgi-bin|phpmyadmin|admin(?:\/|$)|vendor\/|\.git)|\.(?:php\d?|asp|aspx|jsp|cgi|env|bak|old|sql|ini|log|sh|ya?ml|swp|tar|gz|zip|rar|7z)$/i
+
+// La pagina 404 del sito (app/not-found.tsx) e' statica: la si serve con lo
+// stato giusto, senza calcoli.
+function nonTrovato(req: NextRequest): NextResponse {
+  return NextResponse.rewrite(new URL('/_not-found', req.url), { status: 404 })
+}
 
 // La telemetria e' pubblica (dal 1° ottobre 2026) e non ha nulla da
 // proteggere. Il generatore di grafiche invece e'
@@ -189,6 +203,8 @@ export async function middleware(req: NextRequest) {
 
   if (pathname === '/' || pathname === '') return NextResponse.next()
 
+  if (RE_INDIRIZZI_DA_BOT.test(pathname)) return nonTrovato(req)
+
   const clean = pathname.replace(/\/+$/, '') // via slash finale
   if (STATIC_PAGE_REDIRECTS[clean]) {
     return NextResponse.redirect(new URL(STATIC_PAGE_REDIRECTS[clean], req.url), 301)
@@ -241,6 +257,10 @@ export async function middleware(req: NextRequest) {
     if (categorySlug) {
       return NextResponse.redirect(new URL(`/${categorySlug}/${first}`, req.url), 301)
     }
+    // Ne' una pagina del sito ne' un vecchio articolo: 404 statico, senza
+    // passare dalla pagina categoria (che lo disegnerebbe e lo salverebbe in
+    // cache a ogni indirizzo inventato).
+    return nonTrovato(req)
   }
 
   return NextResponse.next()
@@ -292,6 +312,11 @@ export const config = {
     //   - i nomi con un punto (/robots.txt, /ads.txt, /wp-login.php): uno slug
     //     non ne contiene mai, quindi non possono essere vecchi articoli.
     '/:segmento((?!(?:formula-1|formula-2|formula-3|f1-academy|wrc|altro)$)[^/.]+)',
+
+    // Indirizzi da bot (vedi RE_INDIRIZZI_DA_BOT): file .php, .env e simili,
+    // cartelle di WordPress. Tenere allineato con l'espressione regolare.
+    '/:file([^/]*\\.(?:php\\d?|asp|aspx|jsp|cgi|env|bak|old|sql|ini|log|sh|ya?ml|swp|tar|gz|zip|rar|7z))',
+    '/:cartella(wp-[^/]*|wordpress|cgi-bin|phpmyadmin|vendor|\\.git|\\.env)/:resto*',
 
     // Vecchia paginazione nei parametri (/formula-1?page=2,
     // /formula-1/editoriali?page=2, /autori/nome?page=2): solo quando il
