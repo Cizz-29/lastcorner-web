@@ -119,10 +119,10 @@ export const getAllArticles = cache(async (): Promise<Article[]> => {
 
 // Diretta di un articolo live (lib/live.ts): interruttore e aggiornamenti.
 // Separata dall'elenco come il corpo, per lo stesso motivo.
-export const getLive = cache(async (id: string): Promise<{ live?: DatiLive; aggiornamenti?: AggiornamentoLive[] }> => {
+export const getLive = cache(async (id: string): Promise<{ live?: DatiLive; aggiornamenti?: AggiornamentoLive[]; _updatedAt?: string }> => {
   try {
     return (
-      (await sanityClient.fetch(`*[_id == $id][0]{ live, aggiornamenti }`, { id })) ?? {}
+      (await sanityClient.fetch(`*[_id == $id][0]{ live, aggiornamenti, _updatedAt }`, { id })) ?? {}
     )
   } catch {
     return {}

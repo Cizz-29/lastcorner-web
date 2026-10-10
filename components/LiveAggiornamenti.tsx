@@ -26,13 +26,18 @@ export function BollinoLive({ inCorso }: { inCorso: boolean }) {
 export default function LiveAggiornamenti({
   aggiornamenti,
   inCorso,
+  id,
+  versione,
 }: {
   aggiornamenti: AggiornamentoLive[]
   inCorso: boolean
+  /** Per il controllo degli aggiornamenti (AggiornaLive). */
+  id: string
+  versione?: string
 }) {
   return (
     <section aria-label="Aggiornamenti in diretta" className="mt-4 mb-6">
-      {inCorso && <AggiornaLive />}
+      {inCorso && <AggiornaLive id={id} versione={versione} />}
       <div className="flex items-center gap-3 mb-6">
         <h2 className="font-akira font-bold text-[16px] lg:text-[18px] text-white">
           {inCorso ? 'Aggiornamenti in diretta' : 'La diretta'}

@@ -356,7 +356,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               </p>
             )}
 
-            {live && <LiveAggiornamenti aggiornamenti={aggiornamenti} inCorso={liveInCorso} />}
+            {live && (
+              <LiveAggiornamenti
+                aggiornamenti={aggiornamenti}
+                inCorso={liveInCorso}
+                id={article.id}
+                versione={datiLive._updatedAt}
+              />
+            )}
 
             {/* Fondo articolo: condivisione, chi l'ha scritto, cosa leggere
                 dopo. Prima l'articolo finiva nel vuoto, e su mobile gli altri

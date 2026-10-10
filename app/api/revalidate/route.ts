@@ -37,6 +37,30 @@ function percorsiDa(corpo: any): string[] {
   const tipo = corpo?._type
 
   if (tipo === 'article') {
+    // Diretta in corso: ogni aggiornamento e' una pubblicazione, anche trenta
+    // in una sessione. Rifare ogni volta home, categoria, autore, sitemap e
+    // feed (otto pagine) per un paragrafo in piu' costava otto rigenerazioni a
+    // colpo; serve solo la pagina dell'articolo.
+    //
+    // Le altre si allineano alla prima pubblicazione della diretta (quando
+    // gli aggiornamenti sono ancora meno di due: il bollino LIVE compare sulle
+    // schede) e alla chiusura, quando si spegne "Diretta in corso".
+    // Conseguenza: se durante la diretta cambi titolo o foto, home e
+    // categoria li mostrano solo alla chiusura.
+    //
+    // Se Sanity non manda i campi della diretta, si va avanti come sempre.
+    const aggiornamentiLive = Array.isArray(corpo?.aggiornamenti) ? corpo.aggiornamenti.length : 0
+    const soloArticolo = corpo?.live?.inCorso === true && aggiornamentiLive >= 2
+
+    const categoria = slugCategoria(corpo?.category)
+    const slug = typeof corpo?.slug?.current === 'string' ? corpo.slug.current : null
+    if (soloArticolo && categoria && slug) {
+      const soloQuesta = [`/${categoria}/${slug}`]
+      const codificato = encodeURIComponent(slug)
+      if (codificato !== slug) soloQuesta.push(`/${categoria}/${codificato}`)
+      return soloQuesta
+    }
+
     // La sitemap news elenca gli articoli delle ultime 48 ore ed e' il modo
     // in cui Googlebot News si accorge in fretta di un pezzo nuovo: va
     // rigenerata proprio adesso, che un articolo e' appena cambiato. E'
@@ -47,8 +71,6 @@ function percorsiDa(corpo: any): string[] {
     percorsi.add('/sitemap.xml')
     percorsi.add('/feed.xml')
 
-    const categoria = slugCategoria(corpo?.category)
-    const slug = typeof corpo?.slug?.current === 'string' ? corpo.slug.current : null
     if (categoria) {
       percorsi.add(`/${categoria}`)
       if (slug) {
