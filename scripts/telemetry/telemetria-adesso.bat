@@ -17,8 +17,22 @@ set "anno="
 set "round="
 set "sessioni="
 
+echo Cerco Python...
+call "%~dp0trova-python.bat"
+if errorlevel 2 (
+  echo.
+  echo ERRORE: non riesco a installare FastF1. Copia il testo sopra e mandamelo.
+  goto fine
+)
+if errorlevel 1 (
+  echo.
+  echo ERRORE: Python non trovato su questo PC. Scrivimi in chat.
+  goto fine
+)
+echo Uso: %PY%
+
 echo Cerco le sessioni che mancano sul sito...
-for /f "tokens=1,2 delims==" %%a in ('python scripts\telemetry\serve_aggiornare.py') do set "%%a=%%b"
+for /f "tokens=1,2 delims==" %%a in ('%PY% scripts\telemetry\serve_aggiornare.py') do set "%%a=%%b"
 
 if "%round%"=="" (
   echo.
@@ -43,7 +57,12 @@ if errorlevel 1 (
 
 echo.
 echo Scarico ed elaboro i dati (qualche minuto)...
-python scripts\telemetry\process_session.py %anno% %round% --sessioni "%sessioni%"
+%PY% scripts\telemetry\process_session.py %anno% %round% --sessioni "%sessioni%"
+if errorlevel 1 (
+  echo.
+  echo ERRORE durante l'elaborazione. Copia il testo sopra e mandamelo.
+  goto fine
+)
 
 git add public/telemetria-data
 git diff --cached --quiet

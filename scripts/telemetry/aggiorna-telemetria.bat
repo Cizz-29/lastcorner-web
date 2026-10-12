@@ -23,7 +23,13 @@ set "sessioni="
 REM Traccia di ogni controllo, anche quando non c'e' niente da fare: se la
 REM telemetria non esce, l'ora qui dentro dice se l'attivita' sta girando.
 echo Ultimo controllo: %date% %time%> "%~dp0ultimo-controllo.txt"
-for /f "tokens=1,2 delims==" %%a in ('python scripts\telemetry\serve_aggiornare.py 2^>^>scripts\telemetry\ultimo-controllo.txt') do set "%%a=%%b"
+call "%~dp0trova-python.bat" >> "%~dp0ultimo-controllo.txt" 2>&1
+if errorlevel 1 (
+  echo Python o FastF1 non trovati: vedi trova-python.bat>> "%~dp0ultimo-controllo.txt"
+  exit /b 1
+)
+echo Python: %PY% >> "%~dp0ultimo-controllo.txt"
+for /f "tokens=1,2 delims==" %%a in ('%PY% scripts\telemetry\serve_aggiornare.py 2^>^>scripts\telemetry\ultimo-controllo.txt') do set "%%a=%%b"
 if "%round%"=="" exit /b 0
 
 echo. >> "%LOG%"
@@ -33,7 +39,7 @@ REM Prima si allinea il repository: il bot delle statistiche (GitHub)
 REM puo' aver fatto un commit nel frattempo.
 git pull --rebase --autostash >> "%LOG%" 2>&1
 
-python scripts\telemetry\process_session.py %anno% %round% --sessioni "%sessioni%" >> "%LOG%" 2>&1
+%PY% scripts\telemetry\process_session.py %anno% %round% --sessioni "%sessioni%" >> "%LOG%" 2>&1
 
 git add public/telemetria-data >> "%LOG%" 2>&1
 git diff --cached --quiet
