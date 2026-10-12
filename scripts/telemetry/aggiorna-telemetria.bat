@@ -20,7 +20,10 @@ set "anno="
 set "round="
 set "sessioni="
 
-for /f "tokens=1,2 delims==" %%a in ('python scripts\telemetry\serve_aggiornare.py 2^>nul') do set "%%a=%%b"
+REM Traccia di ogni controllo, anche quando non c'e' niente da fare: se la
+REM telemetria non esce, l'ora qui dentro dice se l'attivita' sta girando.
+echo Ultimo controllo: %date% %time%> "%~dp0ultimo-controllo.txt"
+for /f "tokens=1,2 delims==" %%a in ('python scripts\telemetry\serve_aggiornare.py 2^>^>scripts\telemetry\ultimo-controllo.txt') do set "%%a=%%b"
 if "%round%"=="" exit /b 0
 
 echo. >> "%LOG%"
